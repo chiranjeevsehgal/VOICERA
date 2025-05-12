@@ -11,12 +11,14 @@
 
 ### Installation
 - Clone the repository: `git clone https://github.com/chiranjeevsehgal/VOICERA.git`
-- Create a virtual environment: `python -m venv .venv`
-- Activate the environment: `source .venv/bin/activate
+- Create a virtual environment: `python -m venv fastapi-env`
+- Activate the environment: `fastapi-env\Scripts\activate.bat`
+- Navigate to backend: `cd Backend`
 - Install dependencies: `pip install -r requirements.txt`
 
 ### Running the Application
 
+- Activate the environment: `fastapi-env\Scripts\activate.bat`
 - Run the application: `uvicorn main:app --reload --port 8000`
 - Access the API documentation at `http://localhost:8000/docs`
 
