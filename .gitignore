@@ -69,3 +69,4 @@ __pycache__
 .env
 Backend/.env
 backend/.env
+Backend/audio_uploads/
