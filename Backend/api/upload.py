@@ -1,6 +1,9 @@
 import os
+import time
+import requests
 from fastapi import APIRouter, UploadFile, File, HTTPException, status
 from typing import List
+from fastapi.responses import JSONResponse
 
 router = APIRouter()
 
@@ -36,6 +39,29 @@ async def upload_audio(file: UploadFile = File(...)):
 
     # 2nd process will start and if the process is successful, delete the file
     # os.remove(file_path)  # Uncomment this line to delete the file after processing
+
+    # Upload to tmpfiles.org
+    max_retries = 3
+    delay_seconds = 3
+
+    for attempt in range(1, max_retries + 1):
+        try:
+            with open(file_path, "rb") as f:
+                files = {"file": f}
+                response = requests.post("https://tmpfiles.org/api/v1/upload", files=files)
+
+            if response.status_code == 200:
+                data = response.json()
+                url = data.get("data", {}).get("url")
+                if url:
+                    os.remove(file_path)
+                    return {"status": "success", "url": url}
+                else:   
+                    raise ValueError("Upload succeeded but no URL returned.")
+            else:
+                raise RuntimeError(f"Upload failed with status code {response.status_code}")
+        except Exception as e:
+            if attempt == max_retries:
+                return JSONResponse(status_code=500, content={"error": f"Upload failed after {max_retries} attempts: {str(e)}"})
+            time.sleep(delay_seconds)
     
-    # Return file information
-    return {"filename": file.filename, "size_bytes": len(content)}

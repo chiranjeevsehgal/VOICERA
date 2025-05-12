@@ -19,7 +19,7 @@ async def root():
 # Health check router
 app.include_router(health.router)
 
-
+# Upload router
 app.include_router(upload.router, prefix="/api", tags=["upload"])
 
 # Steganography router
