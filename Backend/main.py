@@ -1,5 +1,5 @@
 from fastapi import FastAPI
-from api import health, upload
+from api import health, transcribe, steganography, upload
 
 app = FastAPI(
     title="VOICERA Backend", 
@@ -18,4 +18,12 @@ async def root():
 
 # Health check router
 app.include_router(health.router)
+
+
 app.include_router(upload.router, prefix="/api", tags=["upload"])
+
+# Steganography router
+app.include_router(steganography.router)
+
+# Transcription router
+app.include_router(transcribe.router)

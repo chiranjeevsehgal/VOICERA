@@ -70,3 +70,6 @@ __pycache__
 Backend/.env
 backend/.env
 Backend/audio_uploads/
+
+# Environment variables
+.env
