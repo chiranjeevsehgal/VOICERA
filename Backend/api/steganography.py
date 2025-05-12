@@ -9,7 +9,7 @@ import shutil
 from services.steganography import AudioSteganography
 from models.steganography import SteganographyRequest, SteganographyResponse
 
-router = APIRouter(prefix="/steganography", tags=["steganography"])
+router = APIRouter(prefix="/api/steganography", tags=["steganography"])
 stego_service = AudioSteganography()
 
 @router.post("/embed", response_model=SteganographyResponse)
@@ -95,56 +95,6 @@ async def extract_metadata(
             "metadata": metadata
         }
         
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-    finally:
-        # Ensure file is closed
-        audio_file.file.close()
-
-@router.post("/process-audio")
-async def process_audio(
-    audio_file: UploadFile = File(...),
-    transcription: str = Form(...),
-    metadata: str = Form(...),  # JSON string
-    method: str = Form("lsb")
-):
-    """
-    Process an audio file by embedding essential metadata.
-    
-    - **audio_file**: The audio file to process
-    - **transcription**: Text transcription of the audio
-    - **metadata**: JSON string containing metadata
-    - **method**: Steganography method to use
-    """
-    try:
-        # Parse metadata JSON
-        metadata_dict = json.loads(metadata)
-        
-        # Create a temporary file to store the uploaded audio
-        temp_file = tempfile.NamedTemporaryFile(delete=False, suffix=".wav")
-        temp_file_path = temp_file.name
-        
-        # Save uploaded file to the temporary file
-        with temp_file:
-            shutil.copyfileobj(audio_file.file, temp_file)
-        
-        # Process the audio file
-        output_path = stego_service.process_audio_with_steganography(
-            temp_file_path, transcription, metadata_dict, method
-        )
-        
-        # Clean up the temporary input file
-        if os.path.exists(temp_file_path) and temp_file_path != output_path:
-            os.unlink(temp_file_path)
-        
-        return FileResponse(
-            path=output_path, 
-            filename=os.path.basename(output_path),
-            media_type="audio/wav"
-        )
-        
-    except json.JSONDecodeError:
-        raise HTTPException(status_code=400, detail="Invalid JSON metadata")
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
     finally:

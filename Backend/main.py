@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from api import health
-from api.endpoints import steganography
+from api import steganography
 
 app = FastAPI(
     title="VOICERA Backend", 
