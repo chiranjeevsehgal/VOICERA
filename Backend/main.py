@@ -1,5 +1,5 @@
 from fastapi import FastAPI
-from api import health
+from api import health, transcribe
 
 app = FastAPI(
     title="VOICERA Backend", 
@@ -18,3 +18,6 @@ async def root():
 
 # Health check router
 app.include_router(health.router)
+
+# Transcription router
+app.include_router(transcribe.router)
