@@ -56,7 +56,7 @@ def extract_metadata_from_mp3_to_json(file_path: str) -> Dict[str, Any]:
     except Exception as e:
         return {"error": f"Error while extracting: {str(e)}"}
 
-@router.post("/api/extract")
+@router.post("/extract")
 async def extract_metadata(mp3_file: UploadFile = File(...)):
     """
     Endpoint to extract metadata FROM an MP3 file into a full transcription JSON.
@@ -97,7 +97,7 @@ async def extract_metadata(mp3_file: UploadFile = File(...)):
         if os.path.exists(temp_dir):
             shutil.rmtree(temp_dir)
 
-@router.post("/api/embed")
+@router.post("/embed")
 async def add_mp3_tags(
     mp3_file: UploadFile = File(...),
     metadata: str = Form(...)
