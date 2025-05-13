@@ -23,7 +23,7 @@ app.include_router(health.router)
 app.include_router(upload.router, prefix="/api", tags=["upload"])
 
 # Steganography router
-app.include_router(steganography.router)
+app.include_router(steganography.router, prefix="/api", tags=["steganography"])
 
 # Transcription router
-app.include_router(transcribe.router)
+app.include_router(transcribe.router, prefix="/api", tags=["transcribe"])

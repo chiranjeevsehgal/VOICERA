@@ -9,7 +9,7 @@ import shutil
 from services.steganography import AudioSteganography
 from models.steganography import SteganographyRequest, SteganographyResponse
 
-router = APIRouter(prefix="/api/steganography", tags=["steganography"])
+router = APIRouter(prefix="/steganography", tags=["steganography"])
 stego_service = AudioSteganography()
 
 @router.post("/embed", response_model=SteganographyResponse)
