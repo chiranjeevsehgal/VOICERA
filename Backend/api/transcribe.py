@@ -71,7 +71,7 @@ class TranscriptionRequest(BaseModel):
         }
 
 @router.post(
-    "/api/transcribe", 
+    "/transcribe", 
     summary="Transcribe audio using Deepgram API",
     description="Transcribes audio from a URL using Deepgram's speech-to-text API with multiple customization options"
 )
