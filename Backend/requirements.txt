@@ -5,6 +5,14 @@ charset-normalizer==3.4.2
 click==8.2.0
 colorama==0.4.6
 fastapi==0.115.12
+numpy>=1.20.0
+python-multipart>=0.0.5
+pydantic>=1.8.0
+uuid==1.30
+requests==2.31.0
+python-dotenv==1.0.0
+mutagen==1.47.0
+Werkzeug==2.2.3
 h11==0.16.0
 idna==3.10
 numpy==2.2.5
