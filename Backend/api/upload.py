@@ -10,6 +10,7 @@ router = APIRouter()
 AUDIO_MIME_TYPES = [
     "audio/mpeg", 
     "audio/wav", 
+    "audio/wave", 
     "audio/ogg", 
     "audio/x-wav", 
     "audio/x-m4a",
@@ -54,6 +55,7 @@ async def upload_audio(file: UploadFile = File(...)):
                 data = response.json()
                 url = data.get("data", {}).get("url")
                 if url:
+                    url = url.replace("https://tmpfiles.org/", "https://tmpfiles.org/dl/")
                     os.remove(file_path)
                     return {"status": "success", "url": url}
                 else:   
