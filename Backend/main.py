@@ -19,7 +19,7 @@ async def root():
 # Health check router
 app.include_router(health.router)
 
-# Steganography router
+# Embedding router
 app.include_router(embedding.router)
 
 # Transcription router
