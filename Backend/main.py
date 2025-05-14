@@ -1,5 +1,5 @@
 from fastapi import FastAPI
-from api import health, transcribe, embedding, upload, llm_translation, supabase_upload
+from api import health, transcribe, embedding, upload, llm_translation, supabase_upload, search
 
 app = FastAPI(
     title="VOICERA Backend", 
@@ -33,3 +33,6 @@ app.include_router(llm_translation.router, prefix="/api", tags=["llm"])
 
 # Supabase router
 app.include_router(supabase_upload.router, prefix="/api", tags=["supabase"])
+
+# Search router
+app.include_router(search.router, prefix="/api", tags=["search"])
