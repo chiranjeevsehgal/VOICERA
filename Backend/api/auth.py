@@ -9,7 +9,7 @@ from services.auth import (
 from models.auth import Token, UserCreate, UserResponse, ProfileResponse
 from datetime import datetime
 
-router = APIRouter()
+router = APIRouter(prefix='/auth')
 
 @router.post("/login", response_model=Token)
 async def login_user(form_data: OAuth2PasswordRequestForm = Depends()):
