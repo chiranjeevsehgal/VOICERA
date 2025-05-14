@@ -56,7 +56,7 @@ async def upload_audio(file: UploadFile = File(...)):
                 url = data.get("data", {}).get("url")
                 if url:
                     url = url.replace("https://tmpfiles.org/", "https://tmpfiles.org/dl/")
-                    os.remove(file_path)
+                    # os.remove(file_path)  # Commenting out to keep local file
                     return {"status": "success", "url": url}
                 else:   
                     raise ValueError("Upload succeeded but no URL returned.")

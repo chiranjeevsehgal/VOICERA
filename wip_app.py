@@ -6,6 +6,8 @@ import tempfile
 import time
 from dotenv import load_dotenv
 import base64
+from concurrent.futures import ThreadPoolExecutor
+import threading
 
 # Load environment variables
 load_dotenv()
@@ -384,7 +386,7 @@ def display_sidebar():
     st.sidebar.markdown("<div class='sub-header'>Workflow Navigation</div>", unsafe_allow_html=True)
     workflow_option = st.sidebar.radio(
         "Select Workflow Step:", # Added colon for clarity
-        ["Complete Workflow", "Upload Audio", "Transcribe Audio", "Embed Metadata", "Supabase Upload", "Search Audio"],
+        ["Complete Workflow", "Bulk Processing", "Upload Audio", "Transcribe Audio", "Embed Metadata", "Supabase Upload", "Search Audio"],
         label_visibility="collapsed" # Use sub-header as label
     )
     
@@ -829,6 +831,385 @@ def complete_workflow():
     # Section 5: Search
     search_audio_section()
 
+def process_single_file(file, progress_placeholder, status_placeholder, file_status):
+    """Process a single audio file through the complete workflow."""
+    try:
+        # Check file size early
+        file_size_mb = len(file.getvalue()) / (1024 * 1024)
+        file_size_limit_mb = 50  # Typical Supabase size limit, may vary based on config
+        
+        if file_size_mb > file_size_limit_mb:
+            with status_placeholder.container():
+                st.warning(f"File {file.name} size ({file_size_mb:.2f} MB) exceeds Supabase limit ({file_size_limit_mb} MB). Will process locally only.")
+        
+        # Update status
+        with status_placeholder.container():
+            st.markdown(f"⏳ **Processing:** {file.name} ({file_size_mb:.2f} MB)")
+        
+        # Step 1: Upload to temporary storage
+        with status_placeholder.container():
+            st.write(f"Step 1/4: Uploading {file.name} to temporary storage...")
+        
+        response = requests.post(
+            f"{API_BASE_URL}/upload", 
+            files={"file": (file.name, file.getvalue(), "audio/mpeg")}
+        )
+        
+        if response.status_code != 201:
+            raise Exception(f"Upload failed with status code {response.status_code}: {response.text}")
+        
+        upload_result = response.json()
+        audio_url = upload_result['url']
+        
+        # Step 2: Transcribe audio
+        with status_placeholder.container():
+            st.write(f"Step 2/4: Transcribing {file.name}...")
+        
+        payload = {
+            "url": audio_url, 
+            "diarize": True, 
+            "punctuate": True,
+            "smart_format": True, 
+            "utterances": True,
+            "detect_language": False, 
+            "model": "nova-2"
+        }
+        
+        response = requests.post(f"{API_BASE_URL}/transcribe", json=payload)
+        
+        if response.status_code != 200:
+            raise Exception(f"Transcription failed with status code {response.status_code}: {response.text}")
+        
+        transcription_result = response.json()
+        transcription_json = json.dumps(transcription_result)
+        
+        # Step 3: Embed metadata
+        with status_placeholder.container():
+            st.write(f"Step 3/4: Embedding metadata for {file.name}...")
+        
+        # Handle large metadata by chunking or processing differently
+        metadata_size_kb = len(transcription_json.encode('utf-8')) / 1024
+        
+        if metadata_size_kb > 900:  # If close to the 1024KB limit
+            with status_placeholder.container():
+                st.write(f"Large metadata detected ({metadata_size_kb:.2f} KB). Using compressed embedding...")
+            
+            # Create a more structured reduced metadata that preserves segments for vector indexing
+            reduced_metadata = {
+                "compressed": True,
+                "original_size_kb": metadata_size_kb
+            }
+            
+            if "results" in transcription_result:
+                results = transcription_result["results"]
+                reduced_metadata["duration"] = results.get("duration", 0)
+                
+                # Add language if available
+                if "language_code" in results:
+                    reduced_metadata["language_code"] = results["language_code"]
+                
+                # Extract all segments to preserve for vector indexing
+                if "channels" in results and len(results["channels"]) > 0:
+                    channels = results["channels"]
+                    
+                    # Full transcript for reference
+                    reduced_metadata["transcript"] = channels[0].get("alternatives", [{}])[0].get("transcript", "")
+                    
+                    # Most importantly: preserve the segments for vector indexing
+                    segments = []
+                    try:
+                        alternatives = channels[0].get("alternatives", [{}])[0]
+                        
+                        # Check if we have words data (needed for segments)
+                        if "words" in alternatives:
+                            words = alternatives.get("words", [])
+                            
+                            # Build segments (crucial for vector indexing)
+                            current_segment = {"text": "", "start_time": 0, "end_time": 0, "words": []}
+                            segment_max_length = 100  # Maximum words per segment
+                            word_count = 0
+                            
+                            for word in words:
+                                if word_count == 0:
+                                    # Start a new segment
+                                    current_segment["start_time"] = word.get("start_time", 0)
+                                
+                                # Add word to current segment
+                                current_segment["text"] += " " + word.get("word", "")
+                                current_segment["end_time"] = word.get("end_time", 0)
+                                current_segment["words"].append(word)
+                                word_count += 1
+                                
+                                # When segment is full or at last word, save it
+                                if word_count >= segment_max_length or word == words[-1]:
+                                    current_segment["text"] = current_segment["text"].strip()
+                                    segments.append(current_segment)
+                                    
+                                    # Reset for next segment
+                                    current_segment = {"text": "", "start_time": 0, "end_time": 0, "words": []}
+                                    word_count = 0
+                            
+                            # Add segments to metadata
+                            reduced_metadata["segments"] = segments
+                        else:
+                            # If we don't have word-level data, create segments from utterances if available
+                            if "utterances" in alternatives:
+                                for utterance in alternatives.get("utterances", []):
+                                    segments.append({
+                                        "text": utterance.get("text", ""),
+                                        "start_time": utterance.get("start_time", 0),
+                                        "end_time": utterance.get("end_time", 0)
+                                    })
+                                reduced_metadata["segments"] = segments
+                            else:
+                                # Last resort: create a single segment from the full transcript
+                                reduced_metadata["segments"] = [{
+                                    "text": reduced_metadata["transcript"],
+                                    "start_time": 0,
+                                    "end_time": reduced_metadata.get("duration", 0)
+                                }]
+                    except Exception as seg_error:
+                        # If segmentation fails, create one segment with full transcript
+                        st.warning(f"Error creating segments: {str(seg_error)}")
+                        reduced_metadata["segments"] = [{
+                            "text": reduced_metadata["transcript"],
+                            "start_time": 0,
+                            "end_time": reduced_metadata.get("duration", 0)
+                        }]
+                else:
+                    reduced_metadata["transcript"] = "Transcript extraction failed"
+                    reduced_metadata["segments"] = []
+            else:
+                reduced_metadata["transcript"] = "No results in transcription"
+                reduced_metadata["segments"] = []
+            
+            # Use the improved reduced metadata with segments preserved
+            reduced_json = json.dumps(reduced_metadata)
+            files = {"mp3_file": (file.name, file.getvalue(), "audio/mpeg")}
+            data = {"metadata": reduced_json}
+            
+        else:
+            # Regular approach for smaller metadata
+            files = {"mp3_file": (file.name, file.getvalue(), "audio/mpeg")}
+            data = {"metadata": transcription_json}
+        
+        response = requests.post(f"{API_BASE_URL}/embed", files=files, data=data)
+        
+        if response.status_code != 200:
+            raise Exception(f"Metadata embedding failed with status code {response.status_code}: {response.text}")
+        
+        embedding_result = response.json()
+        
+        # Extract the embedded file path from the response
+        embedded_file_path = embedding_result.get('file_path')
+        embedded_file_name = embedding_result.get('file_name')
+        
+        # Step 4: Upload to Supabase - Skip for files larger than the limit
+        if file_size_mb <= file_size_limit_mb:
+            with status_placeholder.container():
+                st.write(f"Step 4/4: Uploading {embedded_file_name} to Supabase...")
+            
+            # IMPORTANT FIX: Use the embedded file from the server instead of the original file
+            if embedded_file_path and os.path.exists(embedded_file_path):
+                # Read the embedded file
+                with open(embedded_file_path, 'rb') as embedded_file:
+                    embedded_file_content = embedded_file.read()
+                    
+                # Use the embedded file for Supabase upload
+                files = {"file": (embedded_file_name, embedded_file_content, "audio/mpeg")}
+                response = requests.post(f"{API_BASE_URL}/uploadToSupabase", files=files)
+            else:
+                # Fallback to original file if embedded file is not found
+                st.warning(f"Embedded file not found at {embedded_file_path}. Using original file instead.")
+                files = {"file": (file.name, file.getvalue(), "audio/mpeg")}
+                response = requests.post(f"{API_BASE_URL}/uploadToSupabase", files=files)
+            
+            if response.status_code != 201:
+                # Still process it as a partial success
+                with status_placeholder.container():
+                    st.error(f"Error uploading to Supabase: {response.status_code} - {response.text}")
+                supabase_result = {"status": "failed", "error": f"Upload failed: {response.text}"}
+            else:
+                supabase_result = response.json()
+        else:
+            with status_placeholder.container():
+                st.warning(f"Skipping Supabase upload for {file.name} (too large)")
+            
+            # Create a placeholder result
+            supabase_result = {
+                "status": "skipped", 
+                "reason": "File too large for Supabase",
+                "file_size_mb": file_size_mb,
+                "limit_mb": file_size_limit_mb
+            }
+            
+            # Offer local download instead
+            with status_placeholder.container():
+                # Create a download button for the embedded audio file
+                st.markdown("### Download processed file:")
+                
+                # Get the local path if available from embedding_result
+                if "file_path" in embedding_result:
+                    st.markdown(f"File saved locally at: `{embedding_result['file_path']}`")
+                
+                # Create a direct download button using the embedded file if available
+                if embedded_file_path and os.path.exists(embedded_file_path):
+                    with open(embedded_file_path, 'rb') as embedded_file:
+                        embedded_file_content = embedded_file.read()
+                        st.download_button(
+                            label=f"Download {embedded_file_name} with embedded metadata",
+                            data=embedded_file_content,
+                            file_name=embedded_file_name,
+                            mime="audio/mpeg",
+                            key=f"download_{embedded_file_name}"
+                        )
+                else:
+                    # Fallback to original file
+                    st.download_button(
+                        label=f"Download {file.name} with embedded metadata",
+                        data=file.getvalue(),
+                        file_name=f"processed_{file.name}",
+                        mime="audio/mpeg",
+                        key=f"download_{file.name}"
+                    )
+        
+        # Update status as completed (or partially completed)
+        success_status = "Completed" if file_size_mb <= file_size_limit_mb else "Partially Completed"
+        file_status[file.name] = {
+            "status": success_status,
+            "upload_result": upload_result,
+            "transcription_result": transcription_result,
+            "embedding_result": embedding_result,
+            "supabase_result": supabase_result,
+            "file_size_mb": file_size_mb
+        }
+        
+        with status_placeholder.container():
+            st.markdown(f"✅ **{success_status}:** {file.name}")
+        
+        return True
+        
+    except Exception as e:
+        # Update status as failed
+        file_status[file.name] = {
+            "status": "Failed",
+            "error": str(e)
+        }
+        
+        with status_placeholder.container():
+            st.markdown(f"❌ **Failed:** {file.name} - {str(e)}")
+        
+        return False
+
+def bulk_processing_section():
+    st.markdown("<div class='step-header'>🔄 Bulk Processing</div>", unsafe_allow_html=True)
+    
+    st.markdown("""
+    <div class='info-box'>
+    Upload multiple MP3 files to process them through the entire workflow at once.
+    Each file will be automatically:
+    1. Uploaded to temporary storage
+    2. Transcribed with our default settings
+    3. Embedded with its transcription metadata
+    4. Uploaded to Supabase for permanent storage and indexing
+    </div>
+    """, unsafe_allow_html=True)
+    
+    uploaded_files = st.file_uploader(
+        "Upload multiple MP3 files:", 
+        type=["mp3"], 
+        accept_multiple_files=True,
+        key="bulk_uploader"
+    )
+    
+    if uploaded_files:
+        st.write(f"Selected {len(uploaded_files)} files for processing")
+        
+        if 'bulk_processing_status' not in st.session_state:
+            st.session_state.bulk_processing_status = {}
+        
+        if 'bulk_processing_running' not in st.session_state:
+            st.session_state.bulk_processing_running = False
+        
+        if not st.session_state.bulk_processing_running and st.button("Process All Files", use_container_width=True, key="bulk_process_btn"):
+            st.session_state.bulk_processing_running = True
+            
+            # Create a progress bar
+            progress_placeholder = st.empty()
+            status_placeholder = st.empty()
+            
+            with progress_placeholder.container():
+                progress_bar = st.progress(0)
+            
+            with status_placeholder.container():
+                st.write("Preparing to process files...")
+            
+            # Initialize or reset the status dictionary
+            file_status = {}
+            for file in uploaded_files:
+                file_status[file.name] = {"status": "Pending"}
+            
+            st.session_state.bulk_processing_status = file_status
+            
+            # Create a container for file status updates
+            file_status_container = st.container()
+            
+            # Process files one by one
+            completed_files = 0
+            total_files = len(uploaded_files)
+            
+            for i, file in enumerate(uploaded_files):
+                # Update progress
+                progress = (i / total_files)
+                progress_bar.progress(progress)
+                
+                # Process file
+                success = process_single_file(file, status_placeholder, file_status_container, file_status)
+                if success:
+                    completed_files += 1
+                
+                # Update status list
+                with file_status_container.container():
+                    # Clear and redisplay status
+                    file_status_container.empty()
+                    for fname, fstatus in file_status.items():
+                        status_icon = "⏳" if fstatus["status"] == "Pending" else "✅" if fstatus["status"] == "Completed" else "❌"
+                        st.markdown(f"{status_icon} **{fname}**: {fstatus['status']}")
+                        if fstatus["status"] == "Failed" and "error" in fstatus:
+                            st.markdown(f"&nbsp;&nbsp;&nbsp;&nbsp;Error: {fstatus['error']}", unsafe_allow_html=True)
+            
+            # Update final progress
+            progress_bar.progress(1.0)
+            
+            # Final status
+            with status_placeholder.container():
+                if completed_files == total_files:
+                    st.markdown(f"""
+                    <div class='success-box'>
+                    <h4>Bulk processing completed successfully!</h4>
+                    <p>Processed {completed_files} out of {total_files} files.</p>
+                    </div>
+                    """, unsafe_allow_html=True)
+                else:
+                    st.markdown(f"""
+                    <div class='highlight'>
+                    <h4>Bulk processing completed with some issues</h4>
+                    <p>Successfully processed {completed_files} out of {total_files} files.</p>
+                    <p>Check the status of each file below for details.</p>
+                    </div>
+                    """, unsafe_allow_html=True)
+            
+            st.session_state.bulk_processing_running = False
+        
+        # If already processed files, show their status
+        elif st.session_state.bulk_processing_status:
+            st.markdown("<h4>Processing Status:</h4>", unsafe_allow_html=True)
+            for fname, fstatus in st.session_state.bulk_processing_status.items():
+                status_icon = "⏳" if fstatus["status"] == "Pending" else "✅" if fstatus["status"] == "Completed" else "❌"
+                st.markdown(f"{status_icon} **{fname}**: {fstatus['status']}")
+                if fstatus["status"] == "Failed" and "error" in fstatus:
+                    st.markdown(f"&nbsp;&nbsp;&nbsp;&nbsp;Error: {fstatus['error']}", unsafe_allow_html=True)
+
 def main():
     # Initialize session state variables if they don't exist
     if 'upload_result' not in st.session_state:
@@ -845,17 +1226,18 @@ def main():
         st.session_state.search_results_data = None
     if 'current_uploaded_file_for_embedding' not in st.session_state: # For passing file object
         st.session_state.current_uploaded_file_for_embedding = None
-
+    if 'bulk_processing_status' not in st.session_state:
+        st.session_state.bulk_processing_status = {}
+    if 'bulk_processing_running' not in st.session_state:
+        st.session_state.bulk_processing_running = False
 
     display_header()
     workflow_option = display_sidebar()
     
-    # Store the initially uploaded file in session state for other sections if needed
-    # This helps if 'Complete Workflow' is not selected initially
-    # initial_uploaded_file_placeholder = None
-
     if workflow_option == "Complete Workflow":
         complete_workflow()
+    elif workflow_option == "Bulk Processing":
+        bulk_processing_section()
     elif workflow_option == "Upload Audio":
         uploaded_file_obj = upload_audio_section()
         if uploaded_file_obj: # Store it for potential use in other steps if user navigates
