@@ -45,6 +45,29 @@ class LLMConfig_Search:
         
         Return the JSON object only, with no additional text."""
         
+        # System prompt for generating answers from transcripts
+        self.answer_generation_prompt = """You are an AI assistant analyzing audio transcripts.
+        Your task is to answer a user's question based ONLY on the provided transcript content.
+        
+        Guidelines:
+        1. Only answer based on information found in the transcript.
+        2. If the transcript doesn't contain the information needed to answer the question, clearly state:
+           "The transcript does not contain information about [specific topic from the question]."
+        3. Be concise but thorough in your answers.
+        4. Include relevant quotes or timestamps if available in the transcript.
+        5. DO NOT make up or infer information that is not explicitly stated in the transcript.
+        6. DO NOT use your general knowledge - rely EXCLUSIVELY on the provided transcript.
+        
+        Here is the full transcript content:
+        -----------------------------
+        {transcript}
+        -----------------------------
+        
+        User question: {query}
+        
+        Your answer should directly respond to the question using ONLY information from the transcript.
+        If the answer cannot be found in the transcript, clearly state that the information is not available."""
+        
         # Initialize LLM if API key is available
         if self.api_key:
             genai.configure(api_key=self.api_key)
@@ -482,4 +505,165 @@ def format_seconds_to_time(seconds: float) -> str:
     if hours > 0:
         return f"{hours:02d}:{minutes:02d}:{secs:06.3f}"
     else:
-        return f"{minutes:02d}:{secs:06.3f}" 
+        return f"{minutes:02d}:{secs:06.3f}"
+
+class AnswerRequest(BaseModel):
+    query: str
+    transcript: str
+
+@router.post(
+    "/generate-answer",
+    summary="Generate answer from transcript and query",
+    description="Generate an answer to a user query based on transcript content using LLM"
+)
+async def generate_answer(request: AnswerRequest):
+    """
+    Generate an answer to a user query based on transcript content.
+    
+    This endpoint uses an LLM to analyze the transcript content and generate
+    a relevant answer to the user's question based solely on the information
+    in the transcript.
+    
+    Example body:
+    {
+        "query": "Artemis I is described as the first uncrewed test flight of the integrated SLS and Orion system. Based on the transcript, how does this mission serve both engineering and scientific purposes simultaneously?",
+        "transcript": "The complete transcript text from the audio file..."
+    }
+    """
+    try:
+        config = LLMConfig_Search()
+        
+        if not config.api_key:
+            raise HTTPException(status_code=500, detail="LLM API key not configured")
+        
+        # Validate input
+        if not request.query:
+            raise HTTPException(status_code=400, detail="Query is required")
+        
+        if not request.transcript:
+            raise HTTPException(status_code=400, detail="Transcript is required")
+            
+        # Configure the LLM
+        model = genai.GenerativeModel(
+            model_name=config.model_name,
+            generation_config={
+                "temperature": 0.3,  # Slightly higher temperature for more natural answers
+                "max_output_tokens": 1024,  # Allow longer answers
+                "top_p": 0.95,
+                "top_k": 40
+            }
+        )
+        
+        # Format the prompt with the transcript and query
+        formatted_prompt = config.answer_generation_prompt.format(
+            transcript=request.transcript,
+            query=request.query
+        )
+        
+        # Generate the answer
+        response = model.generate_content(formatted_prompt)
+        
+        # Return the generated answer
+        return {
+            "query": request.query,
+            "answer": response.text,
+            "model": config.model_name,
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error generating answer: {str(e)}")
+
+class SearchAndAnswerRequest(BaseModel):
+    search_query: str 
+    result_id: str
+    transcript: str
+
+@router.post(
+    "/search-and-answer",
+    summary="Search and generate answer in one request",
+    description="Generates an answer for a specific search result without requiring separate requests"
+)
+async def search_and_answer(request: SearchAndAnswerRequest):
+    """
+    Generate an answer for a specific search result without requiring a separate request.
+    This helps avoid UI refreshes in the frontend.
+    
+    Example body:
+    {
+        "search_query": "How does plants grow in lunar soil?",
+        "result_id": "file123_10.5_20.8",
+        "transcript": "The transcript text from the result..."
+    }
+    """
+    try:
+        # Debug logging
+        print("=== SEARCH AND ANSWER REQUEST ===")
+        print(f"Search Query: {request.search_query}")
+        print(f"Result ID: {request.result_id}")
+        if request.transcript:
+            transcript_len = len(request.transcript)
+            transcript_words = len(request.transcript.split())
+            print(f"Transcript length: {transcript_len} chars, {transcript_words} words")
+            print(f"Transcript start: {request.transcript[:100]}...")
+            print(f"Transcript end: ...{request.transcript[-100:]}")
+        else:
+            print("Warning: Empty transcript received")
+        
+        config = LLMConfig_Search()
+        
+        if not config.api_key:
+            print("Error: LLM API key not configured")
+            raise HTTPException(status_code=500, detail="LLM API key not configured")
+            
+        # Validate the transcript
+        if not request.transcript or len(request.transcript.strip()) < 10:
+            print("Error: Transcript too short or empty")
+            return {
+                "result_id": request.result_id,
+                "search_query": request.search_query,
+                "answer": "Error: The transcript is too short or empty. Cannot generate an answer.",
+                "model": config.model_name,
+            }
+            
+        # Log transcript length for debugging
+        transcript_word_count = len(request.transcript.split())
+        print(f"Processing answer for '{request.search_query}' with transcript of {transcript_word_count} words")
+        
+        # Configure the LLM
+        model = genai.GenerativeModel(
+            model_name=config.model_name,
+            generation_config={
+                "temperature": 0.2,  # Lower temperature for more factual answers
+                "max_output_tokens": 1024,  # Allow longer answers
+                "top_p": 0.95,
+                "top_k": 40
+            }
+        )
+        
+        # Format the prompt with the transcript and query
+        formatted_prompt = config.answer_generation_prompt.format(
+            transcript=request.transcript,
+            query=request.search_query
+        )
+        
+        print(f"Sending prompt to LLM (length: {len(formatted_prompt)} chars)")
+        
+        # Generate the answer
+        response = model.generate_content(formatted_prompt)
+        
+        print(f"LLM response received (length: {len(response.text)} chars)")
+        print(f"Response start: {response.text[:100]}...")
+        
+        # Return the generated answer along with identifying information
+        return {
+            "result_id": request.result_id,
+            "search_query": request.search_query,
+            "answer": response.text,
+            "model": config.model_name,
+        }
+        
+    except Exception as e:
+        print(f"Error generating answer: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Error generating answer: {str(e)}") 

@@ -369,6 +369,37 @@ st.markdown("""
         margin-bottom: 1.5rem;
     }
 
+    /* Answer Box Styling */
+    .answer-box {
+        background-color: #1E293B;
+        border-left: 3px solid #3498db;
+        padding: 15px;
+        border-radius: 5px;
+        margin: 10px 0;
+    }
+    .answer-header {
+        font-weight: bold;
+        color: #3498db;
+        margin-bottom: 10px;
+        background-color: #1E293B;
+        border-left: 3px solid #3498db;
+        padding: 10px 15px 0px 15px;
+        border-radius: 5px 5px 0 0;
+        margin: 10px 0 0 0;
+    }
+    .answer-content {
+        background-color: #1E293B;
+        border-left: 3px solid #3498db;
+        padding: 0px 15px 15px 15px;
+        border-radius: 0 0 5px 5px;
+        margin: 0 0 10px 0;
+        white-space: pre-line;
+    }
+
+    .result-item:hover {
+        background-color: rgba(255, 255, 255, 0.1);
+    }
+
 </style>
 """, unsafe_allow_html=True)
 
@@ -610,9 +641,24 @@ def search_audio_section():
     </div>
     """, unsafe_allow_html=True)
 
+    # Store the search query in session state to prevent it from disappearing on rerun
+    if "search_query_input" not in st.session_state:
+        st.session_state.search_query_input = ""
+        
+    # Store search results in session state
+    if "current_search_results" not in st.session_state:
+        st.session_state.current_search_results = None
+    
     search_col1, search_col2 = st.columns([4, 1])
     with search_col1:
-        search_query = st.text_input("Search Query:", placeholder="e.g., 'marketing strategies for Q4' or 'audio about last week's sync-up'", key="search_query_input")
+        search_query = st.text_input(
+            "Search Query:", 
+            value=st.session_state.search_query_input,
+            placeholder="e.g., 'marketing strategies for Q4' or 'audio about last week's sync-up'", 
+            key="search_query_input_widget"
+        )
+        # Update session state with current query
+        st.session_state.search_query_input = search_query
     with search_col2:
         limit = st.number_input("Results Limit:", min_value=1, max_value=50, value=5, step=1, key="search_limit_input") # Reduced max for typical use
 
@@ -628,7 +674,8 @@ def search_audio_section():
     with opts_col4:
         natural_language = st.checkbox("NL Query Mode", value=False, help="Process query as a natural language question for intent understanding.", key="search_nl_checkbox")
     
-    if search_query and st.button("Search Audio Library", use_container_width=True, key="search_btn"):
+    # Define the search function that will execute the search and store results
+    def execute_search():
         with st.spinner("Searching audio transcripts..."):
             try:
                 params = {
@@ -642,73 +689,99 @@ def search_audio_section():
                 
                 if response.status_code == 200:
                     search_results_data = response.json()
-                    st.session_state.search_results_data = search_results_data # Store for potential re-display or pagination later
-
-                    st.markdown(f"""
-                    <div class='info-box' style='margin-top:1.5rem;'>
-                    Found <strong>{search_results_data.get('total', 0)}</strong> potential results for your query.
-                    {f"({search_results_data.get('exact_matches', 0)} exact segment matches)" if 'exact_matches' in search_results_data else ""}
-                    </div>
-                    """, unsafe_allow_html=True)
-                    
-                    # Display NL analysis if present
-                    if natural_language and search_results_data.get('natural_language_analysis'):
-                        nl_analysis = search_results_data['natural_language_analysis']
-                        analysis_html = f"<div class='highlight'><strong>Understanding your query:</strong><br>"
-                        if nl_analysis.get('search_intent'):
-                            analysis_html += f"<span style='font-style: italic;'>Intent: {nl_analysis.get('search_intent', '')}</span><br>"
-                        if nl_analysis.get('key_terms'):
-                            analysis_html += f"<strong>Key terms:</strong> {', '.join(nl_analysis.get('key_terms', []))}"
-                        if nl_analysis.get('temporal_references'):
-                            analysis_html += f"<br><strong>Time references:</strong> {', '.join(nl_analysis.get('temporal_references', []))}"
-                        analysis_html += "</div>"
-                        st.markdown(analysis_html, unsafe_allow_html=True)
-                    
-                    # Display expanded queries
-                    elif search_results_data.get('expanded_queries') and len(search_results_data.get('expanded_queries', [])) > 1:
-                        expanded = search_results_data['expanded_queries']
-                        st.markdown(f"""
-                        <div class='highlight'>
-                        Query expanded to include: {", ".join(f'"{q}"' for q in expanded if q.lower() != search_query.lower())}
-                        </div>
-                        """, unsafe_allow_html=True)
-                    
-                    # Display detected time range
-                    if search_results_data.get('time_range'):
-                        time_range = search_results_data['time_range']
-                        st.markdown(f"""
-                        <div class='highlight'>
-                        Detected time range in query: {time_range.get('start_formatted','N/A')} - {time_range.get('end_formatted','N/A')}
-                        </div>
-                        """, unsafe_allow_html=True)
-                    
-                    # Display results
-                    if search_results_data.get('results'):
-                        exact_matches = [r for r in search_results_data['results'] if r.get('has_exact_match', False)]
-                        semantic_matches = [r for r in search_results_data['results'] if not r.get('has_exact_match', False)]
-                        
-                        if exact_matches:
-                            st.markdown("<h4 style='margin-top: 2rem; margin-bottom: 1rem; color: #4CAF50 !important;'>🎯 Exact Matches</h4>", unsafe_allow_html=True)
-                            for i, result in enumerate(exact_matches):
-                                display_search_result(result, search_results_data, search_query, is_exact=True, index=i)
-                        
-                        if semantic_matches:
-                            st.markdown("<h4 style='margin-top: 2rem; margin-bottom: 1rem; color: #FF9800 !important;'>💡 Semantic Matches</h4>", unsafe_allow_html=True)
-                            for i, result in enumerate(semantic_matches):
-                                display_search_result(result, search_results_data, search_query, is_exact=False, index=i)
-                    else:
-                        st.warning("No results found matching your criteria.")
+                    st.session_state.current_search_results = search_results_data
+                    return search_results_data
                 else:
                     st.error(f"Error during search: {response.status_code} - {response.text}")
+                    return None
             except requests.exceptions.RequestException as e:
                 st.error(f"API Connection Error: {str(e)}")
+                return None
             except Exception as e:
                 st.error(f"An unexpected error occurred during search: {str(e)}")
+                return None
+    
+    # Show search button and handle search
+    search_triggered = False
+    if search_query and st.button("Search Audio Library", use_container_width=True, key="search_btn"):
+        search_triggered = True
+        search_results_data = execute_search()
+    else:
+        # Use existing results if available
+        search_results_data = st.session_state.current_search_results
+    
+    # Display search results if available
+    if search_results_data:
+        st.markdown(f"""
+        <div class='info-box' style='margin-top:1.5rem;'>
+        Found <strong>{search_results_data.get('total', 0)}</strong> potential results for your query.
+        {f"({search_results_data.get('exact_matches', 0)} exact segment matches)" if 'exact_matches' in search_results_data else ""}
+        </div>
+        """, unsafe_allow_html=True)
+        
+        # Display NL analysis if present
+        if natural_language and search_results_data.get('natural_language_analysis'):
+            nl_analysis = search_results_data['natural_language_analysis']
+            analysis_html = f"<div class='highlight'><strong>Understanding your query:</strong><br>"
+            if nl_analysis.get('search_intent'):
+                analysis_html += f"<span style='font-style: italic;'>Intent: {nl_analysis.get('search_intent', '')}</span><br>"
+            if nl_analysis.get('key_terms'):
+                analysis_html += f"<strong>Key terms:</strong> {', '.join(nl_analysis.get('key_terms', []))}"
+            if nl_analysis.get('temporal_references'):
+                analysis_html += f"<br><strong>Time references:</strong> {', '.join(nl_analysis.get('temporal_references', []))}"
+            analysis_html += "</div>"
+            st.markdown(analysis_html, unsafe_allow_html=True)
+        
+        # Display expanded queries
+        elif search_results_data.get('expanded_queries') and len(search_results_data.get('expanded_queries', [])) > 1:
+            expanded = search_results_data['expanded_queries']
+            st.markdown(f"""
+            <div class='highlight'>
+            Query expanded to include: {", ".join(f'"{q}"' for q in expanded if q.lower() != search_query.lower())}
+            </div>
+            """, unsafe_allow_html=True)
+        
+        # Display detected time range
+        if search_results_data.get('time_range'):
+            time_range = search_results_data['time_range']
+            st.markdown(f"""
+            <div class='highlight'>
+            Detected time range in query: {time_range.get('start_formatted','N/A')} - {time_range.get('end_formatted','N/A')}
+            </div>
+            """, unsafe_allow_html=True)
+        
+        # Display results
+        if search_results_data.get('results'):
+            exact_matches = [r for r in search_results_data['results'] if r.get('has_exact_match', False)]
+            semantic_matches = [r for r in search_results_data['results'] if not r.get('has_exact_match', False)]
+            
+            if exact_matches:
+                st.markdown("<h4 style='margin-top: 2rem; margin-bottom: 1rem; color: #4CAF50 !important;'>🎯 Exact Matches</h4>", unsafe_allow_html=True)
+                for i, result in enumerate(exact_matches):
+                    display_search_result(result, search_results_data, search_query, is_exact=True, index=i)
+            
+            if semantic_matches:
+                st.markdown("<h4 style='margin-top: 2rem; margin-bottom: 1rem; color: #FF9800 !important;'>💡 Semantic Matches</h4>", unsafe_allow_html=True)
+                for i, result in enumerate(semantic_matches):
+                    display_search_result(result, search_results_data, search_query, is_exact=False, index=i)
+        else:
+            st.warning("No results found matching your criteria.")
 
 def display_search_result(result, search_results_data, original_query, is_exact, index):
     """Helper function to display a single search result with refined UI."""
     score_color = "#4CAF50" if is_exact else "#FF9800"
     match_type_label = "Exact Match" if is_exact else "Semantic Match"
+    
+    # Create a globally unique ID for this result that persists across reruns
+    result_hash = f"{result.get('file_name', '')}_{result.get('start_time', 0)}_{result.get('end_time', 0)}"
+    result_type = "exact" if is_exact else "semantic"
+    # Create a truly unique key including the match type and hash to avoid conflicts
+    unique_result_id = f"{result_type}_{index}_{result_hash}"
+    
+    # Initialize the answer in session state if not present
+    answer_key = f"answer_{unique_result_id}"
+    if answer_key not in st.session_state:
+        st.session_state[answer_key] = None
     
     expander_title = f"Result #{index + 1}: Score {result['score']:.3f} ({match_type_label})"
     if result.get('matched_query') and result['matched_query'].lower() != original_query.lower():
@@ -801,8 +874,191 @@ def display_search_result(result, search_results_data, original_query, is_exact,
                     st.markdown(f"<a href='{exact_timestamp_url}' target='_blank' class='action-link'>▶️ Play Exact</a>", unsafe_allow_html=True)
                 
                 st.markdown(f"<a href=\"{result['file_url']}\" download class='download-link'>💾 Download Full Audio</a>", unsafe_allow_html=True)
+                
+                # Create a unique button key based on the unique result ID
+                gen_answer_key = f"gen_answer_{unique_result_id}"
+                clear_answer_key = f"clear_answer_{unique_result_id}"
+                
+                # Display the Generate Answer button or the answer itself
+                if st.session_state[answer_key] is None:
+                    # Show word count information
+                    word_count = len(result.get('text', '').split())
+                    context_info = f"Segment contains {word_count} words"
+                    if word_count < 100:
+                        context_info += " (limited context)"
+                    elif word_count > 500:
+                        context_info += " (extensive context)"
+                    
+                    st.caption(context_info)
+                    
+                    # Generate Answer form - this is a workaround to prevent page refresh
+                    with st.form(key=f"gen_answer_form_{unique_result_id}"):
+                        # Store the necessary data in hidden variables to access during form submission
+                        transcript = result.get('text', '')
+                        file_url = result.get('file_url', '')
+                        
+                        # Keep these in session state to use after form submission
+                        st.session_state[f"transcript_{unique_result_id}"] = transcript
+                        st.session_state[f"query_{unique_result_id}"] = original_query
+                        st.session_state[f"file_url_{unique_result_id}"] = file_url
+                        
+                        # Add a submit button with callback on click
+                        submitted = st.form_submit_button("🤖 Generate Answer", 
+                                                          on_click=lambda: st.session_state.update({
+                                                              f"process_form_{unique_result_id}": True
+                                                          }))
+                    
+                    # Process the form submission outside the form to avoid page refresh issues
+                    if st.session_state.get(f"process_form_{unique_result_id}", False):
+                        with st.spinner("Generating answer..."):
+                            # Get the data from session state
+                            transcript_to_use = st.session_state[f"transcript_{unique_result_id}"]
+                            query_to_use = st.session_state[f"query_{unique_result_id}"]
+                            file_url = st.session_state[f"file_url_{unique_result_id}"]
+                            
+                            # Store API response directly in session state as fallback
+                            api_response = None
+                            
+                            # Call generate_answer with the data and capture the response
+                            success = generate_answer(transcript_to_use, query_to_use, unique_result_id, file_url)
+                            
+                            # If response exists, use it as fallback
+                            if 'last_api_response' in st.session_state:
+                                st.session_state[f"api_response_{unique_result_id}"] = st.session_state['last_api_response']
+                        
+                        # Reset the flag to prevent re-processing
+                        st.session_state[f"process_form_{unique_result_id}"] = False
+                else:
+                    # Show the answer with a clear and simple approach
+                    st.subheader("🤖 AI Answer")
+                    
+                    try:
+                        # First try to get answer from session state
+                        if answer_key in st.session_state and st.session_state[answer_key]:
+                            answer_text = st.session_state[answer_key]
+                        # Then try to get from API response fallback
+                        elif f"api_response_{unique_result_id}" in st.session_state:
+                            api_response = st.session_state[f"api_response_{unique_result_id}"]
+                            if isinstance(api_response, dict) and "answer" in api_response:
+                                answer_text = api_response["answer"]
+                            else:
+                                answer_text = str(api_response)
+                        # Finally use a default message
+                        else:
+                            answer_text = "No answer available. Please try again."
+                        
+                        # Display with a container for consistent styling
+                        answer_container = st.container()
+                        with answer_container:
+                            st.markdown("---")
+                            st.markdown(answer_text)
+                            st.markdown("---")
+                    except Exception as e:
+                        st.error(f"Error displaying answer: {str(e)}")
+                    
+                    # Clear answer button
+                    if st.button("Clear Answer", key=clear_answer_key):
+                        st.session_state[answer_key] = None
+                        if f"api_response_{unique_result_id}" in st.session_state:
+                            del st.session_state[f"api_response_{unique_result_id}"]
+                        st.experimental_rerun()
             else:
                 st.caption("Audio source not available.")
+
+# Function to generate answer and store in session state
+def generate_answer(transcript_text, query, result_id, file_url=None):
+    answer_key = f"answer_{result_id}"
+    
+    try:
+        # If we have the file url, try to get the complete transcript from extract API
+        complete_transcript = None
+        if file_url:
+            with st.spinner("Fetching complete transcript..."):
+                try:
+                    # Extract the complete transcript from the file
+                    extract_url = f"{API_BASE_URL}/extract"
+                    extract_response = requests.post(extract_url, json={"mp3_url": file_url})
+                    
+                    if extract_response.status_code == 200:
+                        extract_data = extract_response.json()
+                        
+                        # Check if the response contains a transcript
+                        if "results" in extract_data and "channels" in extract_data["results"]:
+                            channels = extract_data["results"]["channels"]
+                            if channels and len(channels) > 0 and "alternatives" in channels[0]:
+                                alternatives = channels[0]["alternatives"]
+                                if alternatives and len(alternatives) > 0:
+                                    complete_transcript = alternatives[0].get("transcript", "")
+                except Exception as e:
+                    # Silent fail, will use segment instead
+                    pass
+        
+        # Use the complete transcript if available, otherwise use the segment
+        if complete_transcript:
+            transcript_to_use = complete_transcript
+        else:
+            transcript_to_use = transcript_text
+            
+            # For short segments, include a note in the transcript
+            if len(transcript_to_use.split()) < 100:
+                transcript_to_use = f"[Note: This is a short transcript segment. The answer may be limited to what's available in this segment.]\n\n{transcript_to_use}"
+        
+        # Build the request body
+        request_body = {
+            "search_query": query,
+            "result_id": result_id,
+            "transcript": transcript_to_use
+        }
+        
+        # Make request to search-and-answer endpoint
+        with st.spinner("Generating answer..."):
+            response = requests.post(
+                f"{API_BASE_URL}/search-and-answer", 
+                json=request_body
+            )
+            
+            if response.status_code == 200:
+                try:
+                    # Log the complete response for debugging
+                    print(f"FULL API RESPONSE: {response.text}")
+                    
+                    answer_data = response.json()
+                    print(f"PARSED JSON RESPONSE: {answer_data}")
+                    
+                    # Store the complete API response as a fallback
+                    st.session_state['last_api_response'] = answer_data
+                    
+                    answer_text = answer_data.get("answer", "No answer generated.")
+                    
+                    # Debug: Print the answer to see what we're getting
+                    print(f"LLM ANSWER RECEIVED: {answer_text}")
+                    
+                    # Make sure we have something to display
+                    if not answer_text or answer_text.strip() == "":
+                        answer_text = "The LLM didn't provide a valid response. Please try again."
+                    
+                    # Store in session state in both formats to ensure display works
+                    st.session_state[answer_key] = answer_text
+                    st.session_state[f"{answer_key}_raw"] = answer_text
+                    
+                    # Force immediate display for debugging
+                    st.write("Answer generated successfully!")
+                    st.write(answer_text)
+                    
+                    return True
+                except Exception as e:
+                    st.error(f"Error processing answer: {str(e)}")
+                    st.session_state[answer_key] = f"Error processing answer: {str(e)}"
+                    return False
+            else:
+                # Log the error response
+                st.error(f"Error generating answer: {response.status_code}")
+                st.session_state[answer_key] = "Error: Could not generate answer from transcript."
+                return False
+    except Exception as e:
+        st.error(f"An error occurred: {str(e)}")
+        st.session_state[answer_key] = f"Error: {str(e)}"
+        return False
 
 def complete_workflow():
     st.markdown("<div class='step-header' style='margin-top:0;'>Complete VOICERA Workflow</div>", unsafe_allow_html=True)

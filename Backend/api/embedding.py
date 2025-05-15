@@ -1,4 +1,4 @@
-from fastapi import APIRouter, UploadFile, File, Form, HTTPException
+from fastapi import APIRouter, UploadFile, File, Form, HTTPException, Request
 from fastapi.responses import JSONResponse
 from werkzeug.utils import secure_filename
 import json
@@ -7,9 +7,10 @@ import os
 from mutagen.id3 import ID3, TXXX
 from mutagen.mp3 import MP3
 import shutil
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 import uuid
 import base64
+import requests
 
 router = APIRouter()
 
@@ -57,33 +58,65 @@ def extract_metadata_from_mp3_to_json(file_path: str) -> Dict[str, Any]:
         return {"error": f"Error while extracting: {str(e)}"}
 
 @router.post("/extract")
-async def extract_metadata(mp3_file: UploadFile = File(...)):
+async def extract_metadata(
+    request: Request,
+    mp3_file: UploadFile = File(None),
+    mp3_url: Optional[str] = Form(None)
+):
     """
-    Endpoint to extract metadata FROM an MP3 file into a full transcription JSON.
+    Endpoint to extract metadata FROM an MP3 file/URL into a full transcription JSON.
     
     Args:
-        mp3_file: The MP3 file to extract metadata from
+        request: The request object to handle JSON body
+        mp3_file: The MP3 file to extract metadata from (optional)
+        mp3_url: URL of an MP3 file to extract metadata from (optional)
         
     Returns:
         JSON response with full transcription JSON
     """
-    # Checking if the file is valid
-    if not mp3_file.filename:
-        raise HTTPException(status_code=400, detail="No file selected")
-    
-    # Creating a temporary directory
-    temp_dir = tempfile.mkdtemp()
-    file_path = os.path.join(temp_dir, secure_filename(mp3_file.filename))
-    
+    # Check if request is a JSON request with mp3_url field
+    json_body = None
     try:
-        # Saving the uploaded file temporarily to parse
-        with open(file_path, "wb") as buffer:
-            shutil.copyfileobj(mp3_file.file, buffer)
-        
-        # Extracting metadata from the MP3
+        if request.headers.get("content-type") == "application/json":
+            json_body = await request.json()
+            if json_body and "mp3_url" in json_body:
+                mp3_url = json_body["mp3_url"]
+    except Exception:
+        # Ignore JSON parsing errors, will fall back to form data
+        pass
+    
+    # Validate input
+    if not mp3_file and not mp3_url:
+        raise HTTPException(status_code=400, detail="Must provide either mp3_file or mp3_url")
+    
+    print(f"Extracting metadata from {'mp3_file' if mp3_file else 'mp3_url'}: {mp3_url if mp3_url else mp3_file.filename}")
+    
+    temp_dir = tempfile.mkdtemp()
+    try:
+        if mp3_url:
+            # Download from URL
+            filename = secure_filename(os.path.basename(mp3_url)) or f"audio_{uuid.uuid4().hex}.mp3"
+            file_path = os.path.join(temp_dir, filename)
+            
+            # Download and save the file
+            response = requests.get(mp3_url)
+            if response.status_code != 200:
+                raise HTTPException(status_code=400, detail="Failed to download MP3 from URL")
+            
+            with open(file_path, "wb") as f:
+                f.write(response.content)
+        else:
+            # Handle uploaded file
+            if not mp3_file.filename:
+                raise HTTPException(status_code=400, detail="No file selected")
+            
+            file_path = os.path.join(temp_dir, secure_filename(mp3_file.filename))
+            with open(file_path, "wb") as buffer:
+                shutil.copyfileobj(mp3_file.file, buffer)
+
+        # Extract metadata from the MP3
         extracted_json = extract_metadata_from_mp3_to_json(file_path)
         
-        # Checking if there was an error during extraction
         if "error" in extracted_json:
             raise HTTPException(status_code=500, detail=extracted_json["error"])
             
@@ -93,7 +126,6 @@ async def extract_metadata(mp3_file: UploadFile = File(...)):
         raise HTTPException(status_code=500, detail=f"Failed to extract metadata: {str(e)}")
         
     finally:
-        # Cleaning up temporary files
         if os.path.exists(temp_dir):
             shutil.rmtree(temp_dir)
 
