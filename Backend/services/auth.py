@@ -4,22 +4,12 @@ from passlib.context import CryptContext
 from jose import JWTError, jwt
 from datetime import datetime, timedelta
 from typing import Optional, Dict, Any
-from bson import ObjectId
-import motor.motor_asyncio
 import os
 from dotenv import load_dotenv
-from pymongo.mongo_client import MongoClient
-from pymongo.server_api import ServerApi
-# Load environment variables
+from services.database import db, users_collection
+
 load_dotenv()
 
-# MongoDB connection
-MONGO_URI = os.getenv("MONGO_URI")
-client = motor.motor_asyncio.AsyncIOMotorClient(MONGO_URI)
-db = client.voicera_db
-users_collection = db.users
-
-# JWT configuration
 SECRET_KEY = os.getenv("SECRET_KEY")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
