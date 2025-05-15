@@ -1,0 +1,5 @@
+<div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+    @for (podcast of podcasts; track podcast.id) {
+    <app-podcast-card [podcast]="podcast"></app-podcast-card>
+    }
+</div>
