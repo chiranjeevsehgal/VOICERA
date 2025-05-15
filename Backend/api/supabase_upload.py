@@ -9,6 +9,7 @@ from typing import Dict, Any
 import uuid
 
 from services.supabase_service import upload_file_to_supabase, list_files_in_bucket
+from services.pinecone_service import index_transcript
 from api.embedding import extract_metadata_from_mp3_to_json
 
 router = APIRouter()
@@ -18,6 +19,7 @@ async def upload_to_supabase(file: UploadFile = File(...)):
     """
     Upload an audio file to Supabase storage.
     If the file is an MP3 with ID3 tags, the metadata will be preserved.
+    The transcription data will also be indexed in Pinecone for search.
     
     Args:
         file (UploadFile): The audio file to upload
@@ -67,6 +69,19 @@ async def upload_to_supabase(file: UploadFile = File(...)):
         # Add metadata to the response if available
         if metadata and isinstance(metadata, dict):
             response["metadata"] = metadata
+            
+            # Index the transcript in Pinecone for search
+            if "results" in metadata:
+                try:
+                    await index_transcript(
+                        transcript_data=metadata,
+                        file_url=response.get("file_url", ""),
+                        file_name=response.get("file_name", "")
+                    )
+                    response["indexed"] = True
+                except Exception as e:
+                    print(f"Warning: Failed to index transcript in Pinecone: {str(e)}")
+                    response["indexed"] = False
         
         return response
         

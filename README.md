@@ -1,3 +1,118 @@
+# VOICERA - Audio Transcription and Search Platform
+
+## Overview
+
+VOICERA is an audio processing application that provides:
+
+1. **Audio Upload**: Upload MP3 files to a temporary hosting service
+2. **Transcription**: Detailed transcriptions with timestamps and speaker diarization
+3. **Metadata Embedding**: Embedding transcription data directly in MP3 files as ID3 tags
+4. **Storage**: Permanent storage in Supabase
+5. **Semantic Search**: Advanced search capabilities across all audio files with Together AI embeddings
+
+## Audio Processing Workflow
+
+1. **Audio Upload** (`/api/upload`):
+   - User uploads an MP3 file
+   - The file is temporarily saved locally
+   - The file is then uploaded to tmpfiles.org
+   - Returns a URL to the uploaded file
+
+2. **Transcription** (`/api/transcribe`):
+   - Receives the URL from the previous step
+   - Sends the URL to Deepgram's API for transcription
+   - Returns detailed transcription data
+
+3. **Embedding** (`/api/embed`):
+   - Takes the MP3 file and embeds the transcription metadata into the file as ID3 tags
+   - The metadata is encoded as base64 and stored in a custom TXXX tag
+   - Saves the file locally with a unique ID
+
+4. **Supabase Upload** (`/api/uploadToSupabase`):
+   - Takes the embedded MP3 file
+   - Uploads it to Supabase storage
+   - Indexes the transcription in Pinecone for search
+   - Returns the Supabase URL and file path
+
+5. **Search** (`/api/search`):
+   - Searches through all transcribed audio using semantic search with Together AI embeddings
+   - Returns matching audio files with precise timestamps
+   - Supports time range queries like "policy 30-32" (search for "policy" between 30-32 seconds)
+   - Filters by speaker and confidence level
+
+## Setup
+
+### Environment Variables
+
+Create a `.env` file in the root directory with the following variables:
+
+```
+# API Keys
+DEEPGRAM_API_KEY=your_deepgram_api_key
+TOGETHER_API_KEY=your_together_api_key
+PINECONE_API_KEY=your_pinecone_api_key
+
+# Supabase Configuration
+SUPABASE_URL=your_supabase_url
+SUPABASE_KEY=your_supabase_key
+SUPABASE_BUCKET=audiofiles
+
+# Pinecone Configuration
+PINECONE_ENVIRONMENT=gcp-starter
+PINECONE_INDEX_NAME=voicera-audio-search
+EMBEDDING_MODEL=togethercomputer/m2-bert-80M-8k-retrieval
+EMBEDDING_DIMENSION=768
+```
+
+### Requirements
+
+Install the required packages:
+
+```
+pip install together pinecone-client python-dotenv fastapi uvicorn supabase mutagen
+```
+
+### Running the Application
+
+Start the FastAPI server:
+
+```
+uvicorn Backend.main:app --reload
+```
+
+## API Endpoints
+
+### Audio Upload
+- `POST /api/upload`: Upload audio to tmpfiles.org
+
+### Transcription
+- `POST /api/transcribe`: Transcribe audio from URL
+
+### Embedding
+- `POST /api/embed`: Embed transcription data in MP3 file
+- `POST /api/extract`: Extract metadata from MP3 file
+
+### Storage
+- `POST /api/uploadToSupabase`: Upload to Supabase with automatic indexing
+- `GET /api/listSupabaseFiles`: List files in Supabase storage
+
+### Search
+- `GET /api/search`: Search through audio transcripts
+  - Parameters:
+    - `query`: Search query (can include timestamp range, e.g., "policy 30-32")
+    - `limit`: Maximum number of results
+    - `min_confidence`: Minimum confidence threshold (0-1)
+    - `speaker`: Filter by speaker ID
+
+## How Search Works
+
+The search functionality uses:
+1. **Vector Embeddings**: Each transcript is split into meaningful chunks
+2. **Together AI Embeddings**: Text is converted to vector embeddings using `togethercomputer/m2-bert-80M-8k-retrieval` model
+3. **Pinecone Vector DB**: For semantic similarity search
+4. **Timestamp Parsing**: Extracts time ranges from search queries
+5. **Chunk Metadata**: Preserves timestamps, speaker info, and confidence scores
+
 ## **VOICERA – Intelligent Voice Search Engine**
 
 
@@ -123,6 +238,6 @@ Voicera supports dynamic query refinement, allowing users to improve search resu
 ### **Conclusion**
 
 
-Voicera is more than just a voice search tool—it’s a transformative platform for making voice data accessible, insightful, and actionable. By bridging the gap between raw audio and meaningful understanding, Voicera empowers users to unlock the full potential of their voice datasets with speed, precision, and intelligence.
+Voicera is more than just a voice search tool—it's a transformative platform for making voice data accessible, insightful, and actionable. By bridging the gap between raw audio and meaningful understanding, Voicera empowers users to unlock the full potential of their voice datasets with speed, precision, and intelligence.
 
 
