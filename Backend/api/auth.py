@@ -9,11 +9,15 @@ from services.auth import (
 )
 from models.auth import Token, UserCreate, UserResponse, ProfileResponse
 from datetime import datetime
+from services.ip_utils import get_ip_for_request
 
 router = APIRouter(prefix='/auth')
 
 @router.post("/login", response_model=Token)
-async def login_user(form_data: OAuth2PasswordRequestForm = Depends()):
+async def login_user(
+    form_data: OAuth2PasswordRequestForm = Depends(),
+    client_ip: str = Depends(get_ip_for_request)
+    ):
     # Login User
     user = await authenticate_user(form_data.username, form_data.password)
     if not user:
@@ -31,6 +35,7 @@ async def login_user(form_data: OAuth2PasswordRequestForm = Depends()):
     access_token = create_access_token(
         data={"sub": user["email"]}, expires_delta=access_token_expires
     )
+    print(client_ip)
     return {
         "status": True,
         "detail": "Login Successful",
