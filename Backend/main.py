@@ -1,5 +1,4 @@
 from fastapi import FastAPI, Depends, Request
-
 from api import health, transcribe, embedding, upload, llm_translation, supabase_upload, auth, ip_detection
 
 app = FastAPI(
@@ -34,6 +33,9 @@ app.include_router(llm_translation.router, prefix="/api", tags=["llm"])
 
 # Supabase router
 app.include_router(supabase_upload.router, prefix="/api", tags=["supabase"])
+
+# Search router
+app.include_router(search.router, prefix="/api", tags=["search"])
 
 # Auth router
 app.include_router(auth.router, prefix="/api", tags=["auth"])
