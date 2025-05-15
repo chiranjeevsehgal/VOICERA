@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
+from fastapi.responses import JSONResponse
 from datetime import timedelta
 from services.auth import (
     authenticate_user, create_access_token, 
@@ -9,16 +10,21 @@ from services.auth import (
 from models.auth import Token, UserCreate, UserResponse, ProfileResponse
 from datetime import datetime
 
-router = APIRouter()
+router = APIRouter(prefix='/auth')
 
 @router.post("/login", response_model=Token)
 async def login_user(form_data: OAuth2PasswordRequestForm = Depends()):
     # Login User
     user = await authenticate_user(form_data.username, form_data.password)
     if not user:
-        raise HTTPException(
+        return JSONResponse(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Incorrect username or password",
+            content={
+                "status": False,
+                "detail": "Incorrect username or password",
+                "access_token": None,
+                "token_type": None
+            },
             headers={"WWW-Authenticate": "Bearer"},
         )
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
@@ -26,7 +32,8 @@ async def login_user(form_data: OAuth2PasswordRequestForm = Depends()):
         data={"sub": user["email"]}, expires_delta=access_token_expires
     )
     return {
-        "status": "Login Successful",
+        "status": True,
+        "detail": "Login Successful",
         "access_token": access_token, 
         "token_type": "bearer"
         }
@@ -35,9 +42,12 @@ async def login_user(form_data: OAuth2PasswordRequestForm = Depends()):
 async def register_user(user: UserCreate):
     # Check if user already exists
     if await get_user(user.email):
-        raise HTTPException(
+        return JSONResponse(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Email already registered"
+            content={
+                "status": False,
+                "detail": "Email already registered",
+            },
         )
     
     # Create new user
@@ -50,11 +60,10 @@ async def register_user(user: UserCreate):
     
     # Return user data
     return UserResponse(
-        status="Account has been created successfully.",
+        status=True,
+        detail="Account has been created successfully",
         email=user.email,
         full_name=user.full_name,
-        role=user.role,
-        disabled=False
     )
 
 @router.get("/users/profile", response_model=ProfileResponse)
