@@ -1,243 +1,151 @@
-# VOICERA - Audio Transcription and Search Platform
+# VOICERA - Intelligent Audio Search & Analysis Platform
 
 ## Overview
 
-VOICERA is an audio processing application that provides:
+VOICERA is a comprehensive audio processing and analysis platform that transforms raw audio into structured, searchable insights using state-of-the-art AI technologies. The platform enables powerful semantic search across audio recordings, allowing users to quickly find relevant information without manually scanning through hours of audio content.
 
-1. **Audio Upload**: Upload MP3 files to a temporary hosting service
-2. **Transcription**: Detailed transcriptions with timestamps and speaker diarization
-3. **Metadata Embedding**: Embedding transcription data directly in MP3 files as ID3 tags
-4. **Storage**: Permanent storage in Supabase
-5. **Semantic Search**: Advanced search capabilities across all audio files with Together AI embeddings
+### Key Features
+
+- **Audio Upload & Management**: Support for MP3 files with temporary and permanent storage
+- **AI-Powered Transcription**: Detailed transcriptions with timestamps, speaker diarization, and smart formatting
+- **Metadata Embedding**: Transcription data embedded directly in MP3 files as ID3 tags
+- **Semantic Search**: Vector-based search with natural language processing capabilities
+- **Multi-Speaker Analysis**: Speaker diarization and filtering capabilities
+- **AI-Powered Answer Generation**: Generate concise answers to questions directly from audio content
+- **User Authentication**: Secure access with JWT-based authentication
+
+## Architecture
+
+VOICERA consists of two main components:
+
+1. **Backend API (FastAPI)**: RESTful API handling all audio processing, transcription, storage, and search functionality
+2. **Frontend Interface (Streamlit)**: User-friendly interface for interacting with the platform's features
 
 ## Audio Processing Workflow
 
-1. **Audio Upload** (`/api/upload`):
-   - User uploads an MP3 file
-   - The file is temporarily saved locally
-   - The file is then uploaded to tmpfiles.org
-   - Returns a URL to the uploaded file
-
-2. **Transcription** (`/api/transcribe`):
-   - Receives the URL from the previous step
-   - Sends the URL to Deepgram's API for transcription
-   - Returns detailed transcription data
-
-3. **Embedding** (`/api/embed`):
-   - Takes the MP3 file and embeds the transcription metadata into the file as ID3 tags
-   - The metadata is encoded as base64 and stored in a custom TXXX tag
-   - Saves the file locally with a unique ID
-
-4. **Supabase Upload** (`/api/uploadToSupabase`):
-   - Takes the embedded MP3 file
-   - Uploads it to Supabase storage
-   - Indexes the transcription in Pinecone for search
-   - Returns the Supabase URL and file path
-
-5. **Search** (`/api/search`):
-   - Searches through all transcribed audio using semantic search with Together AI embeddings
-   - Returns matching audio files with precise timestamps
-   - Supports time range queries like "policy 30-32" (search for "policy" between 30-32 seconds)
-   - Filters by speaker and confidence level
+1. **Audio Upload**: User uploads an MP3 file, which is temporarily stored
+2. **Transcription**: The file is transcribed using Deepgram's advanced speech-to-text API
+3. **Metadata Embedding**: Transcription data is embedded into the MP3 file's ID3 tags
+4. **Storage & Indexing**: File is uploaded to Supabase and indexed in Pinecone for semantic search
+5. **Search & Analysis**: Users can search through all transcribed audio with natural language queries
+6. **Answer Generation**: AI generates concise answers to user questions based on transcript content
 
 ## Setup
 
 ### Environment Variables
 
-Create a `.env` file in the root directory with the following variables:
+Create a `.env` file in the root directory with:
 
 ```
 # API Keys
 DEEPGRAM_API_KEY=your_deepgram_api_key
 TOGETHER_API_KEY=your_together_api_key
 PINECONE_API_KEY=your_pinecone_api_key
+GEMINI_API_KEY=your_gemini_api_key
+GEMINI_MODEL=gemini-pro
+
+# MongoDB Authentication
+MONGO_URI=your_mongodb_uri
+SECRET_KEY=your_jwt_secret_key
 
 # Supabase Configuration
 SUPABASE_URL=your_supabase_url
 SUPABASE_KEY=your_supabase_key
 SUPABASE_BUCKET=audiofiles
 
-# Pinecone Configuration
+# Vector Database Configuration
 PINECONE_ENVIRONMENT=gcp-starter
 PINECONE_INDEX_NAME=voicera-audio-search
 EMBEDDING_MODEL=togethercomputer/m2-bert-80M-8k-retrieval
 EMBEDDING_DIMENSION=768
 ```
 
-### Requirements
+### Installation
 
-Install the required packages:
+```bash
+# Clone the repository
+git clone https://github.com/chiranjeevsehgal/VOICERA.git
 
-```
-pip install together pinecone-client python-dotenv fastapi uvicorn supabase mutagen
+# Create a virtual environment
+python -m venv fastapi-env
+
+# Activate the environment
+# On Windows
+fastapi-env\Scripts\activate.bat
+# On macOS/Linux
+source fastapi-env/bin/activate
+
+# Install dependencies
+pip install -r requirements.txt
 ```
 
 ### Running the Application
 
-Start the FastAPI server:
+```bash
+# Start the backend server
+cd Backend
+uvicorn main:app --reload --port 8000
 
-```
-uvicorn Backend.main:app --reload
+# Start the frontend (in a separate terminal)
+cd VOICERA
+streamlit run wip_app.py
 ```
 
 ## API Endpoints
 
-### Audio Upload
-- `POST /api/upload`: Upload audio to tmpfiles.org
+### Authentication
+- `POST /api/auth/register`: Create a new user account
+- `POST /api/auth/login`: Authenticate and get access token
+- `GET /api/auth/users/profile`: Get current user profile
 
-### Transcription
-- `POST /api/transcribe`: Transcribe audio from URL
-
-### Embedding
+### Audio Processing
+- `POST /api/upload`: Upload audio file to temporary storage
+- `POST /api/transcribe`: Transcribe audio from URL with various options
 - `POST /api/embed`: Embed transcription data in MP3 file
-- `POST /api/extract`: Extract metadata from MP3 file
+- `POST /api/extract`: Extract embedded metadata from MP3 file
 
-### Storage
-- `POST /api/uploadToSupabase`: Upload to Supabase with automatic indexing
-- `GET /api/listSupabaseFiles`: List files in Supabase storage
+### Storage & Indexing
+- `POST /api/uploadToSupabase`: Upload to permanent storage with automatic indexing
+- `GET /api/listSupabaseFiles`: List files in storage
 
-### Search
+### Search & Analysis
 - `GET /api/search`: Search through audio transcripts
-  - Parameters:
-    - `query`: Search query (can include timestamp range, e.g., "policy 30-32")
-    - `limit`: Maximum number of results
-    - `min_confidence`: Minimum confidence threshold (0-1)
-    - `speaker`: Filter by speaker ID
+  - Supports natural language queries
+  - Time range filtering (e.g., "policy 30-32")
+  - Speaker filtering
+  - LLM query expansion
+- `POST /api/generate-answer`: Generate answers from transcript content
+- `POST /api/search-and-answer`: Combined search and answer generation
 
-## How Search Works
+## Answer Generation
 
-The search functionality uses:
-1. **Vector Embeddings**: Each transcript is split into meaningful chunks
-2. **Together AI Embeddings**: Text is converted to vector embeddings using `togethercomputer/m2-bert-80M-8k-retrieval` model
-3. **Pinecone Vector DB**: For semantic similarity search
-4. **Timestamp Parsing**: Extracts time ranges from search queries
-5. **Chunk Metadata**: Preserves timestamps, speaker info, and confidence scores
+VOICERA enables users to ask questions about their audio content and receive AI-generated answers:
 
-## **VOICERA – Intelligent Voice Search Engine**
+- Questions are analyzed against transcript content
+- The system uses contextual understanding to extract relevant information
+- Answers are generated using language models trained to provide concise, accurate responses
+- The feature integrates seamlessly with search results, allowing users to get immediate insights without listening to the entire audio
 
+## Search Technology
 
-### **Overview**
+VOICERA's search capabilities leverage:
 
+1. **Semantic Vector Embeddings**: Audio transcripts are segmented and converted to vector embeddings using Together AI's embedding models
+2. **Vector Database**: Pinecone for efficient similarity search
+3. **LLM Integration**: Google's Gemini model for query expansion and answer generation
+4. **Natural Language Processing**: Identification of key terms, entities, and temporal references
+5. **Time-Based Navigation**: Automatically extracts and processes time references in queries
 
-**Voicera** is an advanced voice tool software designed to revolutionize how organizations and individuals interact with large-scale audio databases. Leveraging cutting-edge AI and machine learning technologies, Voicera enables fast, accurate, and intelligent voice file retrieval from massive repositories of voice data. It transforms raw audio into structured, searchable insights, dramatically reducing the time and effort required to locate specific audio content.
+## Use Cases
 
+- **Media & Journalism**: Find specific quotes or segments in interviews
+- **Education**: Search through lecture recordings for specific topics
+- **Business**: Analyze meeting recordings for key discussions and decisions
+- **Research**: Extract insights from recorded interviews or focus groups
+- **Legal & Compliance**: Locate specific clauses or discussions in recorded meetings
 
+## License
 
-
-### Installation
-- Clone the repository: `git clone https://github.com/chiranjeevsehgal/VOICERA.git`
-- Create a virtual environment: `python -m venv fastapi-env`
-- Activate the environment: `fastapi-env\Scripts\activate.bat`
-- Navigate to backend: `cd Backend`
-- Install dependencies: `pip install -r requirements.txt`
-
-### Running the Application
-
-- Activate the environment: `fastapi-env\Scripts\activate.bat`
-- Run the application: `uvicorn main:app --reload --port 8000`
-- Access the API documentation at `http://localhost:8000/docs`
-
-
-
-### **Core Functionality**
-
-
-#### 🔍 **Smart Voice Search**
-
-
-Voicera excels at finding relevant voice recordings quickly and accurately. By converting raw audio into searchable transcriptions, it enables users to input a query—textual or verbal—and retrieve the most contextually relevant voice files from extensive archives.
-
-
-#### 🎙️ **Raw Audio Input & Processing**
-
-
-Voicera accepts raw audio inputs through uploads, APIs, or real-time streams. These audio files undergo a sophisticated processing pipeline:
-
-
-* **Noise Filtering & Preprocessing**
-* **Automatic Speech Recognition (ASR)** for transcription
-* **Speaker Diarization** for identifying different speakers
-* **Timestamp Alignment** for precise navigation
-
-
-#### 🤖 **AI-Powered Understanding**
-
-
-After transcription, Voicera uses **pre-trained Large Language Models (LLMs)** to interpret the semantic meaning of the spoken content. It understands context, intent, and topics discussed, offering a level of search precision far beyond traditional keyword matching.
-
-
-#### 🧠 **Semantic Search with Vector Databases**
-
-
-Transcriptions and audio metadata are encoded into high-dimensional vectors and stored in a **vector database**. Advanced similarity search algorithms (such as cosine similarity or approximate nearest neighbors) are used to compare query vectors against stored data to retrieve the most relevant audio files with high accuracy.
-
-
-#### 🔁 **Iterative Search Refinement**
-
-
-Voicera supports dynamic query refinement, allowing users to improve search results interactively using feedback loops and relevance scoring. This enables continuous learning and precision tuning for complex or ambiguous queries.
-
-
----
-
-
-### **Key Features**
-
-
-* **Multi-format Audio Support** (MP3, WAV, FLAC, etc.)
-* **Natural Language Query Interface**
-* **Real-time Transcription & Indexing**
-* **Speaker & Language Identification**
-* **Scalable Architecture for Enterprise Use**
-* **Secure Audio Data Handling & Compliance**
-
-
----
-
-
-### **Technology Stack**
-
-
-* **Audio Processing:** FFmpeg, WebRTC, custom DSP filters
-* **Speech Recognition:** Whisper, DeepSpeech, or Google Cloud Speech-to-Text
-* **LLMs:** OpenAI GPT models, LLaMA, or similar
-* **Vector Database:** FAISS, Pinecone, or Weaviate
-* **Backend:** Python (FastAPI), Java (Spring Boot for integration layers)
-* **Frontend (Optional):** React or Angular with intuitive UI for playback and navigation
-* **Deployment:** Dockerized microservices, scalable with Kubernetes, integrated with cloud platforms (AWS/GCP/Azure)
-
-
----
-
-
-### **Use Cases**
-
-
-* **Media & Journalism:** Locate quotes or audio snippets in interviews
-* **Legal & Compliance:** Retrieve specific clauses or discussions from recorded meetings
-* **Customer Support:** Analyze voice calls to detect repeated issues or complaints
-* **Enterprise Knowledge Management:** Make voice memos and meetings searchable across departments
-* **Research & Academia:** Search voice archives in linguistics or ethnography projects
-
-
----
-
-
-### **Benefits**
-
-
-* **Time Efficiency:** Dramatically reduces manual effort in browsing hours of recordings
-* **Enhanced Accuracy:** Semantic search reduces false positives compared to traditional keyword methods
-* **Customizability:** Adaptable for domain-specific vocabularies and dialects
-* **Scalability:** Designed to handle millions of audio files seamlessly
-
-
----
-
-
-### **Conclusion**
-
-
-Voicera is more than just a voice search tool—it's a transformative platform for making voice data accessible, insightful, and actionable. By bridging the gap between raw audio and meaningful understanding, Voicera empowers users to unlock the full potential of their voice datasets with speed, precision, and intelligence.
+[MIT License](LICENSE)
 
 
