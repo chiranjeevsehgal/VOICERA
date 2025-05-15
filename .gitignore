@@ -73,3 +73,9 @@ Backend/audio_uploads/
 
 # Environment variables
 .env
+
+
+# Temp
+frontend/src/app/components/*
+frontend/src/app/pages/*
+frontend/src/app/services/*
