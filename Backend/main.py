@@ -1,6 +1,6 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Depends, Request
 
-from api import health, transcribe, embedding, upload, llm_translation, supabase_upload, auth
+from api import health, transcribe, embedding, upload, llm_translation, supabase_upload, auth, ip_detection
 
 app = FastAPI(
     title="VOICERA Backend", 
@@ -37,3 +37,6 @@ app.include_router(supabase_upload.router, prefix="/api", tags=["supabase"])
 
 # Auth router
 app.include_router(auth.router, prefix="/api", tags=["auth"])
+
+# IP router
+app.include_router(ip_detection.router, prefix="/api", tags=["ip"])
