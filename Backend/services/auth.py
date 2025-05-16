@@ -7,12 +7,14 @@ from typing import Optional, Dict, Any
 import os
 from dotenv import load_dotenv
 from services.database import db, users_collection
+from bson import ObjectId
+from bson.errors import InvalidId
 
 load_dotenv()
 
 SECRET_KEY = os.getenv("SECRET_KEY")
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 30
+ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES"))
 
 # Password hash context
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -27,13 +29,22 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
 def get_password_hash(password: str) -> str:
     return pwd_context.hash(password)
 
-async def get_user(email: str) -> Optional[Dict[str, Any]]:
+async def get_user(uid: str) -> Optional[Dict[str, Any]]:
+    try:
+        obj_id = ObjectId(uid)  # convert string to ObjectId
+    except InvalidId:
+        return None
+    if (user := await users_collection.find_one({"_id": obj_id})):
+        return user
+    return None
+
+async def get_user_by_email(email: str) -> Optional[Dict[str, Any]]:
     if (user := await users_collection.find_one({"email": email})):
         return user
     return None
 
 async def authenticate_user(email: str, password: str) -> Optional[Dict[str, Any]]:
-    user = await get_user(email)
+    user = await get_user_by_email(email)
     if not user:
         return None
     if not verify_password(password, user["password"]):
@@ -58,13 +69,13 @@ async def get_current_user(token: str = Depends(oauth2_scheme)) -> Dict[str, Any
     )
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        email: str = payload.get("sub")
-        if email is None:
+        uid: str = payload.get("sub")
+        if uid is None:
             raise credentials_exception
     except JWTError:
         raise credentials_exception
     
-    user = await get_user(email)
+    user = await get_user(uid)
     if user is None:
         raise credentials_exception
     return user
