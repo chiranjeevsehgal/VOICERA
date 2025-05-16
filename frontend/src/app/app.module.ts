@@ -10,6 +10,11 @@ import { SerachSectionComponent } from './components/search-section/search-secti
 import { PodcastGridComponent } from './components/podcast-grid/podcast-grid.component';
 import { PodcastCardComponent } from './components/podcast-card/podcast-card.component';
 import { TrendingSearchesComponent } from './components/trending-searches/trending-searches.component';
+import { LoginFormComponent } from './components/login-form/login-form.component';
+import { LandingPageComponent } from './pages/landing-page/landing-page.component';
+import { CommonModule } from '@angular/common';
+import { ReactiveFormsModule } from '@angular/forms';
+import { LoginPageComponent } from './pages/login-page/login-page.component';
 
 
 @NgModule({
@@ -21,11 +26,16 @@ import { TrendingSearchesComponent } from './components/trending-searches/trendi
     PodcastGridComponent,
     PodcastCardComponent,
     TrendingSearchesComponent,
+    LoginFormComponent,
+    LandingPageComponent,
+    LoginPageComponent,
   ],
   imports: [
     BrowserModule,
     AppRoutingModule,
-    RouterModule
+    RouterModule,
+    CommonModule,
+    ReactiveFormsModule,
   ],
   providers: [],
   bootstrap: [AppComponent]
