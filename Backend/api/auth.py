@@ -5,7 +5,7 @@ from datetime import timedelta
 from services.auth import (
     authenticate_user, create_access_token, 
     get_current_user, get_password_hash,
-    get_user, ACCESS_TOKEN_EXPIRE_MINUTES, users_collection
+    get_user, get_user_by_email, ACCESS_TOKEN_EXPIRE_MINUTES, users_collection
 )
 from models.auth import Token, UserCreate, UserResponse, ProfileResponse
 from datetime import datetime
@@ -29,9 +29,15 @@ async def login_user(
             },
             headers={"WWW-Authenticate": "Bearer"},
         )
+    token_data = {
+        "sub": str(user["_id"]),
+        "email": user["email"],
+        "role": user["role"],
+        "userId": str(user["_id"])
+    }
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = create_access_token(
-        data={"sub": user["email"]}, expires_delta=access_token_expires
+        data=token_data, expires_delta=access_token_expires
     )
     
     return {
@@ -44,7 +50,7 @@ async def login_user(
 @router.post("/register", response_model=UserResponse)
 async def register_user(user: UserCreate):
     # Check if user already exists
-    if await get_user(user.email):
+    if await get_user_by_email(user.email):
         return JSONResponse(
             status_code=status.HTTP_400_BAD_REQUEST,
             content={
