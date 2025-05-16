@@ -1,0 +1,10 @@
+<section class="mb-10">
+    <h2 class="text-lg font-medium mb-4">Trending searches</h2>
+    <div class="flex flex-wrap gap-2">
+        @for (item of trendingItems; track $index) {
+        <button class="px-3 py-1.5 bg-gray-100 rounded-full text-sm hover:bg-gray-200 transition-colors cursor-pointer">
+            {{ item }}
+        </button>
+        }
+    </div>
+</section>
