@@ -15,7 +15,7 @@ import { ProgressSpinner } from 'primeng/progressspinner';
 })
 export class LoginFormComponent {
   loginForm: FormGroup;
-  isLoading : boolean = true;
+  isLoading : boolean = false;
 
   constructor(private fb: FormBuilder) {
     this.loginForm = this.fb.group({
@@ -26,6 +26,7 @@ export class LoginFormComponent {
 
   onSubmit() {
     if (this.loginForm.valid) {
+      this.isLoading = true;
       console.log('Form submitted', this.loginForm.value);
     }
   }
