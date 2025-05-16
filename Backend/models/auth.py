@@ -26,4 +26,3 @@ class ProfileResponse(BaseModel):
     email: EmailStr
     full_name: Optional[str] = None
     role: str
-    disabled: bool = False

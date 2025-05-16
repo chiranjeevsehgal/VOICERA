@@ -4,19 +4,17 @@ from fastapi.responses import JSONResponse
 from datetime import timedelta
 from services.auth import (
     authenticate_user, create_access_token, 
-    get_current_active_user, get_password_hash,
+    get_current_user, get_password_hash,
     get_user, ACCESS_TOKEN_EXPIRE_MINUTES, users_collection
 )
 from models.auth import Token, UserCreate, UserResponse, ProfileResponse
 from datetime import datetime
-from services.ip_utils import get_ip_for_request
 
 router = APIRouter(prefix='/auth')
 
 @router.post("/login", response_model=Token)
 async def login_user(
-    form_data: OAuth2PasswordRequestForm = Depends(),
-    client_ip: str = Depends(get_ip_for_request)
+    form_data: OAuth2PasswordRequestForm = Depends()
     ):
     # Login User
     user = await authenticate_user(form_data.username, form_data.password)
@@ -35,7 +33,7 @@ async def login_user(
     access_token = create_access_token(
         data={"sub": user["email"]}, expires_delta=access_token_expires
     )
-    print(client_ip)
+    
     return {
         "status": True,
         "detail": "Login Successful",
@@ -72,10 +70,9 @@ async def register_user(user: UserCreate):
     )
 
 @router.get("/users/profile", response_model=ProfileResponse)
-async def usr_profile(current_user: dict = Depends(get_current_active_user)):
+async def usr_profile(current_user: dict = Depends(get_current_user)):
     return ProfileResponse(
         email=current_user["email"],
         full_name=current_user.get("full_name"),
         role=current_user.get("role", "user"),
-        disabled=current_user.get("disabled", False)
     )

@@ -81,3 +81,6 @@ Wave==0.0.2
 websockets==14.2
 Werkzeug==2.2.3
 yarl==1.20.0
+google-auth==2.40.1
+google-auth-httplib2==0.2.0
+google-auth-oauthlib==1.2.2
