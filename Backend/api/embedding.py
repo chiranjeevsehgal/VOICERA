@@ -1,4 +1,4 @@
-from fastapi import APIRouter, UploadFile, File, Form, HTTPException, Request
+from fastapi import APIRouter, UploadFile, File, Form, HTTPException, Request, Depends
 from fastapi.responses import JSONResponse
 from werkzeug.utils import secure_filename
 import json
@@ -11,6 +11,7 @@ from typing import Dict, Any, Optional
 import uuid
 import base64
 import requests
+from services.auth import get_current_user
 
 router = APIRouter()
 
@@ -61,7 +62,8 @@ def extract_metadata_from_mp3_to_json(file_path: str) -> Dict[str, Any]:
 async def extract_metadata(
     request: Request,
     mp3_file: UploadFile = File(None),
-    mp3_url: Optional[str] = Form(None)
+    mp3_url: Optional[str] = Form(None),
+    current_user: dict = Depends(get_current_user)
 ):
     """
     Endpoint to extract metadata FROM an MP3 file/URL into a full transcription JSON.
@@ -132,7 +134,8 @@ async def extract_metadata(
 @router.post("/embed")
 async def add_mp3_tags(
     mp3_file: UploadFile = File(...),
-    metadata: str = Form(...)
+    metadata: str = Form(...),
+    current_user: dict = Depends(get_current_user)
 ):
     """
     Endpoint to add ID3v2 tags TO an MP3 file and save it to disk.

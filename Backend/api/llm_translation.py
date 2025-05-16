@@ -1,8 +1,12 @@
-from fastapi import APIRouter, HTTPException, Depends
-from typing import Optional
+from fastapi import APIRouter, HTTPException, Depends, status
+from typing import Optional, List
 import google.generativeai as genai
 import os
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
+from dotenv import load_dotenv
+from services.auth import get_current_user
+
+load_dotenv()
 
 router = APIRouter()
 
@@ -24,9 +28,11 @@ class LLMConfig_Translation:
 
 # Request and response models
 class TranslationRequest(BaseModel):
-    text: str
-    custom_system_prompt: Optional[str] = None
-    temperature: Optional[float] = None
+    text: str = Field(..., description="Text to translate")
+    target_language: str = Field(..., description="Target language for translation")
+    source_language: Optional[str] = Field(None, description="Source language (auto-detected if not provided)")
+    preserve_formatting: bool = Field(True, description="Whether to preserve formatting in the translation")
+    formal: bool = Field(False, description="Whether to use formal language in translation")
 
 class TranslationResponse(BaseModel):
     translated_text: str
@@ -36,12 +42,25 @@ def get_config():
     return LLMConfig_Translation()
 
 # To get the desired translation
-@router.post("/llm/translate", response_model=TranslationResponse)
+@router.post(
+    "/llm/translate",
+    summary="Translate text using Gemini API",
+    description="Translates text to a target language using Google's Gemini model"
+)
 async def translate_text(
-    request: TranslationRequest
-) -> TranslationResponse:
+    request: TranslationRequest,
+    current_user: dict = Depends(get_current_user)
+):
     """
-    Translate text to desired language using Gemini API
+    Translate text to a target language using Google's Gemini model.
+    
+    Example body:
+    {
+        "text": "Hello world, how are you?",
+        "target_language": "Spanish",
+        "preserve_formatting": true,
+        "formal": false
+    }
     """
     config = get_config()
 
