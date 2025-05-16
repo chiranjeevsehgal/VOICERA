@@ -4,7 +4,7 @@ from fastapi.responses import JSONResponse
 from datetime import timedelta
 from services.auth import (
     authenticate_user, create_access_token, 
-    get_current_active_user, get_password_hash,
+    get_current_user, get_password_hash,
     get_user, ACCESS_TOKEN_EXPIRE_MINUTES, users_collection
 )
 from models.auth import Token, UserCreate, UserResponse, ProfileResponse
@@ -70,10 +70,9 @@ async def register_user(user: UserCreate):
     )
 
 @router.get("/users/profile", response_model=ProfileResponse)
-async def usr_profile(current_user: dict = Depends(get_current_active_user)):
+async def usr_profile(current_user: dict = Depends(get_current_user)):
     return ProfileResponse(
         email=current_user["email"],
         full_name=current_user.get("full_name"),
         role=current_user.get("role", "user"),
-        disabled=current_user.get("disabled", False)
     )

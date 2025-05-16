@@ -69,11 +69,6 @@ async def get_current_user(token: str = Depends(oauth2_scheme)) -> Dict[str, Any
         raise credentials_exception
     return user
 
-async def get_current_active_user(current_user: Dict[str, Any] = Depends(get_current_user)) -> Dict[str, Any]:
-    if current_user.get("disabled", False):
-        raise HTTPException(status_code=400, detail="Inactive user")
-    return current_user
-
 # Role-based access control
 def requires_role(required_role: str):
     async def role_checker(current_user: Dict[str, Any] = Depends(get_current_user)):
