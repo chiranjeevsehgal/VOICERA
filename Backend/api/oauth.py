@@ -37,7 +37,8 @@ async def google_login(
     token_data = {
         "sub": str(user["_id"]),
         "email": user["email"],
-        "role": user["role"]
+        "role": user["role"],
+        "userId": str(user["_id"])
     }
     
     access_token = create_access_token(
