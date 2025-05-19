@@ -403,6 +403,14 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
+# Helper function to get headers with JWT token if present
+def get_auth_headers():
+    headers = {}
+    jwt_token = st.session_state.get('jwt_token', '')
+    if jwt_token:
+        headers['Authorization'] = f'Bearer {jwt_token}'
+    return headers
+
 def display_header():
     col1, col2 = st.columns([1, 6]) # Adjusted column ratio
     with col1:
@@ -415,6 +423,15 @@ def display_header():
 
 def display_sidebar():
     st.sidebar.markdown("<div class='sub-header'>Workflow Navigation</div>", unsafe_allow_html=True)
+    # JWT Token input field
+    jwt_token = st.sidebar.text_input(
+        "JWT Token:",
+        value=st.session_state.get('jwt_token', ''),
+        type="password",
+        help="Paste your JWT token here. It will be used for all API requests.",
+        key="jwt_token_input"
+    )
+    st.session_state['jwt_token'] = jwt_token
     workflow_option = st.sidebar.radio(
         "Select Workflow Step:", # Added colon for clarity
         ["Complete Workflow", "Bulk Processing", "Upload Audio", "Transcribe Audio", "Embed Metadata", "Supabase Upload", "Search Audio"],
@@ -446,8 +463,9 @@ def upload_audio_section():
             with st.spinner("Uploading audio to temporary storage..."):
                 try:
                     response = requests.post(
-                        f"{API_BASE_URL}/upload", 
-                        files={"file": (uploaded_file.name, uploaded_file.getvalue(), "audio/mpeg")}
+                        f"{API_BASE_URL}/upload",
+                        files={"file": (uploaded_file.name, uploaded_file.getvalue(), "audio/mpeg")},
+                        headers=get_auth_headers()
                     )
                     
                     if response.status_code == 201:
@@ -502,7 +520,7 @@ def transcribe_audio_section():
                     "smart_format": smart_format, "utterances": utterances,
                     "detect_language": detect_language, "model": model
                 }
-                response = requests.post(f"{API_BASE_URL}/transcribe", json=payload)
+                response = requests.post(f"{API_BASE_URL}/transcribe", json=payload, headers=get_auth_headers())
                 
                 if response.status_code == 200:
                     st.session_state.transcription_result = response.json()
@@ -537,7 +555,7 @@ def transcribe_audio_section():
                         </div>
                         """, unsafe_allow_html=True)
                     
-                    st.session_state.transcription_json = json.dumps(transcript_data)
+                    st.session_state.transcription_json = json.dumps(transcription_result)
                 else:
                     st.error(f"Error transcribing audio: {response.status_code} - {response.text}")
             except requests.exceptions.RequestException as e:
@@ -569,8 +587,7 @@ def embed_metadata_section(uploaded_file_obj): # Renamed for clarity
             try:
                 files = {"mp3_file": (embedded_file_upload.name, embedded_file_upload.getvalue(), "audio/mpeg")}
                 data = {"metadata": st.session_state.transcription_json}
-                
-                response = requests.post(f"{API_BASE_URL}/embed", files=files, data=data)
+                response = requests.post(f"{API_BASE_URL}/embed", files=files, data=data, headers=get_auth_headers())
                 
                 if response.status_code == 200:
                     st.session_state.embedding_result = response.json()
@@ -605,7 +622,7 @@ def supabase_upload_section():
         with st.spinner("Uploading to Supabase and preparing for indexing..."):
             try:
                 files = {"file": (supabase_uploaded_file.name, supabase_uploaded_file.getvalue(), "audio/mpeg")}
-                response = requests.post(f"{API_BASE_URL}/uploadToSupabase", files=files)
+                response = requests.post(f"{API_BASE_URL}/uploadToSupabase", files=files, headers=get_auth_headers())
                 
                 if response.status_code == 201:
                     st.session_state.supabase_result = response.json()
@@ -632,12 +649,16 @@ def supabase_upload_section():
     st.markdown("---")
 
 def search_audio_section():
-    st.markdown("<div class='step-header'>5️⃣ Semantic Audio Search</div>", unsafe_allow_html=True)
+    st.markdown("<div class='step-header'>5️⃣ Enhanced Semantic Audio Search</div>", unsafe_allow_html=True)
     
     st.markdown("""
     <div class='info-box'>
-    Search through indexed audio files using semantic queries. 
-    You can use natural language (e.g., "find discussions about project alpha") or include time hints (e.g., "meeting summary 10:00-15:00").
+    Search through indexed audio files using our enhanced hybrid search system. 
+    Combines semantic understanding with keyword matching for better accuracy.
+    You can use:
+    • Natural language queries (e.g., "find discussions about project alpha")
+    • Time hints (e.g., "meeting summary 10:00-15:00")
+    • Specific keywords or phrases
     </div>
     """, unsafe_allow_html=True)
 
@@ -660,32 +681,92 @@ def search_audio_section():
         # Update session state with current query
         st.session_state.search_query_input = search_query
     with search_col2:
-        limit = st.number_input("Results Limit:", min_value=1, max_value=50, value=5, step=1, key="search_limit_input") # Reduced max for typical use
+        limit = st.number_input("Results Limit:", min_value=1, max_value=50, value=5, step=1, key="search_limit_input")
 
-    st.markdown("<h5 style='margin-top: 1rem; margin-bottom: 0.5rem; color: white !important;'>Advanced Search Filters:</h5>", unsafe_allow_html=True)
-    opts_col1, opts_col2, opts_col3, opts_col4 = st.columns(4)
-    with opts_col1:
-        min_confidence = st.slider("Min. Confidence:", 0.0, 1.0, 0.75, step=0.05, help="Minimum relevance score for results (0.0 to 1.0).", key="search_confidence_slider")
-    with opts_col2:
-        speaker_input = st.number_input("Filter Speaker ID:", min_value=0, value=0, step=1, help="Filter by a specific speaker ID (0 for no filter).", key="search_speaker_input")
-        speaker = speaker_input if speaker_input > 0 else None
-    with opts_col3:
-        use_llm_expansion = st.checkbox("LLM Expansion", value=True, help="Expand query with synonyms and related terms for broader matching.", key="search_llm_checkbox")
-    with opts_col4:
-        natural_language = st.checkbox("NL Query Mode", value=False, help="Process query as a natural language question for intent understanding.", key="search_nl_checkbox")
+    # Advanced Search Options in Two Rows
+    st.markdown("<h5 style='margin-top: 1rem; margin-bottom: 0.5rem; color: white !important;'>Search Configuration:</h5>", unsafe_allow_html=True)
     
+    # First row of options
+    opts_row1_col1, opts_row1_col2, opts_row1_col3 = st.columns(3)
+    with opts_row1_col1:
+        min_confidence = st.slider(
+            "Min. Confidence:", 
+            0.0, 1.0, 0.75, 
+            step=0.05, 
+            help="Minimum relevance score for results (0.0 to 1.0).",
+            key="search_confidence_slider"
+        )
+    with opts_row1_col2:
+        speaker_input = st.number_input(
+            "Filter Speaker ID:", 
+            min_value=0, 
+            value=0, 
+            step=1, 
+            help="Filter by a specific speaker ID (0 for no filter).",
+            key="search_speaker_input"
+        )
+        speaker = speaker_input if speaker_input > 0 else None
+    with opts_row1_col3:
+        similarity_threshold = st.slider(
+            "Diversity Threshold:", 
+            0.5, 1.0, 0.85, 
+            step=0.05,
+            help="Higher values allow more similar results, lower values ensure more diverse results.",
+            key="similarity_threshold_slider"
+        )
+
+    # Second row of options with weights
+    st.markdown("<h5 style='margin-top: 1rem; margin-bottom: 0.5rem; color: white !important;'>Search Weights:</h5>", unsafe_allow_html=True)
+    opts_row2_col1, opts_row2_col2, opts_row2_col3, opts_row2_col4 = st.columns(4)
+    with opts_row2_col1:
+        semantic_weight = st.slider(
+            "Semantic Weight:", 
+            0.0, 1.0, 0.6, 
+            step=0.1,
+            help="Weight for semantic similarity in search results.",
+            key="semantic_weight_slider"
+        )
+    with opts_row2_col2:
+        keyword_weight = st.slider(
+            "Keyword Weight:", 
+            0.0, 1.0, 0.4, 
+            step=0.1,
+            help="Weight for keyword matching in search results.",
+            key="keyword_weight_slider"
+        )
+    with opts_row2_col3:
+        use_llm_expansion = st.checkbox(
+            "LLM Expansion", 
+            value=True, 
+            help="Expand query with synonyms and related terms for broader matching.",
+            key="search_llm_checkbox"
+        )
+    with opts_row2_col4:
+        natural_language = st.checkbox(
+            "NL Query Mode", 
+            value=False, 
+            help="Process query as a natural language question for intent understanding.",
+            key="search_nl_checkbox"
+        )
+
     # Define the search function that will execute the search and store results
     def execute_search():
         with st.spinner("Searching audio transcripts..."):
             try:
                 params = {
-                    "query": search_query, "limit": limit, "min_confidence": min_confidence,
-                    "use_llm_expansion": use_llm_expansion, "natural_language": natural_language
+                    "query": search_query,
+                    "limit": limit,
+                    "min_confidence": min_confidence,
+                    "use_llm_expansion": use_llm_expansion,
+                    "natural_language": natural_language,
+                    "semantic_weight": semantic_weight,
+                    "keyword_weight": keyword_weight,
+                    "similarity_threshold": similarity_threshold
                 }
                 if speaker is not None:
                     params["speaker"] = speaker
                 
-                response = requests.get(f"{API_BASE_URL}/search", params=params)
+                response = requests.get(f"{API_BASE_URL}/search", params=params, headers=get_auth_headers())
                 
                 if response.status_code == 200:
                     search_results_data = response.json()
@@ -700,7 +781,7 @@ def search_audio_section():
             except Exception as e:
                 st.error(f"An unexpected error occurred during search: {str(e)}")
                 return None
-    
+
     # Show search button and handle search
     search_triggered = False
     if search_query and st.button("Search Audio Library", use_container_width=True, key="search_btn"):
@@ -709,26 +790,37 @@ def search_audio_section():
     else:
         # Use existing results if available
         search_results_data = st.session_state.current_search_results
-    
+
     # Display search results if available
     if search_results_data:
+        total_results = search_results_data.get('total', 0)
+        exact_matches_count = search_results_data.get('exact_matches', 0)
+        
         st.markdown(f"""
         <div class='info-box' style='margin-top:1.5rem;'>
-        Found <strong>{search_results_data.get('total', 0)}</strong> potential results for your query.
-        {f"({search_results_data.get('exact_matches', 0)} exact segment matches)" if 'exact_matches' in search_results_data else ""}
+        <h4>Search Results Summary</h4>
+        <p><strong>{total_results}</strong> potential results found for your query.</p>
+        <p>Including:</p>
+        <ul>
+            <li><strong>{exact_matches_count}</strong> exact matches</li>
+            <li><strong>{total_results - exact_matches_count}</strong> semantic matches</li>
+        </ul>
+        <p><em>Results are ranked using hybrid scoring (Semantic: {semantic_weight * 100}%, Keyword: {keyword_weight * 100}%)</em></p>
         </div>
         """, unsafe_allow_html=True)
         
         # Display NL analysis if present
         if natural_language and search_results_data.get('natural_language_analysis'):
             nl_analysis = search_results_data['natural_language_analysis']
-            analysis_html = f"<div class='highlight'><strong>Understanding your query:</strong><br>"
+            analysis_html = "<div class='highlight'><h4>Query Understanding:</h4>"
             if nl_analysis.get('search_intent'):
-                analysis_html += f"<span style='font-style: italic;'>Intent: {nl_analysis.get('search_intent', '')}</span><br>"
+                analysis_html += f"<p><strong>Intent:</strong> <em>{nl_analysis.get('search_intent', '')}</em></p>"
             if nl_analysis.get('key_terms'):
-                analysis_html += f"<strong>Key terms:</strong> {', '.join(nl_analysis.get('key_terms', []))}"
+                analysis_html += f"<p><strong>Key terms:</strong> {', '.join(nl_analysis.get('key_terms', []))}</p>"
             if nl_analysis.get('temporal_references'):
-                analysis_html += f"<br><strong>Time references:</strong> {', '.join(nl_analysis.get('temporal_references', []))}"
+                analysis_html += f"<p><strong>Time references:</strong> {', '.join(nl_analysis.get('temporal_references', []))}</p>"
+            if nl_analysis.get('entities'):
+                analysis_html += f"<p><strong>Entities:</strong> {', '.join(nl_analysis.get('entities', []))}</p>"
             analysis_html += "</div>"
             st.markdown(analysis_html, unsafe_allow_html=True)
         
@@ -737,7 +829,8 @@ def search_audio_section():
             expanded = search_results_data['expanded_queries']
             st.markdown(f"""
             <div class='highlight'>
-            Query expanded to include: {", ".join(f'"{q}"' for q in expanded if q.lower() != search_query.lower())}
+            <h4>Query Expansion:</h4>
+            <p>Search included variations: {", ".join(f'"{q}"' for q in expanded if q.lower() != search_query.lower())}</p>
             </div>
             """, unsafe_allow_html=True)
         
@@ -746,24 +839,34 @@ def search_audio_section():
             time_range = search_results_data['time_range']
             st.markdown(f"""
             <div class='highlight'>
-            Detected time range in query: {time_range.get('start_formatted','N/A')} - {time_range.get('end_formatted','N/A')}
+            <h4>Time Range Detection:</h4>
+            <p>Found time range: {time_range.get('start_formatted','N/A')} - {time_range.get('end_formatted','N/A')}</p>
             </div>
             """, unsafe_allow_html=True)
         
         # Display results
         if search_results_data.get('results'):
-            exact_matches = [r for r in search_results_data['results'] if r.get('has_exact_match', False)]
-            semantic_matches = [r for r in search_results_data['results'] if not r.get('has_exact_match', False)]
+            results = search_results_data['results']
             
-            if exact_matches:
-                st.markdown("<h4 style='margin-top: 2rem; margin-bottom: 1rem; color: #4CAF50 !important;'>🎯 Exact Matches</h4>", unsafe_allow_html=True)
-                for i, result in enumerate(exact_matches):
-                    display_search_result(result, search_results_data, search_query, is_exact=True, index=i)
+            # Sort results by combined score
+            results.sort(key=lambda x: x.get('combined_score', 0), reverse=True)
             
-            if semantic_matches:
-                st.markdown("<h4 style='margin-top: 2rem; margin-bottom: 1rem; color: #FF9800 !important;'>💡 Semantic Matches</h4>", unsafe_allow_html=True)
-                for i, result in enumerate(semantic_matches):
-                    display_search_result(result, search_results_data, search_query, is_exact=False, index=i)
+            st.markdown("<h3 style='margin-top: 2rem; margin-bottom: 1rem;'>Search Results</h3>", unsafe_allow_html=True)
+            
+            for i, result in enumerate(results):
+                score_color = "#4CAF50" if result.get('keyword_score', 0) > 0.5 else "#FF9800"
+                match_type = "Hybrid Match" if result.get('combined_score', 0) > 0.8 else "Semantic Match"
+                
+                # Create result header
+                st.markdown(f"""
+                <div class='result-item' style='margin-bottom: 1.5rem; padding: 1rem; border-radius: 8px; border: 1px solid #383838; background-color: rgba(255,255,255,0.05);'>
+                <h4 style='margin: 0; color: {score_color} !important;'>Result #{i + 1}: {match_type}</h4>
+                <p style='margin: 0.5rem 0; color: #B0B0B0;'>Combined Score: {result.get('combined_score', 0):.3f}</p>
+                </div>
+                """, unsafe_allow_html=True)
+                
+                # Display result content
+                display_search_result(result, search_results_data, search_query, is_exact=(result.get('keyword_score', 0) > 0.5), index=i)
         else:
             st.warning("No results found matching your criteria.")
 
@@ -775,84 +878,71 @@ def display_search_result(result, search_results_data, original_query, is_exact,
     # Create a globally unique ID for this result that persists across reruns
     result_hash = f"{result.get('file_name', '')}_{result.get('start_time', 0)}_{result.get('end_time', 0)}"
     result_type = "exact" if is_exact else "semantic"
-    # Create a truly unique key including the match type and hash to avoid conflicts
     unique_result_id = f"{result_type}_{index}_{result_hash}"
     
     # Initialize the answer in session state if not present
     answer_key = f"answer_{unique_result_id}"
     if answer_key not in st.session_state:
         st.session_state[answer_key] = None
-    
-    expander_title = f"Result #{index + 1}: Score {result['score']:.3f} ({match_type_label})"
-    if result.get('matched_query') and result['matched_query'].lower() != original_query.lower():
-        expander_title += f" (Matched on: '{result['matched_query']}')"
 
-    with st.expander(expander_title, expanded=(index == 0)): # Expand first result by default
-        st.markdown(f"<span style='color: {score_color}; font-weight: 600; font-size: 0.9em;'>{match_type_label.upper()}</span>", unsafe_allow_html=True)
+    col_text, col_audio = st.columns([3, 1.5])
 
-        col_text, col_audio = st.columns([3, 1.5]) # Adjust column ratio for better balance
+    with col_text:
+        # Text Highlighting
+        text_content = result.get('text', 'No text content available.')
+        highlight_terms = set()
+        
+        # Add original query terms (non-stopwords, longer than 2 chars)
+        stopwords = {
+            "a", "an", "the", "and", "or", "but", "if", "then", "else", "when", "at", "by", "for", "with", "about", 
+            "to", "from", "in", "out", "on", "off", "is", "are", "was", "were", "be", "been", "has", "had", "do", "does", "did"
+        }
+        
+        original_query_terms = [term.lower() for term in original_query.lower().split() if term.lower() not in stopwords and len(term) > 2]
+        for term in original_query_terms: highlight_terms.add(term)
 
-        with col_text:
-            # Text Highlighting
-            text_content = result.get('text', 'No text content available.')
-            highlight_terms = set()
-            
-            # Add original query terms (non-stopwords, longer than 2 chars)
-            stopwords = {
-                "a", "an", "the", "and", "or", "but", "if", "then", "else", "when", "at", "by", "for", "with", "about", 
-                "to", "from", "in", "out", "on", "off", "is", "are", "was", "were", "be", "been", "has", "had", "do", "does", "did"
-            } # Simplified stopwords list
-            
-            original_query_terms = [term.lower() for term in original_query.lower().split() if term.lower() not in stopwords and len(term) > 2]
-            for term in original_query_terms: highlight_terms.add(term)
+        if result.get('matched_query'):
+            matched_query_terms = [term.lower() for term in result['matched_query'].lower().split() if term.lower() not in stopwords and len(term) > 2]
+            for term in matched_query_terms: highlight_terms.add(term)
+        
+        if result.get('matched_terms'):
+            nl_matched_terms = [term.lower() for term in result.get('matched_terms', []) if term.lower() not in stopwords and len(term) > 2]
+            for term in nl_matched_terms: highlight_terms.add(term)
 
-            if result.get('matched_query'):
-                matched_query_terms = [term.lower() for term in result['matched_query'].lower().split() if term.lower() not in stopwords and len(term) > 2]
-                for term in matched_query_terms: highlight_terms.add(term)
-            
-            if result.get('matched_terms'): # From NL analysis
-                nl_matched_terms = [term.lower() for term in result.get('matched_terms', []) if term.lower() not in stopwords and len(term) > 2]
-                for term in nl_matched_terms: highlight_terms.add(term)
+        temp_text = text_content
+        for term in sorted(list(highlight_terms), key=len, reverse=True):
+            try:
+                import re
+                escaped_term = re.escape(term)
+                for match in re.finditer(escaped_term, temp_text, re.IGNORECASE):
+                    actual_match = match.group(0)
+                    start_offset = temp_text.rfind("<mark>", 0, match.start())
+                    end_offset = temp_text.find("</mark>", match.start())
+                    if not (start_offset != -1 and end_offset != -1 and start_offset < match.start() < end_offset):
+                        temp_text = temp_text.replace(actual_match, f"<mark>{actual_match}</mark>", 1)
+            except Exception:
+                pass
 
-            temp_text = text_content
-            for term in sorted(list(highlight_terms), key=len, reverse=True): # Sort by length to match longer phrases first
-                try:
-                    # Case-insensitive replace for highlighting
-                    import re
-                    # Escape special characters in term for regex
-                    escaped_term = re.escape(term)
-                    # Find all occurrences of the term, case-insensitive
-                    for match in re.finditer(escaped_term, temp_text, re.IGNORECASE):
-                        actual_match = match.group(0) # Get the actual matched string (to preserve case)
-                        # Replace only if not already inside a mark tag
-                        # This is a simple check and might not be perfectly robust for nested scenarios
-                        start_offset = temp_text.rfind("<mark>", 0, match.start())
-                        end_offset = temp_text.find("</mark>", match.start())
-                        if not (start_offset != -1 and end_offset != -1 and start_offset < match.start() < end_offset):
-                             temp_text = temp_text.replace(actual_match, f"<mark>{actual_match}</mark>", 1) # Replace one by one to handle overlaps better
-                except Exception: # Fallback if regex fails
-                    pass # Continue without this specific term's highlighting
+        st.markdown(f"<div class='result-text'>{temp_text}</div>", unsafe_allow_html=True)
 
-            st.markdown(f"<div class='result-text'>{temp_text}</div>", unsafe_allow_html=True)
+        if result.get('matched_terms') and (natural_language_analysis := search_results_data.get('natural_language_analysis')):
+            st.markdown(f"""
+            <div style='font-size: 0.85em; color: #B0B0B0; margin-top: -5px; margin-bottom:10px;'>
+            Matched terms via NL: {", ".join(result['matched_terms'])}
+            {"" if not result.get('has_time_match') else " | Includes time reference match"}
+            </div>
+            """, unsafe_allow_html=True)
 
-            if result.get('matched_terms') and (natural_language_analysis := search_results_data.get('natural_language_analysis')):
-                st.markdown(f"""
-                <div style='font-size: 0.85em; color: #B0B0B0; margin-top: -5px; margin-bottom:10px;'>
-                Matched terms via NL: {", ".join(result['matched_terms'])}
-                {"" if not result.get('has_time_match') else " | Includes time reference match"}
-                </div>
-                """, unsafe_allow_html=True)
-
-            # Metadata Box
-            metadata_html = "<div class='metadata-box'>"
-            metadata_html += f"<div class='metadata-item'><strong>Time:</strong> {result.get('start_time_formatted', 'N/A')} - {result.get('end_time_formatted', 'N/A')}</div>"
-            if result.get('speaker') is not None:
-                metadata_html += f"<div class='metadata-item'><strong>Speaker:</strong> {result.get('speaker')}</div>"
-            metadata_html += f"<div class='metadata-item'><strong>Confidence:</strong> {result.get('confidence', 0):.3f}</div>"
-            if 'nl_score' in result:
-                metadata_html += f"<div class='metadata-item'><strong>NL Score:</strong> {result.get('nl_score', 0):.3f}</div>"
-            metadata_html += "</div>"
-            st.markdown(metadata_html, unsafe_allow_html=True)
+        # Metadata Box
+        metadata_html = "<div class='metadata-box'>"
+        metadata_html += f"<div class='metadata-item'><strong>Time:</strong> {result.get('start_time_formatted', 'N/A')} - {result.get('end_time_formatted', 'N/A')}</div>"
+        if result.get('speaker') is not None:
+            metadata_html += f"<div class='metadata-item'><strong>Speaker:</strong> {result.get('speaker')}</div>"
+        metadata_html += f"<div class='metadata-item'><strong>Confidence:</strong> {result.get('confidence', 0):.3f}</div>"
+        if 'nl_score' in result:
+            metadata_html += f"<div class='metadata-item'><strong>NL Score:</strong> {result.get('nl_score', 0):.3f}</div>"
+        metadata_html += "</div>"
+        st.markdown(metadata_html, unsafe_allow_html=True)
 
         with col_audio:
             if result.get('file_url'):
@@ -977,7 +1067,7 @@ def generate_answer(transcript_text, query, result_id, file_url=None):
                 try:
                     # Extract the complete transcript from the file
                     extract_url = f"{API_BASE_URL}/extract"
-                    extract_response = requests.post(extract_url, json={"mp3_url": file_url})
+                    extract_response = requests.post(extract_url, json={"mp3_url": file_url}, headers=get_auth_headers())
                     
                     if extract_response.status_code == 200:
                         extract_data = extract_response.json()
@@ -1013,8 +1103,9 @@ def generate_answer(transcript_text, query, result_id, file_url=None):
         # Make request to search-and-answer endpoint
         with st.spinner("Generating answer..."):
             response = requests.post(
-                f"{API_BASE_URL}/search-and-answer", 
-                json=request_body
+                f"{API_BASE_URL}/search-and-answer",
+                json=request_body,
+                headers=get_auth_headers()
             )
             
             if response.status_code == 200:
@@ -1107,8 +1198,9 @@ def process_single_file(file, progress_placeholder, status_placeholder, file_sta
             st.write(f"Step 1/4: Uploading {file.name} to temporary storage...")
         
         response = requests.post(
-            f"{API_BASE_URL}/upload", 
-            files={"file": (file.name, file.getvalue(), "audio/mpeg")}
+            f"{API_BASE_URL}/upload",
+            files={"file": (file.name, file.getvalue(), "audio/mpeg")},
+            headers=get_auth_headers()
         )
         
         if response.status_code != 201:
@@ -1131,7 +1223,7 @@ def process_single_file(file, progress_placeholder, status_placeholder, file_sta
             "model": "nova-2"
         }
         
-        response = requests.post(f"{API_BASE_URL}/transcribe", json=payload)
+        response = requests.post(f"{API_BASE_URL}/transcribe", json=payload, headers=get_auth_headers())
         
         if response.status_code != 200:
             raise Exception(f"Transcription failed with status code {response.status_code}: {response.text}")
@@ -1249,7 +1341,7 @@ def process_single_file(file, progress_placeholder, status_placeholder, file_sta
             files = {"mp3_file": (file.name, file.getvalue(), "audio/mpeg")}
             data = {"metadata": transcription_json}
         
-        response = requests.post(f"{API_BASE_URL}/embed", files=files, data=data)
+        response = requests.post(f"{API_BASE_URL}/embed", files=files, data=data, headers=get_auth_headers())
         
         if response.status_code != 200:
             raise Exception(f"Metadata embedding failed with status code {response.status_code}: {response.text}")
@@ -1273,12 +1365,12 @@ def process_single_file(file, progress_placeholder, status_placeholder, file_sta
                     
                 # Use the embedded file for Supabase upload
                 files = {"file": (embedded_file_name, embedded_file_content, "audio/mpeg")}
-                response = requests.post(f"{API_BASE_URL}/uploadToSupabase", files=files)
+                response = requests.post(f"{API_BASE_URL}/uploadToSupabase", files=files, headers=get_auth_headers())
             else:
                 # Fallback to original file if embedded file is not found
                 st.warning(f"Embedded file not found at {embedded_file_path}. Using original file instead.")
                 files = {"file": (file.name, file.getvalue(), "audio/mpeg")}
-                response = requests.post(f"{API_BASE_URL}/uploadToSupabase", files=files)
+                response = requests.post(f"{API_BASE_URL}/uploadToSupabase", files=files, headers=get_auth_headers())
             
             if response.status_code != 201:
                 # Still process it as a partial success

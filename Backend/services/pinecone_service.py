@@ -32,11 +32,18 @@ def init_pinecone():
             print("WARNING: PINECONE_API_KEY is not set. Vector search will not work.")
             return False
 
+        print(f"Initializing Pinecone with API key: {PINECONE_API_KEY[:5]}...")
+        
         # Initialize the Pinecone client
         pc = Pinecone(api_key=PINECONE_API_KEY)
         
+        # List all indexes and print them
+        existing_indexes = pc.list_indexes()
+        print(f"Found existing indexes: {[index.name for index in existing_indexes]}")
+        
         # Check if our index already exists
-        if PINECONE_INDEX_NAME not in [index.name for index in pc.list_indexes()]:
+        if PINECONE_INDEX_NAME not in [index.name for index in existing_indexes]:
+            print(f"Creating new index: {PINECONE_INDEX_NAME}")
             # Create a new index
             pc.create_index(
                 name=PINECONE_INDEX_NAME,
@@ -53,8 +60,18 @@ def init_pinecone():
         
         # Connect to the index
         index_info = pc.describe_index(PINECONE_INDEX_NAME)
+        print(f"Index info: {index_info}")
         index = pc.Index(host=index_info.host)
-        print(f"Connected to Pinecone index: {PINECONE_INDEX_NAME}")
+        
+        # Get index stats
+        try:
+            stats = index.describe_index_stats()
+            print(f"Index stats: {stats}")
+            print(f"Total vectors in index: {stats.get('total_vector_count', 0)}")
+        except Exception as e:
+            print(f"Error getting index stats: {str(e)}")
+        
+        print(f"Successfully connected to Pinecone index: {PINECONE_INDEX_NAME}")
         return True
     except Exception as e:
         print(f"Error initializing Pinecone: {str(e)}")
@@ -63,26 +80,29 @@ def init_pinecone():
 def get_embedding(text: str) -> List[float]:
     """
     Generate an embedding vector for a text string using Together AI's API
-    
-    Args:
-        text: The text to embed
-        
-    Returns:
-        List[float]: The embedding vector
     """
     if not TOGETHER_API_KEY:
+        print("ERROR: TOGETHER_API_KEY is not set")
         raise ValueError("TOGETHER_API_KEY is not set")
     
     try:
+        print(f"\nGenerating embedding for text: {text[:100]}...")
+        print(f"Using model: {EMBEDDING_MODEL}")
+        
         response = together_client.embeddings.create(
             model=EMBEDDING_MODEL,
             input=text
         )
+        
         # Extract the embedding vector from the response
         embedding = response.data[0].embedding
+        print(f"Generated embedding of dimension: {len(embedding)}")
+        
         return embedding
     except Exception as e:
         print(f"Error generating embedding: {str(e)}")
+        import traceback
+        traceback.print_exc()
         raise
 
 def chunk_transcript(transcript_data: Dict) -> List[Dict]:
@@ -169,22 +189,20 @@ def chunk_transcript(transcript_data: Dict) -> List[Dict]:
 async def index_transcript(transcript_data: Dict, file_url: str, file_name: str) -> bool:
     """
     Index the transcript data in Pinecone
-    
-    Args:
-        transcript_data: The complete transcript data from Deepgram
-        file_url: URL to the file in Supabase
-        file_name: Name of the file
-        
-    Returns:
-        bool: True if indexing was successful
     """
     if not index:
+        print("Pinecone index not initialized, attempting to initialize...")
         if not init_pinecone():
+            print("Failed to initialize Pinecone")
             return False
     
     try:
-        # Extract file_id from file_name (e.g., "nasa_87ca0534.mp3" -> "87ca0534")
+        print(f"\nIndexing transcript for file: {file_name}")
+        print(f"File URL: {file_url}")
+        
+        # Extract file_id from file_name
         file_id = file_name.split("_")[-1].split(".")[0] if "_" in file_name else file_name.split(".")[0]
+        print(f"Extracted file_id: {file_id}")
         
         # Get the complete transcript text
         complete_text = ""
@@ -195,8 +213,11 @@ async def index_transcript(transcript_data: Dict, file_url: str, file_name: str)
                 if alternatives and len(alternatives) > 0:
                     complete_text = alternatives[0].get("transcript", "")
         
+        print(f"Complete text length: {len(complete_text)}")
+        
         # Chunk the transcript
         chunks = chunk_transcript(transcript_data)
+        print(f"Created {len(chunks)} chunks")
         
         # Create vectors for each chunk
         vectors = []
@@ -204,80 +225,107 @@ async def index_transcript(transcript_data: Dict, file_url: str, file_name: str)
             # Generate a unique ID for each chunk
             vector_id = f"{file_id}_{i}"
             
-            # Get embedding for the chunk text
-            embedding = get_embedding(chunk["text"])
-            
-            # Prepare metadata
-            metadata = {
-                "file_url": file_url,
-                "file_name": file_name,
-                "text": chunk["text"],
-                "start_time": chunk["start_time"],
-                "end_time": chunk["end_time"],
-                "confidence": chunk.get("confidence", 0)
-            }
-            
-            # Add speaker only if it's not None/null
-            if chunk.get("speaker") is not None:
-                metadata["speaker"] = chunk.get("speaker")
-            
-            # Create vector object
-            vector = {
-                "id": vector_id,
-                "values": embedding,
-                "metadata": metadata
-            }
-            
-            vectors.append(vector)
+            try:
+                # Get embedding for the chunk text
+                embedding = get_embedding(chunk["text"])
+                
+                # Prepare metadata
+                metadata = {
+                    "file_url": file_url,
+                    "file_name": file_name,
+                    "text": chunk["text"],
+                    "start_time": chunk["start_time"],
+                    "end_time": chunk["end_time"],
+                    "confidence": chunk.get("confidence", 0)
+                }
+                
+                # Add speaker only if it's not None/null
+                if chunk.get("speaker") is not None:
+                    metadata["speaker"] = chunk.get("speaker")
+                
+                # Create vector object
+                vector = {
+                    "id": vector_id,
+                    "values": embedding,
+                    "metadata": metadata
+                }
+                
+                vectors.append(vector)
+                print(f"Created vector {i+1}/{len(chunks)} - ID: {vector_id}")
+                
+            except Exception as e:
+                print(f"Error creating vector for chunk {i}: {str(e)}")
+                continue
+        
+        print(f"Created {len(vectors)} vectors")
         
         # Also index the complete text as a single vector for broad searches
         if complete_text:
-            complete_embedding = get_embedding(complete_text)
-            complete_metadata = {
-                "file_url": file_url,
-                "file_name": file_name,
-                "text": complete_text[:1000] + "..." if len(complete_text) > 1000 else complete_text,
-                "is_complete": True
-            }
-            
-            vectors.append({
-                "id": f"{file_id}_complete",
-                "values": complete_embedding,
-                "metadata": complete_metadata
-            })
+            try:
+                complete_embedding = get_embedding(complete_text)
+                complete_metadata = {
+                    "file_url": file_url,
+                    "file_name": file_name,
+                    "text": complete_text[:1000] + "..." if len(complete_text) > 1000 else complete_text,
+                    "is_complete": True
+                }
+                
+                vectors.append({
+                    "id": f"{file_id}_complete",
+                    "values": complete_embedding,
+                    "metadata": complete_metadata
+                })
+                print("Added complete text vector")
+            except Exception as e:
+                print(f"Error creating complete text vector: {str(e)}")
         
         # Upsert vectors to Pinecone in batches of 100
         batch_size = 100
         for i in range(0, len(vectors), batch_size):
             batch = vectors[i:i+batch_size]
-            index.upsert(vectors=batch)
+            try:
+                index.upsert(vectors=batch)
+                print(f"Indexed batch {i//batch_size + 1}/{(len(vectors)-1)//batch_size + 1}")
+            except Exception as e:
+                print(f"Error upserting batch {i//batch_size + 1}: {str(e)}")
+                return False
         
-        print(f"Indexed {len(vectors)} vectors for file {file_name}")
+        print(f"Successfully indexed {len(vectors)} vectors for file {file_name}")
+        
+        # Get updated index stats
+        try:
+            stats = index.describe_index_stats()
+            print(f"Updated index stats: {stats}")
+            print(f"Total vectors in index: {stats.get('total_vector_count', 0)}")
+        except Exception as e:
+            print(f"Error getting updated index stats: {str(e)}")
+        
         return True
         
     except Exception as e:
         print(f"Error indexing transcript: {str(e)}")
+        import traceback
+        traceback.print_exc()
         return False
 
 async def search_transcripts(query: str, limit: int = 10, filter_dict: Dict = None) -> List[Dict]:
     """
     Search for transcripts matching the query
-    
-    Args:
-        query: The search query
-        limit: Maximum number of results to return
-        filter_dict: Optional filter criteria
-        
-    Returns:
-        List of matching results with metadata
     """
     if not index:
+        print("Index not initialized, attempting to initialize...")
         if not init_pinecone():
+            print("Failed to initialize Pinecone")
             return []
     
     try:
+        print(f"\nExecuting search query: {query}")
+        print(f"Limit: {limit}")
+        print(f"Filter: {filter_dict}")
+        
         # Generate embedding for the query
         query_embedding = get_embedding(query)
+        print("Generated query embedding")
         
         # Search Pinecone
         results = index.query(
@@ -287,49 +335,29 @@ async def search_transcripts(query: str, limit: int = 10, filter_dict: Dict = No
             filter=filter_dict
         )
         
-        # Common English stopwords to filter out for exact matching
-        stopwords = {
-            "a", "an", "the", "and", "or", "but", "if", "then", "else", "when",
-            "at", "by", "for", "with", "about", "against", "between", "into",
-            "through", "during", "before", "after", "above", "below", "to", "from",
-            "up", "down", "in", "out", "on", "off", "over", "under", "again",
-            "further", "then", "once", "here", "there", "when", "where", "why",
-            "how", "all", "any", "both", "each", "few", "more", "most", "other",
-            "some", "such", "no", "nor", "not", "only", "own", "same", "so",
-            "than", "too", "very", "s", "t", "can", "will", "just", "don", "don't",
-            "should", "now", "d", "ll", "m", "o", "re", "ve", "y", "ain", "aren",
-            "aren't", "couldn", "couldn't", "didn", "didn't", "doesn", "doesn't",
-            "hadn", "hadn't", "hasn", "hasn't", "haven", "haven't", "isn", "isn't",
-            "ma", "mightn", "mightn't", "mustn", "mustn't", "needn", "needn't",
-            "shan", "shan't", "shouldn", "shouldn't", "wasn", "wasn't", "weren",
-            "weren't", "won", "won't", "wouldn", "wouldn't", "what", "which", "who",
-            "whom", "this", "that", "these", "those", "am", "is", "are", "was",
-            "were", "be", "been", "being", "have", "has", "had", "having", "do",
-            "does", "did", "doing", "i", "me", "my", "myself", "we", "our", "ours",
-            "ourselves", "you", "your", "yours", "yourself", "yourselves", "he",
-            "him", "his", "himself", "she", "her", "hers", "herself", "it", "its",
-            "itself", "they", "them", "their", "theirs", "themselves",
-        }
+        print(f"Raw Pinecone results: {results}")
+        
+        if not results or not results.get('matches'):
+            print("No matches found in Pinecone")
+            return []
+            
+        print(f"Found {len(results['matches'])} matches")
         
         # Format and filter results
         formatted_results = []
-        # Filter out stopwords for matching
-        query_terms = [term.lower() for term in query.lower().split() if term.lower() not in stopwords and len(term) > 2]
+        query_terms = [term.lower() for term in query.lower().split() if len(term) > 2]
         
         for match in results['matches']:
             metadata = match['metadata']
             text = metadata.get("text", "").lower()
             
-            # Skip exact match check if no meaningful terms (all were stopwords)
+            # Skip exact match check if no meaningful terms
             if query_terms:
-                # Check for direct term presence of meaningful terms only
                 keyword_match = any(term in text for term in query_terms)
             else:
                 keyword_match = False
             
-            # Add result regardless of keyword match - our query expansion in the search API 
-            # will handle filtering across multiple expanded queries
-            formatted_results.append({
+            result = {
                 "file_url": metadata.get("file_url"),
                 "file_name": metadata.get("file_name"),
                 "text": metadata.get("text"),
@@ -340,17 +368,58 @@ async def search_transcripts(query: str, limit: int = 10, filter_dict: Dict = No
                 "is_complete": metadata.get("is_complete", False),
                 "score": match['score'],
                 "has_exact_match": keyword_match
-            })
+            }
             
+            print(f"\nResult: {result['file_name']}")
+            print(f"Score: {result['score']}")
+            print(f"Has exact match: {result['has_exact_match']}")
+            
+            formatted_results.append(result)
+        
         # Sort by exact match presence first, then by score
         formatted_results.sort(key=lambda x: (not x.get('has_exact_match'), -x.get('score')))
         
-        # Return only up to the requested limit
+        print(f"\nReturning {len(formatted_results[:limit])} final results")
         return formatted_results[:limit]
         
     except Exception as e:
         print(f"Error searching transcripts: {str(e)}")
+        import traceback
+        traceback.print_exc()
         return []
+
+def test_pinecone_connection():
+    """Test Pinecone connection and index status"""
+    try:
+        if not init_pinecone():
+            print("Failed to initialize Pinecone")
+            return
+            
+        # Get index stats
+        stats = index.describe_index_stats()
+        print("\nPinecone Index Status:")
+        print(f"Total vectors: {stats.get('total_vector_count', 0)}")
+        print(f"Index fullness: {stats.get('index_fullness', 0)}")
+        print(f"Dimension: {stats.get('dimension', 0)}")
+        
+        # Try a simple query
+        if stats.get('total_vector_count', 0) > 0:
+            print("\nTesting simple query...")
+            results = index.query(
+                vector=[0.0] * EMBEDDING_DIMENSION,  # Zero vector
+                top_k=1,
+                include_metadata=True
+            )
+            if results and results.get('matches'):
+                print("Query successful!")
+                print(f"Found {len(results['matches'])} matches")
+                print(f"Sample match metadata: {results['matches'][0]['metadata']}")
+            else:
+                print("Query returned no results")
+    except Exception as e:
+        print(f"Error testing Pinecone: {str(e)}")
+        import traceback
+        traceback.print_exc()
 
 # Initialize on module import
 init_pinecone() 

@@ -1,15 +1,29 @@
 from fastapi import APIRouter, Query, HTTPException, Depends
-from typing import Optional, List, Dict
-from services.pinecone_service import search_transcripts
+from typing import Optional, List, Dict, Tuple
+from services.pinecone_service import search_transcripts, test_pinecone_connection
+from services.enhanced_search import EnhancedSearch
 from services.auth import get_current_user
+from services.transcript_service import extract_transcript
 from pydantic import BaseModel, Field
 import os
 import json
 import google.generativeai as genai
 from dotenv import load_dotenv
 import re
+import logging
+import asyncio
+from concurrent.futures import ThreadPoolExecutor
 
 router = APIRouter()
+
+# Initialize EnhancedSearch
+enhanced_search = EnhancedSearch()
+
+# Initialize logger
+logger = logging.getLogger(__name__)
+
+# Configure max workers for parallel processing
+MAX_PARALLEL_VALIDATIONS = 5  # Adjust based on your API rate limits and system capacity
 
 class LLMConfig_Search:
     def __init__(self):
@@ -47,6 +61,39 @@ class LLMConfig_Search:
         }
         
         Return the JSON object only, with no additional text."""
+        
+        # System prompt for final reranking
+        self.reranking_prompt = """You are an expert search result evaluator for an audio search system.
+        Your task is to analyze and rerank search results based on their relevance to the user's query.
+        
+        Consider the following aspects when evaluating each result:
+        1. Direct relevance to the query intent and key terms
+        2. Contextual understanding and semantic matching
+        3. Information completeness and quality
+        4. Temporal and logical coherence
+        5. Presence of key entities and concepts
+        
+        For each result, assign a score from 0 to 1 where:
+        - 1.0: Perfect match, contains exactly what the user is looking for
+        - 0.8-0.9: Very relevant, covers most aspects of the query
+        - 0.6-0.7: Moderately relevant, covers some important aspects
+        - 0.4-0.5: Somewhat relevant, touches on the topic
+        - 0.0-0.3: Not very relevant or off-topic
+        
+        Return a JSON array of objects, each containing:
+        {
+          "result_id": "unique_id_of_result",
+          "llm_score": float_score,
+          "explanation": "Brief explanation of the score"
+        }
+        
+        Original Query: {query}
+        Search Intent: {search_intent}
+        
+        Results to evaluate:
+        {results_json}
+        
+        Evaluate each result and return the JSON array only, no additional text."""
         
         # System prompt for generating answers from transcripts
         self.answer_generation_prompt = """You are an AI assistant analyzing audio transcripts.
@@ -329,10 +376,305 @@ async def rerank_results_for_nl_query(results: List[Dict], nl_query_info: Dict) 
     
     return results
 
+async def llm_rerank_results(
+    results: List[Dict],
+    query: str,
+    search_intent: Optional[str] = None
+) -> List[Dict]:
+    """
+    Use LLM to perform final reranking of search results
+    
+    Args:
+        results: List of search results to rerank
+        query: Original search query
+        search_intent: Optional search intent from NL processing
+        
+    Returns:
+        Reranked list of results with LLM scoring
+    """
+    if not results:
+        return results
+        
+    try:
+        config = LLMConfig_Search()
+        
+        if not config.api_key:
+            logger.warning("LLM API key not configured, skipping LLM reranking")
+            return results
+            
+        # Prepare results for LLM evaluation
+        results_for_llm = []
+        for result in results:
+            result_id = f"{result.get('file_name')}_{result.get('start_time')}_{result.get('end_time')}"
+            results_for_llm.append({
+                "result_id": result_id,
+                "text": result.get("text", ""),
+                "current_score": result.get("score", 0),
+                "matched_terms": result.get("matched_terms", []),
+                "has_exact_match": result.get("has_exact_match", False)
+            })
+        
+        # Configure the model
+        model = genai.GenerativeModel(
+            model_name=config.model_name,
+            generation_config={
+                "temperature": 0.1,  # Low temperature for consistent scoring
+                "max_output_tokens": 2048,
+                "top_p": 0.95,
+                "top_k": 40
+            }
+        )
+        
+        # Format the prompt
+        formatted_prompt = config.reranking_prompt.format(
+            query=query,
+            search_intent=search_intent or f"Find information about: {query}",
+            results_json=json.dumps(results_for_llm, indent=2)
+        )
+        
+        # Get LLM evaluation
+        response = model.generate_content(formatted_prompt)
+        
+        try:
+            # Parse LLM response
+            llm_scores = json.loads(response.text)
+            
+            # Create a mapping of result_id to LLM score
+            score_map = {
+                item["result_id"]: {
+                    "llm_score": item["llm_score"],
+                    "explanation": item["explanation"]
+                }
+                for item in llm_scores
+            }
+            
+            # Update results with LLM scores
+            for result in results:
+                result_id = f"{result.get('file_name')}_{result.get('start_time')}_{result.get('end_time')}"
+                if result_id in score_map:
+                    result["llm_score"] = score_map[result_id]["llm_score"]
+                    result["llm_explanation"] = score_map[result_id]["explanation"]
+                    # Combine original score with LLM score (weighted average)
+                    result["final_score"] = 0.4 * result.get("score", 0) + 0.6 * score_map[result_id]["llm_score"]
+                else:
+                    # Fallback if LLM didn't score this result
+                    result["llm_score"] = 0.0
+                    result["llm_explanation"] = "Not evaluated by LLM"
+                    result["final_score"] = result.get("score", 0)
+            
+            # Sort by final score
+            results.sort(key=lambda x: x.get("final_score", 0), reverse=True)
+            
+            logger.info(f"LLM reranking completed successfully for {len(results)} results")
+            return results
+            
+        except json.JSONDecodeError as e:
+            logger.error(f"Error parsing LLM reranking response: {str(e)}")
+            return results
+            
+    except Exception as e:
+        logger.error(f"Error in LLM reranking: {str(e)}")
+        return results
+
+async def validate_result_content(result: Dict, query: str, config: LLMConfig_Search) -> Tuple[bool, str]:
+    """
+    Use LLM to validate if the result's content actually contains information relevant to the query.
+    Returns (is_relevant, explanation)
+    """
+    try:
+        if not config.api_key:
+            return True, "No LLM validation available"
+            
+        # Configure the model
+        model = genai.GenerativeModel(
+            model_name=config.model_name,
+            generation_config={
+                "temperature": 0.1,  # Low temperature for consistent validation
+                "max_output_tokens": 1024,
+                "top_p": 0.95,
+                "top_k": 40
+            }
+        )
+        
+        # Get the complete transcript using extract_transcript
+        file_name = result.get('file_name')
+        if not file_name:
+            return False, "No file name provided"
+            
+        try:
+            # Get transcript using the extract service
+            full_transcript = await extract_transcript(file_name)
+            if not full_transcript:
+                return False, f"Could not extract transcript for: {file_name}"
+                
+            # Get the segment's time range for context
+            start_time = result.get('start_time')
+            end_time = result.get('end_time')
+            time_context = f" (focusing on the segment from {format_seconds_to_time(start_time)} to {format_seconds_to_time(end_time)})" if start_time is not None and end_time is not None else ""
+            
+            # Create a more structured validation prompt
+            validation_prompt = """You are a content validation system. Your task is to determine if a transcript contains relevant information to answer a specific query.
+
+Analyze the following transcript and determine if it contains information relevant to the query.
+Pay special attention to the segment timing provided, but consider the entire context.
+
+Query: {query}
+
+Full Transcript:
+{transcript}
+
+Segment Timing:{time_context}
+
+Instructions:
+1. Analyze if this transcript contains information that would help answer the query
+2. Consider the entire transcript but focus on the specified time segment
+3. Return your response in this exact JSON format:
+{{
+    "is_relevant": true/false,
+    "explanation": "your explanation here",
+    "found_in_segment": true/false,
+    "relevant_context": "brief quote or summary of the relevant information"
+}}
+
+Rules for determining relevance:
+- The transcript must contain specific information related to the query
+- Just containing similar keywords is not enough
+- The information should contribute to answering the query
+- If the transcript is completely off-topic, mark as not relevant
+- If unsure, lean towards marking as not relevant
+
+Return ONLY the JSON object, no other text or formatting.""".format(
+                query=query,
+                transcript=full_transcript,
+                time_context=time_context
+            )
+            
+            # Get validation from LLM
+            response = model.generate_content(validation_prompt)
+            response_text = response.text.strip()
+            
+            # Clean up the response text to ensure it's valid JSON
+            # Remove any markdown formatting or extra text
+            if '```json' in response_text:
+                response_text = response_text.split('```json')[1].split('```')[0].strip()
+            elif '```' in response_text:
+                response_text = response_text.split('```')[1].strip()
+                
+            # Remove any leading/trailing whitespace or quotes
+            response_text = response_text.strip('"\'')
+            
+            try:
+                validation_result = json.loads(response_text)
+                
+                # Ensure the response has the required fields
+                if not isinstance(validation_result, dict):
+                    logger.error(f"Invalid validation result format: {validation_result}")
+                    return True, "Invalid validation result format"
+                    
+                is_relevant = validation_result.get("is_relevant", False)
+                explanation = validation_result.get("explanation", "No explanation provided")
+                found_in_segment = validation_result.get("found_in_segment", False)
+                relevant_context = validation_result.get("relevant_context", "")
+                
+                # Combine explanation with context
+                full_explanation = f"{explanation}\n\nRelevant content: {relevant_context}"
+                if found_in_segment:
+                    full_explanation += "\n(Found in the specified time segment)"
+                else:
+                    full_explanation += "\n(Found in other parts of the transcript)"
+                
+                # Log the successful validation
+                logger.info(f"Content validation - Relevant: {is_relevant}, Found in segment: {found_in_segment}")
+                
+                # Only consider it relevant if the information is found in or near the specified segment
+                final_is_relevant = is_relevant and found_in_segment
+                
+                return final_is_relevant, full_explanation
+                
+            except json.JSONDecodeError as e:
+                logger.error(f"Failed to parse LLM validation response: {response_text}")
+                logger.error(f"JSON parse error: {str(e)}")
+                
+                # Fallback: Try to extract meaning from non-JSON response
+                response_lower = response_text.lower()
+                
+                # Look for clear indicators in the text
+                if any(phrase in response_lower for phrase in ['not relevant', 'irrelevant', 'unrelated']):
+                    return False, "Content appears not relevant (parsed from non-JSON response)"
+                elif any(phrase in response_lower for phrase in ['is relevant', 'contains relevant', 'related to']):
+                    return True, "Content appears relevant (parsed from non-JSON response)"
+                else:
+                    return True, "Unable to parse validation response, defaulting to relevant"
+                    
+        except Exception as e:
+            logger.error(f"Error extracting transcript: {str(e)}")
+            return False, f"Error extracting transcript: {str(e)}"
+            
+    except Exception as e:
+        logger.error(f"Error in content validation: {str(e)}")
+        return False, f"Validation error: {str(e)}"
+
+async def validate_results_batch(results: List[Dict], query: str, config: LLMConfig_Search) -> List[Dict]:
+    """
+    Validate a batch of results in parallel using ThreadPoolExecutor.
+    
+    Args:
+        results: List of search results to validate
+        query: Original search query
+        config: LLM configuration
+        
+    Returns:
+        List of validated results
+    """
+    if not results:
+        return []
+        
+    validation_stats = {
+        "total_validated": 0,
+        "relevant_count": 0,
+        "irrelevant_count": 0
+    }
+    
+    async def validate_single_result(result: Dict) -> Tuple[Dict, bool]:
+        """Validate a single result and return tuple of (result, is_relevant)"""
+        is_relevant, explanation = await validate_result_content(result, query, config)
+        if is_relevant:
+            result["content_validation"] = {
+                "is_relevant": True,
+                "explanation": explanation
+            }
+            return result, True
+        return result, False
+    
+    # Create tasks for all results
+    tasks = [validate_single_result(result) for result in results]
+    
+    # Process tasks in parallel with semaphore to limit concurrency
+    semaphore = asyncio.Semaphore(MAX_PARALLEL_VALIDATIONS)
+    
+    async def bounded_validate(task):
+        async with semaphore:
+            return await task
+    
+    # Execute all tasks with bounded concurrency
+    validated_results = []
+    validation_tasks = [bounded_validate(task) for task in tasks]
+    
+    for result, is_relevant in await asyncio.gather(*validation_tasks):
+        validation_stats["total_validated"] += 1
+        if is_relevant:
+            validation_stats["relevant_count"] += 1
+            validated_results.append(result)
+        else:
+            validation_stats["irrelevant_count"] += 1
+            
+    logger.info(f"Batch validation complete: {validation_stats}")
+    return validated_results, validation_stats
+
 @router.get(
     "/search",
     summary="Search audio transcripts",
-    description="Search through audio transcripts using semantic search"
+    description="Search through audio transcripts using enhanced semantic search"
 )
 async def search(
     query: str = Query(..., description="Search query"),
@@ -341,6 +683,8 @@ async def search(
     speaker: Optional[int] = Query(None, description="Filter by speaker ID"),
     use_llm_expansion: bool = Query(True, description="Use LLM to expand search query"),
     natural_language: bool = Query(False, description="Process as natural language query"),
+    use_llm_rerank: bool = Query(True, description="Use LLM for final reranking"),
+    validate_content: bool = Query(True, description="Use LLM to validate result content relevance"),
     current_user: dict = Depends(get_current_user)
 ):
     """
@@ -358,15 +702,29 @@ async def search(
     - /search?query=which audio mentions the meeting on Thursday?&natural_language=true
     """
     try:
-        # Process as natural language query if specified
-        nl_query_info = None
+        # Initialize LLM config
+        config = LLMConfig_Search()
+        
+        # Log search request
+        logger.info(f"Search request - Query: {query}, Limit: {limit}, Natural Language: {natural_language}")
+        
+        # Store original query for technical term scoring
         original_query = query
         
+        # Process as natural language query if specified
+        nl_query_info = None
+        
         if natural_language:
-            nl_query_info = await process_natural_language_query(query)
-            # Use the optimized search query for further processing
-            query = nl_query_info.get("search_query", query)
-            
+            try:
+                nl_query_info = await process_natural_language_query(query)
+                # Use the optimized search query for further processing
+                query = nl_query_info.get("search_query", query)
+                logger.info(f"Natural language query processed. Optimized query: {query}")
+            except Exception as e:
+                logger.error(f"Error processing natural language query: {str(e)}")
+                # Continue with original query if NL processing fails
+                logger.info("Falling back to original query")
+                
         # Check if the query contains a timestamp range
         cleaned_query, start_time, end_time = parse_timestamp_range(query)
         
@@ -381,80 +739,112 @@ async def search(
             
         # Add time range filter if specified
         if start_time is not None and end_time is not None:
-            # We want segments that overlap with the specified range
-            # This means start_time <= chunk.end_time AND end_time >= chunk.start_time
             filter_dict["$and"] = [
                 {"start_time": {"$lte": end_time}},
                 {"end_time": {"$gte": start_time}}
             ]
         
+        # Log filter configuration
+        logger.info(f"Search filters: {filter_dict}")
+        
         # Use LLM to expand the query if enabled
         expanded_queries = []
         if use_llm_expansion:
-            expanded_queries = await expand_query_with_llm(cleaned_query)
-            
-            # Common English stopwords to filter out
-            stopwords = {
-                "a", "an", "the", "and", "or", "but", "if", "then", "else", "when",
-                "at", "by", "for", "with", "about", "against", "between", "into",
-                "through", "during", "before", "after", "above", "below", "to", "from",
-                "up", "down", "in", "out", "on", "off", "over", "under", "again",
-                "further", "then", "once", "here", "there", "when", "where", "why",
-                "how", "all", "any", "both", "each", "few", "more", "most", "other",
-                "some", "such", "no", "nor", "not", "only", "own", "same", "so"
-            }
-            
-            # If we have natural language processing results, add key terms and entities to expanded queries
-            if nl_query_info:
-                for term in nl_query_info.get("key_terms", []):
-                    if (term not in expanded_queries and len(term) > 2 
-                        and term.lower() not in stopwords):
-                        expanded_queries.append(term)
-                        
-                for entity in nl_query_info.get("entities", []):
-                    if (entity not in expanded_queries and len(entity) > 2 
-                        and entity.lower() not in stopwords):
-                        expanded_queries.append(entity)
-                        
-                for temporal in nl_query_info.get("temporal_references", []):
-                    if (temporal not in expanded_queries and len(temporal) > 2 
-                        and temporal.lower() not in stopwords):
-                        expanded_queries.append(temporal)
+            try:
+                expanded_queries = await expand_query_with_llm(cleaned_query)
+                logger.info(f"Query expanded to: {expanded_queries}")
+            except Exception as e:
+                logger.error(f"Error expanding query: {str(e)}")
+                expanded_queries = [cleaned_query]
+                logger.info("Falling back to original query")
         else:
             expanded_queries = [cleaned_query]
             
-        # Search for each expanded query and merge results
+        # Search for each expanded query using enhanced search
         all_results = []
         seen_ids = set()
+        search_errors = []
         
         for expanded_query in expanded_queries:
-            # Search for transcripts with this expanded query
-            query_results = await search_transcripts(
-                query=expanded_query,
-                limit=limit * 2,  # Get more results to account for duplicates
-                filter_dict=filter_dict
+            try:
+                # Use enhanced search for better results
+                query_results = await enhanced_search.hybrid_search(
+                    query=expanded_query,
+                    limit=limit * 2,  # Get more results to account for duplicates
+                    filter_dict=filter_dict,
+                    original_query=original_query  # Pass original query for technical term scoring
+                )
+                
+                # Add only unique results
+                for result in query_results:
+                    # Create a unique identifier for the result
+                    result_id = f"{result.get('file_name')}_{result.get('start_time')}_{result.get('end_time')}"
+                    
+                    if result_id not in seen_ids:
+                        seen_ids.add(result_id)
+                        # Track which expanded query matched this result
+                        result["matched_query"] = expanded_query
+                        result["original_query"] = original_query  # Add original query for reference
+                        # Add combined score from hybrid search
+                        result["score"] = result.get("combined_score", 0)
+                        # Add exact match flag based on keyword score
+                        result["has_exact_match"] = result.get("keyword_score", 0) > 0.5
+                        all_results.append(result)
+                        
+            except Exception as e:
+                error_msg = f"Error searching with query '{expanded_query}': {str(e)}"
+                logger.error(error_msg)
+                search_errors.append(error_msg)
+                continue
+        
+        # After getting initial results but before final reranking, validate content if enabled
+        if validate_content and config.api_key:
+            logger.info("Validating result content relevance in parallel...")
+            
+            # Process results in parallel batches
+            validated_results, validation_stats = await validate_results_batch(
+                results=all_results,
+                query=original_query,
+                config=config
             )
             
-            # Add only unique results
-            for result in query_results:
-                # Create a unique identifier for the result
-                result_id = f"{result.get('file_name')}_{result.get('start_time')}_{result.get('end_time')}"
-                
-                if result_id not in seen_ids:
-                    seen_ids.add(result_id)
-                    # Track which expanded query matched this result
-                    result["matched_query"] = expanded_query
-                    all_results.append(result)
+            # Update results list with only validated results
+            all_results = validated_results
+            
+            logger.info(f"Content validation complete: {validation_stats}")
+            
+            # If no results remain after validation, return empty with explanation
+            if not all_results:
+                return {
+                    "query": original_query,
+                    "total": 0,
+                    "results": [],
+                    "message": "No results contained relevant information for the query after validation",
+                    "validation_stats": validation_stats
+                }
         
-        # Sort results by exact match presence first, then by score
-        all_results.sort(key=lambda x: (not x.get('has_exact_match', False), -x.get('score', 0)))
+        # Sort results by combined score
+        all_results.sort(key=lambda x: x.get("combined_score", 0), reverse=True)
         
-        # If using natural language processing, rerank based on query intent
-        if natural_language and nl_query_info:
-            all_results = await rerank_results_for_nl_query(all_results, nl_query_info)
-        
-        # Limit to requested number
-        results = all_results[:limit]
+        # Apply LLM reranking if enabled
+        if use_llm_rerank and all_results:
+            try:
+                search_intent = nl_query_info.get("search_intent") if nl_query_info else None
+                reranked_results = await llm_rerank_results(
+                    results=all_results[:limit*2],  # Rerank top results
+                    query=original_query,
+                    search_intent=search_intent
+                )
+                # Take top results after reranking
+                results = reranked_results[:limit]
+                logger.info("Applied LLM reranking to search results")
+            except Exception as e:
+                logger.error(f"Error in LLM reranking: {str(e)}")
+                # Fallback to original ranking
+                results = all_results[:limit]
+                logger.info("Using original ranking due to LLM reranking error")
+        else:
+            results = all_results[:limit]
         
         # Format timestamps in human-readable format
         for result in results:
@@ -475,17 +865,35 @@ async def search(
             } if start_time is not None else None,
             "total": len(results),
             "exact_matches": sum(1 for r in results if r.get("has_exact_match", False)),
-            "results": results
+            "results": results,
+            "search_errors": search_errors if search_errors else None,
+            "search_stats": {
+                "total_candidates": len(all_results),
+                "unique_results": len(seen_ids),
+                "queries_attempted": len(expanded_queries),
+                "queries_failed": len(search_errors),
+                "llm_reranking_applied": use_llm_rerank,
+                "content_validation_applied": validate_content
+            }
         }
+        
+        # Add validation stats if content validation was performed
+        if validate_content and config.api_key:
+            response_data["validation_stats"] = validation_stats
         
         # Add natural language processing info if available
         if nl_query_info:
             response_data["natural_language_analysis"] = nl_query_info
         
+        # Log search completion
+        logger.info(f"Search completed - Found {len(results)} results from {len(all_results)} candidates")
+        
         return response_data
         
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error searching transcripts: {str(e)}")
+        error_msg = f"Error searching transcripts: {str(e)}"
+        logger.error(error_msg)
+        raise HTTPException(status_code=500, detail=error_msg)
 
 def format_seconds_to_time(seconds: float) -> str:
     """
@@ -674,4 +1082,17 @@ async def search_and_answer(
         print(f"Error generating answer: {str(e)}")
         import traceback
         traceback.print_exc()
-        raise HTTPException(status_code=500, detail=f"Error generating answer: {str(e)}") 
+        raise HTTPException(status_code=500, detail=f"Error generating answer: {str(e)}")
+
+@router.get(
+    "/test-connection",
+    summary="Test Pinecone connection",
+    description="Test the connection to Pinecone and check index status"
+)
+async def test_connection():
+    """Test the connection to Pinecone and check index status"""
+    try:
+        test_pinecone_connection()
+        return {"status": "completed", "message": "Check the logs for details"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error testing connection: {str(e)}") 
