@@ -1,9 +1,11 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Request, HTTPException, status, Depends
+from fastapi.responses import JSONResponse
 import requests
 import os
 from typing import Optional, List
 from pydantic import BaseModel, Field
 from dotenv import load_dotenv
+from services.auth import get_current_user
 
 # Load environment variables
 load_dotenv()
@@ -75,27 +77,32 @@ class TranscriptionRequest(BaseModel):
     summary="Transcribe audio using Deepgram API",
     description="Transcribes audio from a URL using Deepgram's speech-to-text API with multiple customization options"
 )
-async def transcribe_audio(request: TranscriptionRequest):
+async def transcribe_audio(
+    request: TranscriptionRequest,
+    current_user: dict = Depends(get_current_user)
+):
     """
-    Transcribe audio from a provided URL using Deepgram's speech-to-text API.
+    Transcribe audio from a URL using Deepgram API.
     
-    This endpoint proxies requests to Deepgram's API with the ability to customize 
-    transcription parameters like language detection, speaker diarization, punctuation, etc.
+    This endpoint takes a URL to an audio file and returns a full transcription.
+    It supports various customization options such as language detection, diarization,
+    punctuation, and more.
     
-    Example usage in Postman:
+    Example body:
     {
-        "url": "https://example.com/audio.wav",
-        "punctuate": true,
-        "diarize": true,
-        "smart_format": true,
+        "url": "https://storage.googleapis.com/example-audio.mp3",
         "detect_language": true,
-        "sentiment": true,
-        "language": "en",
-        "model": "nova-2"
+        "diarize": true,
+        "model": "general"
     }
-    
-    See full Deepgram API documentation: https://developers.deepgram.com/reference/speech-to-text-api/listen
     """
+    # Check if API key is available
+    if not DEEPGRAM_API_KEY:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Deepgram API key not configured on server"
+        )
+    
     try:
         # Initialize API URL
         deepgram_url = "https://api.deepgram.com/v1/listen"

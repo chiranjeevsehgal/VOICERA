@@ -1,4 +1,4 @@
-from fastapi import APIRouter, UploadFile, File, HTTPException, status
+from fastapi import APIRouter, UploadFile, File, HTTPException, status, Depends
 from fastapi.responses import JSONResponse
 import os
 import tempfile
@@ -11,11 +11,15 @@ import uuid
 from services.supabase_service import upload_file_to_supabase, list_files_in_bucket
 from services.pinecone_service import index_transcript
 from api.embedding import extract_metadata_from_mp3_to_json
+from services.auth import get_current_user
 
 router = APIRouter()
 
 @router.post("/uploadToSupabase", status_code=201)
-async def upload_to_supabase(file: UploadFile = File(...)):
+async def upload_to_supabase(
+    file: UploadFile = File(...),
+    current_user: dict = Depends(get_current_user)
+):
     """
     Upload an audio file to Supabase storage.
     If the file is an MP3 with ID3 tags, the metadata will be preserved.
@@ -96,7 +100,9 @@ async def upload_to_supabase(file: UploadFile = File(...)):
             shutil.rmtree(temp_dir)
 
 @router.get("/listSupabaseFiles")
-async def list_supabase_files():
+async def list_supabase_files(
+    current_user: dict = Depends(get_current_user)
+):
     """List all files stored in the Supabase bucket"""
     try:
         response = await list_files_in_bucket()

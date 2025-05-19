@@ -5,6 +5,7 @@ import os
 from dotenv import load_dotenv
 from services.ip_utils import get_ip_for_request
 from services.database import db, ip_credits_collection
+from services.auth import get_current_user
 
 load_dotenv()
 router = APIRouter()
@@ -18,7 +19,8 @@ RESET_TIMEFRAME = int(os.getenv("RESET_TIMEFRAME"))
 @router.post("/credit")
 async def deduct_credit(
     request: Request,
-    detected_ip: str = Depends(get_ip_for_request)
+    detected_ip: str = Depends(get_ip_for_request),
+    current_user: dict = Depends(get_current_user)
 ):
     """
     Endpoint that tracks IP usage and enforces credit limits.
@@ -113,6 +115,7 @@ async def deduct_credit(
 async def check_credits(
     request: Request,
     detected_ip: str = Depends(get_ip_for_request),
+    current_user: dict = Depends(get_current_user)
 ):
     """Check remaining credits for the current IP address."""
     try:
