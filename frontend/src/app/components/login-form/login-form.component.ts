@@ -3,6 +3,7 @@ import { FormBuilder, FormGroup, Validators, ReactiveFormsModule, AbstractContro
 import { MessageService } from 'primeng/api';
 import { ProgressSpinner } from 'primeng/progressspinner';
 import { Toast } from 'primeng/toast';
+import { LoginService } from '../../services/auth/login.service';
 
 
 @Component({
@@ -25,36 +26,37 @@ export class LoginFormComponent {
   constructor(
     private fb: FormBuilder,
     private messageService: MessageService,
+    private loginService: LoginService
   ) {
     this.loginForm = this.fb.group({
       email: ['', [Validators.required, Validators.email]],
-      password: ['', [Validators.required, this.passwordStrengthValidator]]
+      password: ['', [Validators.required]]
     });
   }
 
-  show() {
-    this.messageService.add({ severity: 'info', summary: 'Info', detail: 'Message Content', life: 3000 });
-  }
 
 
-  // Custom validator for password strength
-  passwordStrengthValidator(control: AbstractControl): ValidationErrors | null {
-    const value = control.value || '';
-    const hasUpperCase = /[A-Z]/.test(value);
-    const hasLowerCase = /[a-z]/.test(value);
-    const hasNumber = /\d/.test(value);
-    const hasSpecialChar = /[!@#$%^&*(),.?":{}|<>]/.test(value);
-    const isValidLength = value.length >= 8;
-
-    const isStrong = hasUpperCase && hasLowerCase && hasNumber && hasSpecialChar && isValidLength;
-
-    return isStrong ? null : { weakPassword: true };
-  }
 
   onSubmit() {
     if (this.loginForm.valid) {
       this.isLoading = true;
-      console.log('Form submitted', this.loginForm.value);
+      // console.log('Form submitted', this.loginForm.value);
+
+      setTimeout(() => {
+        this.loginService.loginUser(this.loginForm.value).subscribe({
+          next: (response) => {
+            // console.log("Login Successfull", response);
+            this.isLoading = false;
+            this.messageService.add({ severity: 'success', summary: 'Success', detail: "Login Successful", life: 3000 });
+            this.loginForm.reset();
+          },
+          error: (error) => {
+            // console.log("Login Error", error);
+            this.isLoading = false;
+            this.messageService.add({ severity: 'error', summary: 'Error', detail: error.error.detail, life: 3000 });
+          }
+        })
+      }, 3000);
     }
   }
 }
