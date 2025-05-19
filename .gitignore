@@ -73,5 +73,6 @@ Backend/audio_uploads/
 
 # Environment variables
 .env
+frontend/src/environments
 
 
