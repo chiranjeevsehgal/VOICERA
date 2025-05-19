@@ -5,18 +5,20 @@ import { providePrimeNG } from 'primeng/config';
 
 import { routes } from './app.routes';
 import { Noir } from '../../Noir';
+import { HttpClient, provideHttpClient } from '@angular/common/http';
 
 export const appConfig: ApplicationConfig = {
   providers: [
+    provideHttpClient(),
     provideZoneChangeDetection({ eventCoalescing: true }), provideRouter(routes),
     provideAnimationsAsync(),
     providePrimeNG({
       theme: {
         preset: Noir,
         options: {
-          mode: 'light'
+          darkModeSelector: false || 'none'
         }
       }
-    })
+    }),
   ]
 };

@@ -84,3 +84,6 @@ yarl==1.20.0
 google-auth==2.40.1
 google-auth-httplib2==0.2.0
 google-auth-oauthlib==1.2.2
+pinecone==6.0.2
+pinecone-plugin-interface==0.0.7
+together==1.5.8
