@@ -87,3 +87,4 @@ google-auth-oauthlib==1.2.2
 pinecone==6.0.2
 pinecone-plugin-interface==0.0.7
 together==1.5.8
+scikit-learn==1.6.1
