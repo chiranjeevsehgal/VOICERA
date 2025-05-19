@@ -1,7 +1,9 @@
 from fastapi import FastAPI, Depends, Request
 from fastapi.middleware.cors import CORSMiddleware
-from api import health, transcribe, embedding, upload, llm_translation, supabase_upload, auth, ip_detection, search, credit_management, oauth
+from api import health, transcribe, embedding, upload, llm_translation, supabase_upload, auth, ip_detection, search, credit_management, oauth, all_in_one
+import uvicorn
 
+# Create FastAPI application with concurrency settings
 app = FastAPI(
     title="VOICERA Backend", 
     description="Backend for VOICERA",
@@ -57,3 +59,16 @@ app.include_router(credit_management.router, prefix="/api", tags=["credit"])
 
 # OAUTH Router
 app.include_router(oauth.router, prefix="/api", tags=["oauth"])
+
+# All-in-one Router
+app.include_router(all_in_one.router, prefix="/api", tags=["all-in-one"])
+
+# This allows the file to be run directly with the appropriate settings
+if __name__ == "__main__":
+    uvicorn.run(
+        "main:app",
+        host="0.0.0.0",
+        port=8000,
+        workers=4,  # Run with multiple worker processes
+        reload=True
+    )

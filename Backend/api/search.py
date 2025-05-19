@@ -1,10 +1,13 @@
-from fastapi import APIRouter, Query, HTTPException
+from fastapi import APIRouter, Query, HTTPException, Depends
 from typing import Optional, List, Dict
 from services.pinecone_service import search_transcripts
-import re
-import google.generativeai as genai
+from services.auth import get_current_user
+from pydantic import BaseModel, Field
 import os
-from pydantic import BaseModel
+import json
+import google.generativeai as genai
+from dotenv import load_dotenv
+import re
 
 router = APIRouter()
 
@@ -103,7 +106,6 @@ async def expand_query_with_llm(query: str) -> List[str]:
         
         try:
             # Parse the response as JSON
-            import json
             result = json.loads(response.text)
             
             # Return the expanded queries
@@ -187,7 +189,6 @@ async def process_natural_language_query(query: str) -> Dict:
         
         try:
             # Parse the response as JSON
-            import json
             result = json.loads(response.text)
             return result
             
@@ -339,7 +340,8 @@ async def search(
     min_confidence: Optional[float] = Query(0.7, description="Minimum confidence threshold (0-1)"),
     speaker: Optional[int] = Query(None, description="Filter by speaker ID"),
     use_llm_expansion: bool = Query(True, description="Use LLM to expand search query"),
-    natural_language: bool = Query(False, description="Process as natural language query")
+    natural_language: bool = Query(False, description="Process as natural language query"),
+    current_user: dict = Depends(get_current_user)
 ):
     """
     Search for audio based on transcript content.
@@ -516,7 +518,10 @@ class AnswerRequest(BaseModel):
     summary="Generate answer from transcript and query",
     description="Generate an answer to a user query based on transcript content using LLM"
 )
-async def generate_answer(request: AnswerRequest):
+async def generate_answer(
+    request: AnswerRequest,
+    current_user: dict = Depends(get_current_user)
+):
     """
     Generate an answer to a user query based on transcript content.
     
@@ -583,7 +588,10 @@ class SearchAndAnswerRequest(BaseModel):
     summary="Search and generate answer in one request",
     description="Generates an answer for a specific search result without requiring separate requests"
 )
-async def search_and_answer(request: SearchAndAnswerRequest):
+async def search_and_answer(
+    request: SearchAndAnswerRequest,
+    current_user: dict = Depends(get_current_user)
+):
     """
     Generate an answer for a specific search result without requiring a separate request.
     This helps avoid UI refreshes in the frontend.
