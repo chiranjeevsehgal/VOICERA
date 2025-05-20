@@ -2,6 +2,11 @@ import os
 from supabase import create_client, Client
 from dotenv import load_dotenv
 import uuid
+from datetime import datetime
+from models.user_uploads import UserUploadCreate
+from bson import ObjectId
+import json
+from services.database import users_collection  # Add this import
 
 # Load environment variables
 load_dotenv()
@@ -30,20 +35,22 @@ def init_supabase():
 # Initialize on module import
 init_supabase()
 
-async def upload_file_to_supabase(file_path, file_name=None):
+async def upload_file_to_supabase(file_path, file_name=None, user_id=None):
     """
-    Upload a file to Supabase storage
+    Upload a file to Supabase storage and track user ownership
     
     Args:
         file_path (str): Path to the file to upload
         file_name (str, optional): Custom filename for the uploaded file
-                                  If None, will use the original filename
+        user_id (str/ObjectId, optional): ID of the user uploading the file
     
     Returns:
         dict: Response with file URL and metadata
     """
     if not supabase:
         raise ValueError("Supabase client not initialized. Check your environment variables.")
+    
+    print(f"[DEBUG] Starting upload process with user_id: {user_id}, type: {type(user_id)}")
     
     if not file_name:
         file_name = os.path.basename(file_path)
@@ -56,35 +63,133 @@ async def upload_file_to_supabase(file_path, file_name=None):
     # Place files in the 'public' subfolder to match RLS policy
     file_path_in_bucket = f"public/{unique_file_name}"
     
-    # Read file contents
-    with open(file_path, "rb") as f:
-        file_contents = f.read()
-    
-    # Upload to Supabase
-    response = supabase.storage.from_(supabase_bucket).upload(
-        path=file_path_in_bucket,
-        file=file_contents,
-        file_options={"content-type": "audio/mpeg"}
-    )
-    
-    # Generate public URL
-    file_url = supabase.storage.from_(supabase_bucket).get_public_url(file_path_in_bucket)
-    
-    return {
-        "success": True,
-        "file_name": unique_file_name,
-        "file_path": file_path_in_bucket,
-        "file_url": file_url
-    }
+    try:
+        # Read file contents
+        with open(file_path, "rb") as f:
+            file_contents = f.read()
+        
+        print(f"[DEBUG] File read successfully: {file_path}")
+        
+        # Upload to Supabase
+        response = supabase.storage.from_(supabase_bucket).upload(
+            path=file_path_in_bucket,
+            file=file_contents,
+            file_options={"content-type": "audio/mpeg"}
+        )
+        
+        print(f"[DEBUG] Storage upload response: {response}")
+        
+        # Generate public URL
+        file_url = supabase.storage.from_(supabase_bucket).get_public_url(file_path_in_bucket)
+        
+        result = {
+            "success": True,
+            "file_name": unique_file_name,
+            "file_path": file_path_in_bucket,
+            "file_url": file_url
+        }
 
-async def list_files_in_bucket():
-    """List all files in the storage bucket"""
+        # If user_id is provided, track the upload in the database
+        if user_id:
+            print(f"[DEBUG] Processing user_id: {user_id}, type: {type(user_id)}")
+            
+            # Convert MongoDB ObjectId to string if needed
+            if isinstance(user_id, ObjectId):
+                user_id = str(user_id)
+            elif isinstance(user_id, dict) and '_id' in user_id:
+                user_id = str(user_id['_id'])
+            
+            try:
+                upload_data = {
+                    "user_id": user_id,
+                    "file_name": unique_file_name,
+                    "file_path": file_path_in_bucket,
+                    "file_url": file_url,
+                    "metadata": {}
+                }
+                
+                print(f"[DEBUG] Attempting to insert user_upload data: {json.dumps(upload_data, default=str)}")
+                
+                # Insert into user_uploads table
+                db_response = supabase.table("user_uploads").insert(upload_data).execute()
+                print(f"[DEBUG] Database insert response: {json.dumps(db_response.data if db_response.data else 'No data', default=str)}")
+                
+                if db_response.data:
+                    result["user_upload"] = db_response.data[0]
+                    print("[DEBUG] Successfully recorded user upload")
+                else:
+                    print("[DEBUG] Warning: No data returned from user_uploads insert")
+                    result["user_upload_warning"] = "No data returned from insert"
+            except Exception as e:
+                print(f"[DEBUG] Failed to record user upload: {str(e)}")
+                result["user_upload_error"] = str(e)
+
+        return result
+        
+    except Exception as e:
+        print(f"[DEBUG] Upload failed with error: {str(e)}")
+        raise ValueError(f"Failed to upload file: {str(e)}")
+
+async def list_files_in_bucket(user_id=None):
+    """
+    List files in the storage bucket with user information
+    
+    Args:
+        user_id (str, optional): If provided, only list files uploaded by this user
+    """
     if not supabase:
         raise ValueError("Supabase client not initialized. Check your environment variables.")
     
-    # List files in the 'public' folder to match RLS policy
-    response = supabase.storage.from_(supabase_bucket).list("public")
-    return response
+    try:
+        # Get storage files
+        storage_files = supabase.storage.from_(supabase_bucket).list("public")
+        
+        # Get user upload records
+        query = supabase.table("user_uploads").select("*")
+        if user_id:
+            # Convert ObjectId to string if needed
+            if isinstance(user_id, ObjectId):
+                user_id = str(user_id)
+            elif isinstance(user_id, dict) and '_id' in user_id:
+                user_id = str(user_id['_id'])
+            query = query.eq("user_id", user_id)
+        
+        user_uploads = query.execute()
+        
+        # Create a mapping of file_name to user data
+        user_upload_map = {}
+        if user_uploads.data:
+            for upload in user_uploads.data:
+                # Get user details from MongoDB
+                try:
+                    user_obj_id = ObjectId(upload["user_id"])
+                    user = await users_collection.find_one({"_id": user_obj_id})
+                    if user:
+                        # Add user details to the upload data
+                        upload["user_details"] = {
+                            "email": user.get("email"),
+                            "full_name": user.get("full_name"),
+                            # Add any other user fields you want to include
+                        }
+                except Exception as e:
+                    print(f"[DEBUG] Failed to get user details for {upload['user_id']}: {str(e)}")
+                    upload["user_details"] = {"error": "User not found"}
+                
+                user_upload_map[upload["file_name"]] = upload
+        
+        # Combine storage files with user data
+        enriched_files = []
+        for file in storage_files:
+            file_data = dict(file)  # Create a new dict to avoid modifying the original
+            if file["name"] in user_upload_map:
+                file_data["user_data"] = user_upload_map[file["name"]]
+            enriched_files.append(file_data)
+        
+        return enriched_files
+        
+    except Exception as e:
+        print(f"[DEBUG] Error listing files: {str(e)}")
+        return []
 
 async def delete_file_from_supabase(file_name):
     """Delete a file from Supabase storage"""

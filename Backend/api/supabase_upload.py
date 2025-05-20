@@ -7,6 +7,7 @@ from werkzeug.utils import secure_filename
 import time
 from typing import Dict, Any
 import uuid
+import json
 
 from services.supabase_service import upload_file_to_supabase, list_files_in_bucket
 from services.pinecone_service import index_transcript
@@ -24,13 +25,17 @@ async def upload_to_supabase(
     Upload an audio file to Supabase storage.
     If the file is an MP3 with ID3 tags, the metadata will be preserved.
     The transcription data will also be indexed in Pinecone for search.
+    The file ownership will be tracked in the database.
     
     Args:
         file (UploadFile): The audio file to upload
+        current_user (dict): The authenticated user information
         
     Returns:
-        JSON response with the Supabase URL and metadata
+        JSON response with the Supabase URL, metadata, and user information
     """
+    print(f"[DEBUG] Upload request received. Current user: {json.dumps(current_user, default=str)}")
+    
     # Check if uploaded file is an MP3
     AUDIO_MIME_TYPES = ["audio/mpeg"]
     
@@ -50,6 +55,8 @@ async def upload_to_supabase(
             content = await file.read()
             buffer.write(content)
         
+        print(f"[DEBUG] File saved temporarily at: {file_path}")
+        
         # Extract metadata if it's an MP3 file
         metadata = None
         if file.content_type == "audio/mpeg":
@@ -60,15 +67,23 @@ async def upload_to_supabase(
                 if extracted_data and isinstance(extracted_data, dict) and "error" not in extracted_data:
                     metadata = extracted_data
                 else:
-                    # File doesn't have ID3 tags or extraction failed, but we continue with upload
                     metadata = {"info": "No ID3 metadata found in file"}
             except Exception as e:
-                # Log the error but continue with the upload
-                print(f"Failed to extract metadata: {str(e)}")
+                print(f"[DEBUG] Metadata extraction failed: {str(e)}")
                 metadata = {"info": "Failed to extract metadata"}
         
-        # Upload the file to Supabase
-        response = await upload_file_to_supabase(file_path, file.filename)
+        # Get user ID from current_user
+        user_id = current_user.get("_id")
+        print(f"[DEBUG] Extracted user_id from current_user: {user_id}")
+        
+        # Upload the file to Supabase with user information
+        response = await upload_file_to_supabase(
+            file_path=file_path, 
+            file_name=file.filename,
+            user_id=user_id
+        )
+        
+        print(f"[DEBUG] Upload response received: {json.dumps(response, default=str)}")
         
         # Add metadata to the response if available
         if metadata and isinstance(metadata, dict):
@@ -84,12 +99,13 @@ async def upload_to_supabase(
                     )
                     response["indexed"] = True
                 except Exception as e:
-                    print(f"Warning: Failed to index transcript in Pinecone: {str(e)}")
+                    print(f"[DEBUG] Failed to index transcript: {str(e)}")
                     response["indexed"] = False
         
         return response
         
     except Exception as e:
+        print(f"[DEBUG] Upload failed with error: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to upload file to Supabase: {str(e)}"
@@ -98,14 +114,23 @@ async def upload_to_supabase(
         # Clean up temporary files
         if os.path.exists(temp_dir):
             shutil.rmtree(temp_dir)
+            print("[DEBUG] Temporary files cleaned up")
 
 @router.get("/listSupabaseFiles")
 async def list_supabase_files(
-    current_user: dict = Depends(get_current_user)
+    current_user: dict = Depends(get_current_user),
+    user_files_only: bool = False
 ):
-    """List all files stored in the Supabase bucket"""
+    """
+    List files stored in the Supabase bucket
+    
+    Args:
+        current_user (dict): The authenticated user information
+        user_files_only (bool): If True, only return files uploaded by the current user
+    """
     try:
-        response = await list_files_in_bucket()
+        user_id = current_user["id"] if user_files_only else None
+        response = await list_files_in_bucket(user_id=user_id)
         return {"files": response}
     except Exception as e:
         raise HTTPException(
