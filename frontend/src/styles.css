@@ -7,3 +7,11 @@
   font-weight: 400;
   font-style: normal;
 }
+
+body {
+  cursor: url('https://cdn.visily.ai/app/production/1747724278874/static/Default-d4dfdd23.svg'), auto;
+}
+
+.cursor-pointer {
+  cursor: url(https://cdn.visily.ai/app/production/1747724278874/static/Pointer-2a769ff1.svg) 12 6, auto;
+}
