@@ -744,7 +744,7 @@ def search_audio_section():
     with opts_row2_col4:
         natural_language = st.checkbox(
             "NL Query Mode", 
-            value=False, 
+            value=True, 
             help="Process query as a natural language question for intent understanding.",
             key="search_nl_checkbox"
         )
