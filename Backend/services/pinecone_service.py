@@ -198,11 +198,35 @@ async def index_transcript(transcript_data: Dict, file_url: str, file_name: str)
     
     try:
         print(f"\nIndexing transcript for file: {file_name}")
-        print(f"File URL: {file_url}")
+        print(f"Original File URL: {file_url}")
         
         # Extract file_id from file_name
         file_id = file_name.split("_")[-1].split(".")[0] if "_" in file_name else file_name.split(".")[0]
         print(f"Extracted file_id: {file_id}")
+        
+        # Look up the Supabase URL from the database if possible
+        from services.database import uploads_collection, podcasts_collection
+        import asyncio
+        
+        # Try to find the corresponding Supabase URL
+        supabase_url = file_url  # Default to the provided URL (tmpfiles)
+        
+        try:
+            # Check uploads collection first
+            upload_record = await uploads_collection.find_one({"file_name": {"$regex": file_name}})
+            if upload_record and "supabase_url" in upload_record and upload_record["supabase_url"]:
+                supabase_url = upload_record["supabase_url"]
+                print(f"Found Supabase URL in uploads collection: {supabase_url}")
+            else:
+                # If not in uploads, try podcasts collection 
+                podcast_record = await podcasts_collection.find_one({"file_name": {"$regex": file_name}})
+                if podcast_record and "supabase_url" in podcast_record and podcast_record["supabase_url"]:
+                    supabase_url = podcast_record["supabase_url"]
+                    print(f"Found Supabase URL in podcasts collection: {supabase_url}")
+                else:
+                    print(f"No Supabase URL found for {file_name}, using original URL")
+        except Exception as e:
+            print(f"Error looking up Supabase URL: {str(e)}")
         
         # Get the complete transcript text
         complete_text = ""
@@ -231,7 +255,8 @@ async def index_transcript(transcript_data: Dict, file_url: str, file_name: str)
                 
                 # Prepare metadata
                 metadata = {
-                    "file_url": file_url,
+                    "file_url": supabase_url,  # Use Supabase URL if available
+                    "tmp_url": file_url,       # Store tmpfiles URL as backup
                     "file_name": file_name,
                     "text": chunk["text"],
                     "start_time": chunk["start_time"],
@@ -251,57 +276,27 @@ async def index_transcript(transcript_data: Dict, file_url: str, file_name: str)
                 }
                 
                 vectors.append(vector)
-                print(f"Created vector {i+1}/{len(chunks)} - ID: {vector_id}")
-                
+                print(f"Created vector {i+1}/{len(chunks)}: {vector_id}")
             except Exception as e:
                 print(f"Error creating vector for chunk {i}: {str(e)}")
+                # Continue with the next chunk instead of failing completely
                 continue
         
-        print(f"Created {len(vectors)} vectors")
-        
-        # Also index the complete text as a single vector for broad searches
-        if complete_text:
-            try:
-                complete_embedding = get_embedding(complete_text)
-                complete_metadata = {
-                    "file_url": file_url,
-                    "file_name": file_name,
-                    "text": complete_text[:1000] + "..." if len(complete_text) > 1000 else complete_text,
-                    "is_complete": True
-                }
-                
-                vectors.append({
-                    "id": f"{file_id}_complete",
-                    "values": complete_embedding,
-                    "metadata": complete_metadata
-                })
-                print("Added complete text vector")
-            except Exception as e:
-                print(f"Error creating complete text vector: {str(e)}")
-        
-        # Upsert vectors to Pinecone in batches of 100
+        # Skip update if no vectors were created
+        if not vectors:
+            print("No vectors created, skipping Pinecone update")
+            return False
+            
+        # Upsert vectors in batches to avoid timeouts
         batch_size = 100
         for i in range(0, len(vectors), batch_size):
             batch = vectors[i:i+batch_size]
-            try:
-                index.upsert(vectors=batch)
-                print(f"Indexed batch {i//batch_size + 1}/{(len(vectors)-1)//batch_size + 1}")
-            except Exception as e:
-                print(f"Error upserting batch {i//batch_size + 1}: {str(e)}")
-                return False
-        
-        print(f"Successfully indexed {len(vectors)} vectors for file {file_name}")
-        
-        # Get updated index stats
-        try:
-            stats = index.describe_index_stats()
-            print(f"Updated index stats: {stats}")
-            print(f"Total vectors in index: {stats.get('total_vector_count', 0)}")
-        except Exception as e:
-            print(f"Error getting updated index stats: {str(e)}")
-        
+            print(f"Upserting batch {i//batch_size + 1}/{(len(vectors) + batch_size - 1) // batch_size}: {len(batch)} vectors")
+            response = index.upsert(vectors=batch)
+            print(f"Batch upsert response: {response}")
+            
+        print(f"Successfully indexed transcript with {len(vectors)} chunks")
         return True
-        
     except Exception as e:
         print(f"Error indexing transcript: {str(e)}")
         import traceback
@@ -310,78 +305,52 @@ async def index_transcript(transcript_data: Dict, file_url: str, file_name: str)
 
 async def search_transcripts(query: str, limit: int = 10, filter_dict: Dict = None) -> List[Dict]:
     """
-    Search for transcripts matching the query
+    Search for transcripts by vector similarity
     """
+    global index
     if not index:
-        print("Index not initialized, attempting to initialize...")
+        print("Pinecone index not initialized, attempting to initialize...")
         if not init_pinecone():
             print("Failed to initialize Pinecone")
             return []
     
     try:
-        print(f"\nExecuting search query: {query}")
-        print(f"Limit: {limit}")
-        print(f"Filter: {filter_dict}")
-        
-        # Generate embedding for the query
         query_embedding = get_embedding(query)
-        print("Generated query embedding")
         
-        # Search Pinecone
-        results = index.query(
+        # Execute search
+        search_response = index.query(
             vector=query_embedding,
-            top_k=limit * 3,  # Get more results than needed for post-filtering
+            top_k=limit,
             include_metadata=True,
             filter=filter_dict
         )
         
-        print(f"Raw Pinecone results: {results}")
-        
-        if not results or not results.get('matches'):
-            print("No matches found in Pinecone")
-            return []
+        # Process results
+        results = []
+        for match in search_response.get("matches", []):
+            # Get metadata
+            metadata = match.get("metadata", {})
             
-        print(f"Found {len(results['matches'])} matches")
-        
-        # Format and filter results
-        formatted_results = []
-        query_terms = [term.lower() for term in query.lower().split() if len(term) > 2]
-        
-        for match in results['matches']:
-            metadata = match['metadata']
-            text = metadata.get("text", "").lower()
-            
-            # Skip exact match check if no meaningful terms
-            if query_terms:
-                keyword_match = any(term in text for term in query_terms)
-            else:
-                keyword_match = False
+            # Check if we have a Supabase URL first, use it if available
+            file_url = metadata.get("supabase_url") if "supabase_url" in metadata else metadata.get("file_url")
             
             result = {
-                "file_url": metadata.get("file_url"),
-                "file_name": metadata.get("file_name"),
-                "text": metadata.get("text"),
-                "start_time": metadata.get("start_time"),
-                "end_time": metadata.get("end_time"),
-                "speaker": metadata.get("speaker"),
-                "confidence": metadata.get("confidence"),
-                "is_complete": metadata.get("is_complete", False),
-                "score": match['score'],
-                "has_exact_match": keyword_match
+                "file_url": file_url,
+                "file_name": metadata.get("file_name", ""),
+                "text": metadata.get("text", ""),
+                "start_time": metadata.get("start_time", 0),
+                "end_time": metadata.get("end_time", 0),
+                "confidence": metadata.get("confidence", 0),
+                "score": match.get("score", 0)
             }
             
-            print(f"\nResult: {result['file_name']}")
-            print(f"Score: {result['score']}")
-            print(f"Has exact match: {result['has_exact_match']}")
+            # Add speaker only if it's not None/null
+            if "speaker" in metadata and metadata["speaker"] is not None:
+                result["speaker"] = metadata["speaker"]
             
-            formatted_results.append(result)
+            results.append(result)
         
-        # Sort by exact match presence first, then by score
-        formatted_results.sort(key=lambda x: (not x.get('has_exact_match'), -x.get('score')))
-        
-        print(f"\nReturning {len(formatted_results[:limit])} final results")
-        return formatted_results[:limit]
-        
+        return results
     except Exception as e:
         print(f"Error searching transcripts: {str(e)}")
         import traceback

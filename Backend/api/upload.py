@@ -7,6 +7,7 @@ from typing import List, Optional
 from fastapi.responses import JSONResponse
 from werkzeug.utils import secure_filename
 from services.auth import get_current_user
+from utils.content_tracker import track_upload
 
 router = APIRouter()
 
@@ -94,6 +95,22 @@ async def upload_audio(
         "file_size": os.path.getsize(file_path)
     }
     
+    # Track upload in content management system
+    user_id = str(current_user.get("_id", "unknown"))
+    upload_id = await track_upload(
+        user_id=user_id,
+        file_name=os.path.basename(file_path),
+        file_path=file_path,
+        file_url="",  # Will be updated after tmpfiles upload
+        file_type="audio",
+        file_size=local_file_info["file_size"],
+        status="pending",
+        metadata={
+            "content_type": file.content_type,
+            "original_filename": original_filename
+        }
+    )
+    
     # Now upload to tmpfiles.org
     max_retries = 3
     delay_seconds = 3
@@ -109,12 +126,23 @@ async def upload_audio(
                 url = data.get("data", {}).get("url")
                 if url:
                     url = url.replace("https://tmpfiles.org/", "https://tmpfiles.org/dl/")
+                    
+                    # Update the upload record with the tmpfiles URL
+                    if upload_id:
+                        from utils.content_tracker import update_upload_status
+                        await update_upload_status(
+                            upload_id=upload_id,
+                            status="uploaded",
+                            file_url=url
+                        )
+                    
                     # We could remove the local file to save space, but keeping it for now
                     # os.remove(file_path)
                     return {
                         "status": "success", 
                         "url": url,
-                        "local_file": local_file_info
+                        "local_file": local_file_info,
+                        "upload_id": upload_id
                     }
                 else:   
                     raise ValueError("Upload succeeded but no URL returned.")
@@ -127,7 +155,8 @@ async def upload_audio(
                     status_code=500, 
                     content={
                         "error": f"Upload to tmpfiles.org failed after {max_retries} attempts: {str(e)}",
-                        "local_file": local_file_info  # Still return local file info
+                        "local_file": local_file_info,  # Still return local file info
+                        "upload_id": upload_id
                     }
                 )
             time.sleep(delay_seconds)
