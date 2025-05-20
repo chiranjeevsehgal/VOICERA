@@ -4,6 +4,7 @@ import { MessageService } from 'primeng/api';
 import { ProgressSpinner } from 'primeng/progressspinner';
 import { Toast } from 'primeng/toast';
 import { LoginService } from '../../services/auth/login.service';
+import { Router } from '@angular/router';
 
 
 @Component({
@@ -26,7 +27,8 @@ export class LoginFormComponent {
   constructor(
     private fb: FormBuilder,
     private messageService: MessageService,
-    private loginService: LoginService
+    private loginService: LoginService,
+    private router : Router
   ) {
     this.loginForm = this.fb.group({
       email: ['', [Validators.required, Validators.email]],
@@ -47,7 +49,7 @@ export class LoginFormComponent {
           next: (response) => {
             // console.log("Login Successfull", response);
             this.isLoading = false;
-            this.messageService.add({ severity: 'success', summary: 'Success', detail: "Login Successful", life: 3000 });
+            this.router.navigate(['/search']);
             this.loginForm.reset();
           },
           error: (error) => {

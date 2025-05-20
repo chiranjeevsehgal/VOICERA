@@ -13,5 +13,5 @@ body {
 }
 
 .cursor-pointer {
-  cursor: url(https://cdn.visily.ai/app/production/1747724278874/static/Pointer-2a769ff1.svg) 12 6, auto;
+  cursor: url('https://cdn.visily.ai/app/production/1747724278874/static/Pointer-2a769ff1.svg') 12 6, auto;
 }
