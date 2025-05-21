@@ -924,20 +924,18 @@ async def search(
             
             # Check if this is a tmpfiles.org URL and try to find a Supabase URL
             if "tmpfiles.org" in file_url:
-                # Try to find a matching podcast or upload with Supabase URL
-                file_name = result.get("file_name", "")
-                try:
-                    # First check podcasts collection
-                    podcast = await podcasts_collection.find_one({"file_name": {"$regex": file_name}})
-                    if podcast and "supabase_url" in podcast and podcast["supabase_url"]:
-                        file_url = podcast["supabase_url"]
+                # First check if there's a tmp_url in the result that might be a temporary URL
+                if result.get("tmp_url") and "tmpfiles.org" in result.get("tmp_url"):
+                    # If we have a tmp_url field, it means file_url should be the permanent URL
+                    if "tmpfiles.org" not in file_url:
+                        # Keep the permanent URL, no need to search
+                        pass
                     else:
-                        # Try uploads collection
-                        upload = await uploads_collection.find_one({"file_name": {"$regex": file_name}})
-                        if upload and "supabase_url" in upload and upload["supabase_url"]:
-                            file_url = upload["supabase_url"]
-                except Exception as e:
-                    logger.error(f"Error finding Supabase URL: {str(e)}")
+                        # Both URLs are temporary, search for permanent URL
+                        await find_permanent_url(result)
+                else:
+                    # No tmp_url field, search for permanent URL
+                    await find_permanent_url(result)
             
             # Calculate technical score
             technical_score = tech_scorer.calculate_technical_score(
@@ -952,7 +950,7 @@ async def search(
             processed_result = {
                 "text": result.get("text", ""),
                 "file_name": result.get("file_name", ""),
-                "file_url": file_url,  # Use the possibly updated URL
+                "file_url": result.get("file_url", ""),  # Use the result's file_url which may have been updated
                 "start_time": result.get("start_time", 0),
                 "end_time": result.get("end_time", 0),
                 "confidence": result.get("confidence", 0),
@@ -962,6 +960,10 @@ async def search(
                 "keyword_score": keyword_score,
                 "technical_score": technical_score
             }
+            
+            # Add tmp_url if present in the result
+            if result.get("tmp_url"):
+                processed_result["tmp_url"] = result.get("tmp_url")
             
             processed_results.append(processed_result)
         
@@ -1222,4 +1224,42 @@ async def test_connection():
         test_pinecone_connection()
         return {"status": "completed", "message": "Check the logs for details"}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error testing connection: {str(e)}") 
+        raise HTTPException(status_code=500, detail=f"Error testing connection: {str(e)}")
+
+async def find_permanent_url(result: Dict) -> None:
+    """
+    Find a permanent Supabase URL for a result with a temporary URL.
+    Updates the result in place if a permanent URL is found.
+    
+    Args:
+        result: The search result to update
+    """
+    file_url = result.get("file_url", "")
+    file_name = result.get("file_name", "")
+    
+    if not file_name or not "tmpfiles.org" in file_url:
+        return
+        
+    try:
+        # First check podcasts collection
+        podcast = await podcasts_collection.find_one({"file_name": {"$regex": file_name}})
+        if podcast and "supabase_url" in podcast and podcast["supabase_url"]:
+            result["file_url"] = podcast["supabase_url"]
+            # Store the temporary URL as tmp_url if not already present
+            if not result.get("tmp_url"):
+                result["tmp_url"] = file_url
+            return
+            
+        # Try uploads collection
+        upload = await uploads_collection.find_one({"file_name": {"$regex": file_name}})
+        if upload and "supabase_url" in upload and upload["supabase_url"]:
+            result["file_url"] = upload["supabase_url"]
+            # Store the temporary URL as tmp_url if not already present
+            if not result.get("tmp_url"):
+                result["tmp_url"] = file_url
+            return
+            
+        # If we get here, no permanent URL was found
+        logger.warning(f"No permanent URL found for file: {file_name}")
+    except Exception as e:
+        logger.error(f"Error finding permanent URL: {str(e)}") 

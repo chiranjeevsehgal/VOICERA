@@ -2,6 +2,7 @@ from datetime import datetime
 from services.database import logs_collection
 import asyncio
 from typing import Dict, Any, Optional
+from fastapi import BackgroundTasks
 
 async def add_log_entry(
     level: str,
@@ -36,18 +37,36 @@ async def add_log_entry(
         print(f"WARNING: Failed to add log entry: {e}")
         print(f"LOG: [{level.upper()}] {message} - {source}")
 
-def log_info(message: str, source: str, context: Optional[Dict[str, Any]] = None):
+def log_info(message: str, source: str, context: Optional[Dict[str, Any]] = None, background_tasks: Optional[BackgroundTasks] = None):
     """Log an info-level message"""
-    asyncio.create_task(add_log_entry("info", message, source, context))
+    if background_tasks is not None:
+        background_tasks.add_task(add_log_entry, "info", message, source, context)
+    else:
+        # Instead of creating a task that might be destroyed, just print the log
+        print(f"INFO: {message} - {source}")
+        # We could also use a global task registry to keep track of tasks
+        # but for simplicity, we'll just print the log message
 
-def log_warning(message: str, source: str, context: Optional[Dict[str, Any]] = None):
+def log_warning(message: str, source: str, context: Optional[Dict[str, Any]] = None, background_tasks: Optional[BackgroundTasks] = None):
     """Log a warning-level message"""
-    asyncio.create_task(add_log_entry("warning", message, source, context))
+    if background_tasks is not None:
+        background_tasks.add_task(add_log_entry, "warning", message, source, context)
+    else:
+        # Instead of creating a task that might be destroyed, just print the log
+        print(f"WARNING: {message} - {source}")
 
-def log_error(message: str, source: str, context: Optional[Dict[str, Any]] = None):
+def log_error(message: str, source: str, context: Optional[Dict[str, Any]] = None, background_tasks: Optional[BackgroundTasks] = None):
     """Log an error-level message"""
-    asyncio.create_task(add_log_entry("error", message, source, context))
+    if background_tasks is not None:
+        background_tasks.add_task(add_log_entry, "error", message, source, context)
+    else:
+        # Instead of creating a task that might be destroyed, just print the log
+        print(f"ERROR: {message} - {source}")
 
-def log_debug(message: str, source: str, context: Optional[Dict[str, Any]] = None):
+def log_debug(message: str, source: str, context: Optional[Dict[str, Any]] = None, background_tasks: Optional[BackgroundTasks] = None):
     """Log a debug-level message"""
-    asyncio.create_task(add_log_entry("debug", message, source, context)) 
+    if background_tasks is not None:
+        background_tasks.add_task(add_log_entry, "debug", message, source, context)
+    else:
+        # Instead of creating a task that might be destroyed, just print the log
+        print(f"DEBUG: {message} - {source}")

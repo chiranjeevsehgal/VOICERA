@@ -236,11 +236,30 @@ async def transcribe_audio(
             print(f"Created transcript record with ID: {transcript_id}")
             
             # Update podcast with transcription status
-            await update_podcast_transcription_status(
+            # Verify transcription status was properly updated
+            status_update = await update_podcast_transcription_status(
                 podcast_id=podcast_id,
                 status="completed",
                 transcript_id=transcript_id
             )
+            
+            # If update failed, retry once with a delay
+            if not status_update:
+                print(f"Warning: First attempt to update transcription status failed, retrying...")
+                import asyncio
+                await asyncio.sleep(1)  # Short delay before retry
+                await update_podcast_transcription_status(
+                    podcast_id=podcast_id,
+                    status="completed",
+                    transcript_id=transcript_id
+                )
+                
+                # Verify the status was actually updated
+                from services.database import podcasts_collection
+                from bson import ObjectId
+                podcast_check = await podcasts_collection.find_one({"_id": ObjectId(podcast_id)})
+                if podcast_check and podcast_check.get("transcription_status") != "completed":
+                    print(f"Error: Failed to update transcription status for podcast {podcast_id}")
             
             # Add the IDs to the response
             transcription_data["podcast_id"] = podcast_id
@@ -261,18 +280,24 @@ async def transcribe_audio(
             detected_language = results.get("channels", [{}])[0].get("detected_language", "en")
             confidence = results.get("channels", [{}])[0].get("alternatives", [{}])[0].get("confidence", 0)
         
+        # Make sure podcast_id and transcript_id are included in tracking
+        track_data = {
+            "confidence": confidence,
+            "model": request.model or "default"
+        }
+        
+        if podcast_id:
+            track_data["podcast_id"] = podcast_id
+        if transcript_id:
+            track_data["transcript_id"] = transcript_id
+            
         track_transcription(
             status=status,
             processing_time=processing_time,
             audio_length=audio_length,
             language=detected_language or request.language or "en",
             user_id=str(current_user.get("_id", "")),
-            additional_data={
-                "podcast_id": podcast_id,
-                "transcript_id": transcript_id,
-                "confidence": confidence,
-                "model": request.model or "default"
-            }
+            additional_data=track_data
         )
         
         return transcription_data

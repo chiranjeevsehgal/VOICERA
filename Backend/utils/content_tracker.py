@@ -17,10 +17,8 @@ async def track_upload(
     user_id: str,
     file_name: str,
     file_path: str,
-    file_url: str,
     file_type: str,
     file_size: int,
-    status: str = "pending",
     metadata: Optional[Dict[str, Any]] = None
 ) -> str:
     """
@@ -30,10 +28,8 @@ async def track_upload(
         user_id: ID of the user who uploaded the file
         file_name: Original filename
         file_path: Path to the file on the server
-        file_url: URL where the file can be accessed
         file_type: Type of file (audio, image, document)
         file_size: Size of the file in bytes
-        status: Processing status of the file
         metadata: Additional metadata about the file
         
     Returns:
@@ -49,10 +45,8 @@ async def track_upload(
         "user_id": user_id,
         "file_name": file_name,
         "file_path": file_path,
-        "file_url": file_url,
         "file_type": file_type,
         "file_size": file_size,
-        "status": status,
         "metadata": metadata,
         "created_at": datetime.utcnow(),
         "updated_at": datetime.utcnow()
@@ -100,6 +94,20 @@ async def update_upload_status(
         True if update was successful, False otherwise
     """
     try:
+        print(f"[DEBUG] Updating upload {upload_id} with status {status}, supabase_url: {supabase_url}")
+        
+        # First validate the upload exists
+        upload = await uploads_collection.find_one({"_id": ObjectId(upload_id)})
+        if not upload:
+            error_msg = f"Upload not found: {upload_id}"
+            log_error(
+                error_msg,
+                "content_tracker",
+                {"upload_id": upload_id}
+            )
+            print(f"[DEBUG] {error_msg}")
+            return False
+
         update_data = {
             "status": status,
             "updated_at": datetime.utcnow()
@@ -116,11 +124,28 @@ async def update_upload_status(
             
         if supabase_url:
             update_data["supabase_url"] = supabase_url
+            update_data["file_url"] = supabase_url  # Ensure file_url is set
+            print(f"[DEBUG] Setting file_url to: {supabase_url}")
         
         result = await uploads_collection.update_one(
             {"_id": ObjectId(upload_id)},
             {"$set": update_data}
         )
+
+        # Log the update details
+        log_msg = f"Updated upload {upload_id} to status {status}"
+        log_info(
+            log_msg,
+            "content_tracker",
+            {
+                "upload_id": upload_id,
+                "status": status,
+                "supabase_url_set": supabase_url is not None,
+                "modified_count": result.modified_count,
+                "update_data": update_data
+            }
+        )
+        print(f"[DEBUG] {log_msg}, modified_count: {result.modified_count}")
         
         if result.modified_count > 0:
             log_info(
@@ -195,12 +220,9 @@ async def create_podcast(
         "language": language,
         "created_at": now,
         "updated_at": now,
-        "views": 0,
-        "likes": 0,
         "average_rating": None,
         "is_featured": is_featured,
-        "is_published": is_published,
-        "transcription_status": "pending"
+        "is_published": is_published
     }
     
     if upload_id:
@@ -446,32 +468,29 @@ def sync_track_upload(
     user_id: str,
     file_name: str,
     file_path: str,
-    file_url: str,
     file_type: str,
     file_size: int,
-    status: str = "pending",
     metadata: Optional[Dict[str, Any]] = None
 ) -> str:
     """Synchronous wrapper for track_upload"""
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-    
     try:
-        result = loop.run_until_complete(
+        return asyncio.run(
             track_upload(
                 user_id=user_id,
                 file_name=file_name,
                 file_path=file_path,
-                file_url=file_url,
                 file_type=file_type,
                 file_size=file_size,
-                status=status,
                 metadata=metadata
             )
         )
-        return result
-    finally:
-        loop.close()
+    except Exception as e:
+        log_error(
+            f"Error in sync_track_upload: {str(e)}",
+            "content_tracker",
+            {"user_id": user_id, "file_name": file_name, "error": str(e)}
+        )
+        return None
 
 def sync_update_upload_status(
     upload_id: str, 
@@ -482,11 +501,8 @@ def sync_update_upload_status(
     supabase_url: Optional[str] = None
 ) -> bool:
     """Synchronous wrapper for update_upload_status"""
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-    
     try:
-        result = loop.run_until_complete(
+        return asyncio.run(
             update_upload_status(
                 upload_id=upload_id,
                 status=status,
@@ -496,9 +512,13 @@ def sync_update_upload_status(
                 supabase_url=supabase_url
             )
         )
-        return result
-    finally:
-        loop.close()
+    except Exception as e:
+        log_error(
+            f"Error in sync_update_upload_status: {str(e)}",
+            "content_tracker",
+            {"upload_id": upload_id, "status": status, "error": str(e)}
+        )
+        return False
 
 def sync_create_podcast(
     title: str,
@@ -515,11 +535,8 @@ def sync_create_podcast(
     supabase_url: Optional[str] = None
 ) -> str:
     """Synchronous wrapper for create_podcast"""
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-    
     try:
-        result = loop.run_until_complete(
+        return asyncio.run(
             create_podcast(
                 title=title,
                 description=description,
@@ -535,9 +552,13 @@ def sync_create_podcast(
                 supabase_url=supabase_url
             )
         )
-        return result
-    finally:
-        loop.close()
+    except Exception as e:
+        log_error(
+            f"Error in sync_create_podcast: {str(e)}",
+            "content_tracker",
+            {"title": title, "error": str(e)}
+        )
+        return None
 
 def sync_update_podcast_transcription_status(
     podcast_id: str,
@@ -545,20 +566,21 @@ def sync_update_podcast_transcription_status(
     transcript_id: Optional[str] = None
 ) -> bool:
     """Synchronous wrapper for update_podcast_transcription_status"""
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-    
     try:
-        result = loop.run_until_complete(
+        return asyncio.run(
             update_podcast_transcription_status(
                 podcast_id=podcast_id,
                 status=status,
                 transcript_id=transcript_id
             )
         )
-        return result
-    finally:
-        loop.close()
+    except Exception as e:
+        log_error(
+            f"Error in sync_update_podcast_transcription_status: {str(e)}",
+            "content_tracker",
+            {"podcast_id": podcast_id, "status": status, "error": str(e)}
+        )
+        return False
 
 def sync_create_transcript(
     podcast_id: str,
@@ -570,11 +592,8 @@ def sync_create_transcript(
     confidence_score: Optional[float] = None,
 ) -> str:
     """Synchronous wrapper for create_transcript"""
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-    
     try:
-        result = loop.run_until_complete(
+        return asyncio.run(
             create_transcript(
                 podcast_id=podcast_id,
                 content=content,
@@ -585,9 +604,13 @@ def sync_create_transcript(
                 confidence_score=confidence_score
             )
         )
-        return result
-    finally:
-        loop.close()
+    except Exception as e:
+        log_error(
+            f"Error in sync_create_transcript: {str(e)}",
+            "content_tracker",
+            {"podcast_id": podcast_id, "error": str(e)}
+        )
+        return None
 
 def sync_feature_podcast(
     podcast_id: str,
@@ -598,11 +621,8 @@ def sync_feature_podcast(
     end_date: Optional[datetime] = None
 ) -> str:
     """Synchronous wrapper for feature_podcast"""
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-    
     try:
-        result = loop.run_until_complete(
+        return asyncio.run(
             feature_podcast(
                 podcast_id=podcast_id,
                 title=title,
@@ -612,11 +632,15 @@ def sync_feature_podcast(
                 end_date=end_date
             )
         )
-        return result
-    finally:
-        loop.close()
+    except Exception as e:
+        log_error(
+            f"Error in sync_feature_podcast: {str(e)}",
+            "content_tracker",
+            {"podcast_id": podcast_id, "error": str(e)}
+        )
+        return None
 
-def process_transcription_data(transcription_data: Dict[str, Any], upload_data: Dict[str, Any], user_id: str) -> None:
+async def process_transcription_data(transcription_data: Dict[str, Any], upload_data: Dict[str, Any], user_id: str) -> None:
     """
     Process transcription data to create podcast and transcript records.
     
@@ -625,9 +649,6 @@ def process_transcription_data(transcription_data: Dict[str, Any], upload_data: 
         upload_data: Data about the uploaded file
         user_id: ID of the user who uploaded the file
     """
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-    
     try:
         # Extract needed data from transcription
         results = transcription_data.get("results", {})
@@ -636,38 +657,32 @@ def process_transcription_data(transcription_data: Dict[str, Any], upload_data: 
         transcript = alternatives.get("transcript", "")
         
         # Create a podcast record
-        podcast_id = loop.run_until_complete(
-            create_podcast(
-                title=upload_data.get("file_name", "Untitled Podcast"),
-                description=f"Uploaded on {datetime.utcnow().strftime('%Y-%m-%d')}",
-                audio_url=upload_data.get("file_url", ""),
-                duration_seconds=float(results.get("audio_duration", 0)),
-                author=user_id,
-                tags=["uploaded"],
-                upload_id=upload_data.get("upload_id")
-            )
+        podcast_id = await create_podcast(
+            title=upload_data.get("file_name", "Untitled Podcast"),
+            description=f"Uploaded on {datetime.utcnow().strftime('%Y-%m-%d')}",
+            audio_url=upload_data.get("file_url", ""),
+            duration_seconds=float(results.get("audio_duration", 0)),
+            author=user_id,
+            tags=["uploaded"],
+            upload_id=upload_data.get("upload_id")
         )
         
         if podcast_id:
             # Create a transcript record
-            transcript_id = loop.run_until_complete(
-                create_transcript(
-                    podcast_id=podcast_id,
-                    content=transcript,
-                    language=results.get("language", "en"),
-                    segments=alternatives.get("words", []),
-                    confidence_score=alternatives.get("confidence")
-                )
+            transcript_id = await create_transcript(
+                podcast_id=podcast_id,
+                content=transcript,
+                language=results.get("language", "en"),
+                segments=alternatives.get("words", []),
+                confidence_score=alternatives.get("confidence")
             )
             
             # Feature new podcasts with auto-generated title from first few words
             title_preview = " ".join(transcript.split()[:5]) + "..."
-            loop.run_until_complete(
-                feature_podcast(
-                    podcast_id=podcast_id,
-                    title=f"New Upload: {title_preview}",
-                    priority=5  # Medium priority
-                )
+            await feature_podcast(
+                podcast_id=podcast_id,
+                title=f"New Upload: {title_preview}",
+                priority=5  # Medium priority
             )
     except Exception as e:
         log_error(
@@ -675,5 +690,3 @@ def process_transcription_data(transcription_data: Dict[str, Any], upload_data: 
             "content_tracker",
             {"user_id": user_id, "error": str(e)}
         )
-    finally:
-        loop.close() 

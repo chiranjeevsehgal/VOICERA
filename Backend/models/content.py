@@ -20,12 +20,11 @@ class Podcast(PodcastBase):
     id: str
     created_at: datetime
     updated_at: Optional[datetime] = None
-    views: int = 0
-    likes: int = 0
+    views: Optional[int] = None
+    likes: Optional[int] = None
     average_rating: Optional[float] = None
     is_featured: bool = False
     is_published: bool = True
-    transcription_status: str = "pending"  # pending, in_progress, completed, failed
 
 class PodcastsResponse(BaseModel):
     podcasts: List[Podcast]

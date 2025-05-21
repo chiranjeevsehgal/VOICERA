@@ -1,7 +1,7 @@
 from datetime import datetime
 import asyncio
 from typing import Dict, Any, Optional
-from fastapi import Request, Response
+from fastapi import Request, Response, BackgroundTasks
 import time
 from services.database import (
     api_usage_collection, 
@@ -42,21 +42,25 @@ async def track_api_usage(
     except Exception as e:
         print(f"WARNING: Failed to track API usage: {e}")
 
-def track_search_term(term: str, user_id: Optional[str] = None):
+def track_search_term(term: str, user_id: Optional[str] = None, background_tasks: Optional[BackgroundTasks] = None):
     """
     Track a search term for analytics.
     
     Args:
         term: The search term
         user_id: Optional user ID if authenticated
+        background_tasks: Optional BackgroundTasks object
     """
     search_data = {
         "timestamp": datetime.utcnow(),
         "term": term,
         "user_id": user_id
     }
-    
-    asyncio.create_task(_insert_search_trend(search_data))
+    if background_tasks is not None:
+        background_tasks.add_task(_insert_search_trend, search_data)
+    else:
+        # Instead of creating a task that might be destroyed, just print the search term
+        print(f"SEARCH: {term} by user {user_id or 'anonymous'}")
 
 async def _insert_search_trend(search_data: Dict[str, Any]):
     try:
@@ -68,7 +72,8 @@ def track_user_activity(
     user_id: str,
     feature: str,
     session_duration: Optional[float] = None,
-    additional_data: Optional[Dict[str, Any]] = None
+    additional_data: Optional[Dict[str, Any]] = None,
+    background_tasks: Optional[BackgroundTasks] = None
 ):
     """
     Track user activity for analytics.
@@ -78,6 +83,7 @@ def track_user_activity(
         feature: Feature/section being used
         session_duration: Optional session duration in seconds
         additional_data: Any additional tracking data
+        background_tasks: Optional BackgroundTasks object
     """
     activity_data = {
         "timestamp": datetime.utcnow(),
@@ -91,7 +97,11 @@ def track_user_activity(
     if additional_data:
         activity_data.update(additional_data)
     
-    asyncio.create_task(_insert_user_activity(activity_data))
+    if background_tasks is not None:
+        background_tasks.add_task(_insert_user_activity, activity_data)
+    else:
+        # Instead of creating a task that might be destroyed, just print the activity
+        print(f"ACTIVITY: User {user_id} used {feature} for {session_duration or 'unknown'} seconds")
 
 async def _insert_user_activity(activity_data: Dict[str, Any]):
     try:
@@ -105,7 +115,8 @@ def track_transcription(
     audio_length: float,
     language: Optional[str] = None,
     user_id: Optional[str] = None,
-    additional_data: Optional[Dict[str, Any]] = None
+    additional_data: Optional[Dict[str, Any]] = None,
+    background_tasks: Optional[BackgroundTasks] = None
 ):
     """
     Track transcription statistics.
@@ -117,6 +128,7 @@ def track_transcription(
         language: Detected language
         user_id: Optional user ID
         additional_data: Any additional tracking data
+        background_tasks: Optional BackgroundTasks object
     """
     transcription_data = {
         "timestamp": datetime.utcnow(),
@@ -134,10 +146,14 @@ def track_transcription(
     if additional_data:
         transcription_data.update(additional_data)
     
-    asyncio.create_task(_insert_transcription_stats(transcription_data))
+    if background_tasks is not None:
+        background_tasks.add_task(_insert_transcription_stats, transcription_data)
+    else:
+        # Instead of creating a task that might be destroyed, just print the transcription stats
+        print(f"TRANSCRIPTION: {status} for {audio_length}s audio by {user_id or 'unknown'} (took {processing_time}s)")
 
 async def _insert_transcription_stats(stats_data: Dict[str, Any]):
     try:
         await transcription_stats_collection.insert_one(stats_data)
     except Exception as e:
-        print(f"WARNING: Failed to track transcription stats: {e}") 
+        print(f"WARNING: Failed to track transcription stats: {e}")

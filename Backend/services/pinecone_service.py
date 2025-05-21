@@ -186,10 +186,20 @@ def chunk_transcript(transcript_data: Dict) -> List[Dict]:
     
     return chunks
 
-async def index_transcript(transcript_data: Dict, file_url: str, file_name: str) -> bool:
+async def index_transcript(transcript_data: Dict, file_url: str, file_name: str, is_permanent_url: bool = False) -> bool:
     """
-    Index the transcript data in Pinecone
+    Index a transcript in Pinecone for search.
+    
+    Args:
+        transcript_data: The transcription data
+        file_url: URL to the audio file
+        file_name: Name of the audio file
+        is_permanent_url: Whether the URL is permanent (Supabase) or temporary (tmpfiles)
+        
+    Returns:
+        bool: True if indexing was successful, False otherwise
     """
+    global index
     if not index:
         print("Pinecone index not initialized, attempting to initialize...")
         if not init_pinecone():
@@ -199,34 +209,35 @@ async def index_transcript(transcript_data: Dict, file_url: str, file_name: str)
     try:
         print(f"\nIndexing transcript for file: {file_name}")
         print(f"Original File URL: {file_url}")
+        print(f"Is permanent URL: {is_permanent_url}")
         
         # Extract file_id from file_name
         file_id = file_name.split("_")[-1].split(".")[0] if "_" in file_name else file_name.split(".")[0]
         print(f"Extracted file_id: {file_id}")
         
-        # Look up the Supabase URL from the database if possible
-        from services.database import uploads_collection, podcasts_collection
-        import asyncio
+        # Look up the Supabase URL from the database if not already a permanent URL
+        supabase_url = file_url  # Default to the provided URL
         
-        # Try to find the corresponding Supabase URL
-        supabase_url = file_url  # Default to the provided URL (tmpfiles)
-        
-        try:
-            # Check uploads collection first
-            upload_record = await uploads_collection.find_one({"file_name": {"$regex": file_name}})
-            if upload_record and "supabase_url" in upload_record and upload_record["supabase_url"]:
-                supabase_url = upload_record["supabase_url"]
-                print(f"Found Supabase URL in uploads collection: {supabase_url}")
-            else:
-                # If not in uploads, try podcasts collection 
-                podcast_record = await podcasts_collection.find_one({"file_name": {"$regex": file_name}})
-                if podcast_record and "supabase_url" in podcast_record and podcast_record["supabase_url"]:
-                    supabase_url = podcast_record["supabase_url"]
-                    print(f"Found Supabase URL in podcasts collection: {supabase_url}")
+        if not is_permanent_url:
+            from services.database import uploads_collection, podcasts_collection
+            import asyncio
+            
+            try:
+                # Check uploads collection first
+                upload_record = await uploads_collection.find_one({"file_name": {"$regex": file_name}})
+                if upload_record and "supabase_url" in upload_record and upload_record["supabase_url"]:
+                    supabase_url = upload_record["supabase_url"]
+                    print(f"Found Supabase URL in uploads collection: {supabase_url}")
                 else:
-                    print(f"No Supabase URL found for {file_name}, using original URL")
-        except Exception as e:
-            print(f"Error looking up Supabase URL: {str(e)}")
+                    # If not in uploads, try podcasts collection 
+                    podcast_record = await podcasts_collection.find_one({"file_name": {"$regex": file_name}})
+                    if podcast_record and "supabase_url" in podcast_record and podcast_record["supabase_url"]:
+                        supabase_url = podcast_record["supabase_url"]
+                        print(f"Found Supabase URL in podcasts collection: {supabase_url}")
+                    else:
+                        print(f"No Supabase URL found for {file_name}, using original URL")
+            except Exception as e:
+                print(f"Error looking up Supabase URL: {str(e)}")
         
         # Get the complete transcript text
         complete_text = ""
@@ -256,13 +267,18 @@ async def index_transcript(transcript_data: Dict, file_url: str, file_name: str)
                 # Prepare metadata
                 metadata = {
                     "file_url": supabase_url,  # Use Supabase URL if available
-                    "tmp_url": file_url,       # Store tmpfiles URL as backup
-                    "file_name": file_name,
                     "text": chunk["text"],
                     "start_time": chunk["start_time"],
                     "end_time": chunk["end_time"],
                     "confidence": chunk.get("confidence", 0)
                 }
+                
+                # Add temporary URL only if we're using a temporary URL
+                if not is_permanent_url and "tmpfiles.org" in file_url:
+                    metadata["tmp_url"] = file_url  # Store tmpfiles URL as backup
+                
+                # Add file_name
+                metadata["file_name"] = file_name
                 
                 # Add speaker only if it's not None/null
                 if chunk.get("speaker") is not None:
@@ -331,8 +347,12 @@ async def search_transcripts(query: str, limit: int = 10, filter_dict: Dict = No
             # Get metadata
             metadata = match.get("metadata", {})
             
-            # Check if we have a Supabase URL first, use it if available
-            file_url = metadata.get("supabase_url") if "supabase_url" in metadata else metadata.get("file_url")
+            # Get the best available URL - prioritize file_url (which should be Supabase)
+            file_url = metadata.get("file_url", "")
+            
+            # If file_url contains tmpfiles.org and we have a supabase_url, use that instead
+            if "tmpfiles.org" in file_url and metadata.get("supabase_url"):
+                file_url = metadata.get("supabase_url")
             
             result = {
                 "file_url": file_url,
@@ -347,6 +367,10 @@ async def search_transcripts(query: str, limit: int = 10, filter_dict: Dict = No
             # Add speaker only if it's not None/null
             if "speaker" in metadata and metadata["speaker"] is not None:
                 result["speaker"] = metadata["speaker"]
+            
+            # If we have a temporary URL, include it for reference
+            if metadata.get("tmp_url"):
+                result["tmp_url"] = metadata.get("tmp_url")
             
             results.append(result)
         
