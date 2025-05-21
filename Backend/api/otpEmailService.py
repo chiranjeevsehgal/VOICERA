@@ -1,8 +1,9 @@
-from fastapi import APIRouter, HTTPException, Request, status
+from fastapi import APIRouter, HTTPException, Depends, status, Request
+from fastapi.security import OAuth2PasswordRequestForm
 from dotenv import load_dotenv
 from utils.generateOtp import generate_otp, verify_otp
 from utils.send_email import send_email
-from services.auth import get_user_by_email
+from services.auth import get_user_by_email, get_current_user
 from fastapi.responses import JSONResponse
 from models.otpRequest_models import GenerateOtpRequest, OtpVerificationRequest
 
@@ -12,9 +13,13 @@ router = APIRouter(prefix='/mail')
 
 
 @router.post("/get-otp")
-async def send_reset_email(request: GenerateOtpRequest):
+async def send_reset_email(current_user: dict = Depends(get_current_user)):
     # Verify if the user exsists
-    user = await get_user_by_email(request.email)
+    user  = {
+        "email" : current_user["email"],
+        "full_name" : current_user.get("full_name"),
+    }
+    
     
     if(user == None) :
         return JSONResponse(
@@ -25,9 +30,9 @@ async def send_reset_email(request: GenerateOtpRequest):
             },
         )
     
-    otp = str(generate_otp(request.email)) # Get your OTP from the utility function
+    otp = str(generate_otp(user['email'])) # Get your OTP from the utility function
     success = send_email(
-        to=request.email,
+        to=user['email'],
         otp=otp
     )
     
@@ -42,9 +47,12 @@ async def send_reset_email(request: GenerateOtpRequest):
         )
         
 @router.post("/varify-otp")
-async def verifyOtp(request : OtpVerificationRequest):
+async def verifyOtp(
+    request: OtpVerificationRequest,
+    current_user: dict = Depends(get_current_user), 
+    ):
     
-    email = request.email
+    email = current_user['email']
     otp = request.otp
     
     result = verify_otp(email, otp)
