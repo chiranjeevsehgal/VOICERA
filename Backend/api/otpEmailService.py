@@ -4,6 +4,7 @@ from dotenv import load_dotenv
 from utils.generateOtp import generate_otp, verify_otp
 from utils.send_email import send_email
 from services.auth import get_user_by_email, get_current_user
+from services.update_user_password import update_user_password
 from fastapi.responses import JSONResponse
 from models.otpRequest_models import GenerateOtpRequest, OtpVerificationRequest
 
@@ -14,7 +15,7 @@ router = APIRouter(prefix='/mail')
 
 @router.post("/get-otp")
 async def send_reset_email(current_user: dict = Depends(get_current_user)):
-    # Verify if the user exsists
+    
     user  = {
         "email" : current_user["email"],
         "full_name" : current_user.get("full_name"),
@@ -56,6 +57,14 @@ async def verifyOtp(
     otp = request.otp
     
     result = verify_otp(email, otp)
+    
+    if(result) :
+        updatePassword = await update_user_password(request.password, current_user)
+        
+        return {
+            "status": result,
+            "detail": "Password Updated Successfully" if result and updatePassword['status'] else "Password was not updated"
+        }
     
     return {
     "status": result,
