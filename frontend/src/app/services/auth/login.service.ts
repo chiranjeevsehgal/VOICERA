@@ -33,4 +33,19 @@ export class LoginService {
       })
     );
   }
+
+  googleLogin(idToken: string) {
+    const apiUrl = `${environment.apiUrl}/api/auth/google-login`;
+    
+    return this.http.post<LoginResponse>(apiUrl, { token: idToken }).pipe(
+      tap(response => {
+        if (response.status == true) {
+          localStorage.setItem('auth_token', response.access_token);
+        }
+      })
+    );
+  }
+
 }
+
+
