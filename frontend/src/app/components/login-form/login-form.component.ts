@@ -5,6 +5,7 @@ import { ProgressSpinner } from 'primeng/progressspinner';
 import { Toast } from 'primeng/toast';
 import { LoginService } from '../../services/auth/login.service';
 import { Router } from '@angular/router';
+import { LucideAngularModule, Eye, EyeOff } from 'lucide-angular';
 
 
 @Component({
@@ -15,6 +16,7 @@ import { Router } from '@angular/router';
     Toast,
     ReactiveFormsModule,
     ProgressSpinner,
+    LucideAngularModule
   ],
   providers: [
     MessageService
@@ -23,12 +25,17 @@ import { Router } from '@angular/router';
 export class LoginFormComponent {
   loginForm: FormGroup;
   isLoading: boolean = false;
+  showPassword: boolean = false;
+
+  // Icons
+  readonly eye = Eye;
+  readonly eyeOff = EyeOff;
 
   constructor(
     private fb: FormBuilder,
     private messageService: MessageService,
     private loginService: LoginService,
-    private router : Router
+    private router: Router
   ) {
     this.loginForm = this.fb.group({
       email: ['', [Validators.required, Validators.email]],
@@ -36,7 +43,9 @@ export class LoginFormComponent {
     });
   }
 
-
+  togglePasswordVisibility() {
+    this.showPassword = !this.showPassword; // Toggle the visibility
+  }
 
 
   onSubmit() {

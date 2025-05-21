@@ -25,14 +25,20 @@
                 Forgot your password?
               </a>
             </div>
-            <input id="password" placeholder="Enter your Password" type="password" formControlName="password" required
-              class="flex h-10 w-full rounded-md border border-gray-200 bg-white px-3 py-2 text-sm ring-offset-white file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-gray-500 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-gray-950 disabled:cursor-not-allowed disabled:opacity-50 text-black" />
-            @if (loginForm.get('password')?.hasError('weakPassword') && loginForm.get('password')?.touched) {
-            <div class="text-red-400 text-xs">
-              Password must be at least 8 characters long and include uppercase, lowercase, number, and special
-              character.
+
+            <div class="relative">
+              <input id="password" placeholder="Enter your Password" [type]="showPassword ? 'text' : 'password'"
+                formControlName="password" required
+                class="flex h-10 w-full rounded-md border border-gray-200 bg-white px-3 py-2 text-sm ring-offset-white file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-gray-500 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-gray-950 disabled:cursor-not-allowed disabled:opacity-50 text-black" />
+              <button type="button" (click)="togglePasswordVisibility()"
+                class="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-500 hover:text-gray-700">
+                @if (showPassword) {
+                <lucide-icon [name]="eyeOff" class="h-5 w-5 cursor-pointer"></lucide-icon>
+                } @else {
+                <lucide-icon [name]="eye" class="h-5 w-5 cursor-pointer"></lucide-icon>
+                }
+              </button>
             </div>
-            }
           </div>
 
           <button
