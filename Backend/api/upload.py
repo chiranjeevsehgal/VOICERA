@@ -1,12 +1,12 @@
 import os
-import time
-import requests
 import shutil
 from fastapi import APIRouter, UploadFile, File, Form, HTTPException, status, Depends
 from typing import List, Optional
 from fastapi.responses import JSONResponse
 from werkzeug.utils import secure_filename
 from services.auth import get_current_user
+from utils.content_tracker import track_upload
+from services.supabase_service import upload_file_to_supabase
 
 router = APIRouter()
 
@@ -31,14 +31,14 @@ async def upload_audio(
     current_user: dict = Depends(get_current_user)
 ):
     """
-    Upload a file to the server and then to tmpfiles.org.
+    Upload an audio file to the server and then to Supabase storage.
     
     Args:
-        file: The file to upload
+        file: The audio file to upload
         custom_filename: Optional custom filename to use
         
     Returns:
-        JSON response with the tmpfiles.org URL and status
+        JSON response with the Supabase URL and status
     """
     # Check if file exists
     if not file:
@@ -94,41 +94,53 @@ async def upload_audio(
         "file_size": os.path.getsize(file_path)
     }
     
-    # Now upload to tmpfiles.org
-    max_retries = 3
-    delay_seconds = 3
-
-    for attempt in range(1, max_retries + 1):
-        try:
-            with open(file_path, "rb") as f:
-                files = {"file": f}
-                response = requests.post("https://tmpfiles.org/api/v1/upload", files=files)
-
-            if response.status_code == 200:
-                data = response.json()
-                url = data.get("data", {}).get("url")
-                if url:
-                    url = url.replace("https://tmpfiles.org/", "https://tmpfiles.org/dl/")
-                    # We could remove the local file to save space, but keeping it for now
-                    # os.remove(file_path)
-                    return {
-                        "status": "success", 
-                        "url": url,
-                        "local_file": local_file_info
-                    }
-                else:   
-                    raise ValueError("Upload succeeded but no URL returned.")
-            else:
-                raise RuntimeError(f"Upload failed with status code {response.status_code}")
-        except Exception as e:
-            if attempt == max_retries:
-                # If all retries fail, at least return the local file information
-                return JSONResponse(
-                    status_code=500, 
-                    content={
-                        "error": f"Upload to tmpfiles.org failed after {max_retries} attempts: {str(e)}",
-                        "local_file": local_file_info  # Still return local file info
-                    }
-                )
-            time.sleep(delay_seconds)
+    # Track upload in content management system
+    user_id = str(current_user.get("_id", "unknown"))
+    upload_id = await track_upload(
+        user_id=user_id,
+        file_name=os.path.basename(file_path),
+        file_path=file_path,
+        file_type="audio",
+        file_size=local_file_info["file_size"],
+        metadata={
+            "content_type": file.content_type,
+            "original_filename": original_filename
+        }
+    )
     
+    # Upload to Supabase storage
+    try:
+        response = await upload_file_to_supabase(
+            file_path=file_path,
+            file_name=filename,
+            user_id=str(current_user.get("_id", "unknown"))
+        )
+        
+        if not response or "file_url" not in response:
+            raise ValueError("Supabase upload failed - no URL returned")
+            
+        # Update the upload record with the Supabase URL
+        if upload_id:
+            from utils.content_tracker import update_upload_status
+            await update_upload_status(
+                upload_id=upload_id,
+                status="uploaded",
+                file_url=response["file_url"]
+            )
+            
+        return {
+            "status": "success",
+            "url": response["file_url"],
+            "local_file": local_file_info,
+            "upload_id": upload_id
+        }
+        
+    except Exception as e:
+        return JSONResponse(
+            status_code=500,
+            content={
+                "error": f"Upload to Supabase failed: {str(e)}",
+                "local_file": local_file_info,
+                "upload_id": upload_id
+            }
+        )

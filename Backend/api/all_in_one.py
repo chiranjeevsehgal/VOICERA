@@ -10,6 +10,9 @@ import asyncio
 import threading
 from concurrent.futures import ThreadPoolExecutor
 from werkzeug.utils import secure_filename
+from datetime import datetime
+from pymongo import MongoClient
+from bson.objectid import ObjectId
 
 # Import services and dependencies
 from services.auth import get_current_user
@@ -23,6 +26,13 @@ from api.upload import AUDIO_MIME_TYPES
 from api.embedding import extract_metadata_from_mp3_to_json
 from services.supabase_service import upload_file_to_supabase
 from services.pinecone_service import index_transcript
+from utils.content_tracker import (
+    track_upload, create_podcast, create_transcript, update_podcast_transcription_status, 
+    update_upload_status, sync_track_upload, sync_create_podcast, sync_create_transcript, 
+    sync_update_podcast_transcription_status, sync_update_upload_status
+)
+from utils.analytics import _insert_transcription_stats # Import the direct insertion function
+from services.database import transcription_stats_collection # Also import the collection directly
 
 router = APIRouter()
 
@@ -47,7 +57,8 @@ async def process_audio(
     custom_filename: Optional[str] = Form(None),
     transcription_options: Optional[str] = Form("{}"),  # JSON string with transcription options
     current_user: dict = Depends(get_current_user),
-    detected_ip: str = Depends(get_ip_for_request)
+    detected_ip: str = Depends(get_ip_for_request),
+    background_tasks: BackgroundTasks = BackgroundTasks() # Add BackgroundTasks here
 ):
     """
     All-in-one endpoint that performs the following operations sequentially:
@@ -125,7 +136,8 @@ async def process_audio(
             custom_filename,
             transcription_options,
             enhanced_user,  # Use enhanced user with auth token
-            detected_ip
+            detected_ip,
+            background_tasks # Pass background_tasks here
         )
     )
     thread.daemon = True  # Daemonize thread to allow the program to exit
@@ -173,9 +185,11 @@ def run_processing_in_thread(
     custom_filename: Optional[str],
     transcription_options_str: str,
     current_user: dict,
-    detected_ip: str
+    detected_ip: str,
+    background_tasks: BackgroundTasks # Add BackgroundTasks here
 ):
     """Run the processing in a separate thread with its own event loop"""
+    import time # Import time here to ensure it's available in this thread's context
     # Create a new event loop for this thread
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
@@ -190,7 +204,8 @@ def run_processing_in_thread(
                 custom_filename,
                 transcription_options_str,
                 current_user,
-                detected_ip
+                detected_ip,
+                background_tasks # Pass background_tasks here
             )
         )
     except Exception as e:
@@ -211,12 +226,17 @@ async def process_audio_background(
     custom_filename: Optional[str],
     transcription_options_str: str,
     current_user: dict,
-    detected_ip: str
+    detected_ip: str,
+    background_tasks: BackgroundTasks # Add BackgroundTasks here
 ):
     """Background task to process audio"""
+    import time # Import time here for start_time
+    start_time = time.time() # Define start_time at the beginning of the function
+
     # Create a temp directory for processing
     temp_dir = tempfile.mkdtemp()
     local_file_path = None
+    upload_id = None  # Track the upload ID for content management
     
     try:
         # Update job status to started
@@ -285,67 +305,128 @@ async def process_audio_background(
             )
             return  # Stop processing on credit check failure
         
-        # Step 2: Upload file to local storage
+        # Step 2: Save the file locally
         update_job_status(
             job_id, 
-            JobStatus.UPLOADING,
-            current_step="uploading"
+            JobStatus.UPLOADING, 
+            progress=10,
+            current_step="saving_file"
         )
         
-        try:
-            # Run file operations in a thread to avoid blocking
-            def save_file():
-                # Determine filename (use custom if provided, otherwise use original)
-                original_filename = file_info["filename"]
-                filename = secure_filename(custom_filename or original_filename)
-                
-                # Create file path
-                upload_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "audio_uploads")
-                os.makedirs(upload_dir, exist_ok=True)
-                
-                file_path = os.path.join(upload_dir, filename)
-                
-                # Handle duplicates by adding a counter
-                counter = 1
-                while os.path.exists(file_path):
-                    name, ext = os.path.splitext(filename)
-                    file_path = os.path.join(upload_dir, f"{name}_{counter}{ext}")
-                    counter += 1
-                
-                # Save the file locally
-                with open(file_path, "wb") as buffer:
-                    buffer.write(file_content)
-                
-                return file_path, original_filename
+        # Define the save_file function
+        def save_file():
+            # Determine filename (use custom if provided, otherwise use original)
+            original_filename = file_info["filename"]
+            filename = secure_filename(custom_filename or original_filename)
             
-            # Run file saving in thread pool
-            local_file_path, original_filename = await asyncio.get_event_loop().run_in_executor(
-                thread_pool, save_file
-            )
-                
-            # Record local upload info
-            upload_result = {
-                "filename": os.path.basename(local_file_path),
-                "original_filename": original_filename,
-                "file_path": local_file_path,
-                "file_size": os.path.getsize(local_file_path)
-            }
+            # Create file path
+            upload_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "audio_uploads")
+            os.makedirs(upload_dir, exist_ok=True)
             
-            update_job_status(
-                job_id,
-                status=JobStatus.UPLOADING,
-                result={"upload": upload_result},
-                progress=16  # ~16% progress
+            file_path = os.path.join(upload_dir, f"{filename}")
+            
+            # Handle duplicates by adding a counter
+            counter = 1
+            while os.path.exists(file_path):
+                name, ext = os.path.splitext(filename)
+                file_path = os.path.join(upload_dir, f"{name}_{counter}{ext}")
+                counter += 1
+            
+            # Save the file locally
+            with open(file_path, "wb") as buffer:
+                buffer.write(file_content)
+            
+            return file_path
+        
+        # Use run_in_executor to run the file saving without blocking
+        local_file_path = await asyncio.get_event_loop().run_in_executor(
+            thread_pool,
+            save_file
+        )
+        
+        print(f"File for job {job_id} saved at {local_file_path}")
+        
+        # Track the upload in content management system
+        user_id = str(current_user.get("_id", "unknown"))
+        file_name = os.path.basename(local_file_path)
+        file_size = os.path.getsize(local_file_path)
+        
+        # Collect user metadata
+        user_metadata = {
+            "job_id": job_id,
+            "content_type": file_info["content_type"],
+            "original_filename": file_info["filename"],
+            "username": current_user.get("username", "unknown"),
+            "email": current_user.get("email", "unknown"),
+            "user_full_name": current_user.get("full_name", "")
+        }
+        
+        # Initial tracking with pending status - use synchronous wrapper for thread safety
+        upload_id = await asyncio.get_event_loop().run_in_executor(
+            thread_pool,
+            lambda: sync_track_upload(
+                user_id=user_id,
+                file_name=file_name,
+                file_path=local_file_path,
+                file_type="audio",
+                file_size=file_size,
+                metadata=user_metadata
             )
-        except Exception as e:
+        )
+        
+        print(f"Created upload tracking record with ID: {upload_id}")
+        
+        # Step 3: Upload to Supabase for permanent storage
+        update_job_status(
+            job_id, 
+            JobStatus.UPLOADING_TO_SUPABASE,
+            progress=20,
+            current_step="uploading_to_supabase"
+        )
+        
+        # Upload to Supabase
+        supabase_result = await asyncio.get_event_loop().run_in_executor(
+            thread_pool,
+            lambda: sync_upload_to_supabase(local_file_path, file_name, user_id)
+        )
+        
+        print(f"[DEBUG] Supabase upload result: {json.dumps(supabase_result, default=str)}")
+        
+        if not supabase_result or "file_url" not in supabase_result:
             update_job_status(
                 job_id,
                 JobStatus.FAILED,
-                error=f"Error uploading file: {str(e)}"
+                error="Failed to upload to Supabase"
+            )
+            return
+            
+        supabase_url = supabase_result["file_url"]
+        print(f"[DEBUG] File uploaded to Supabase with URL: {supabase_url}")
+        
+        if not supabase_url:
+            update_job_status(
+                job_id,
+                JobStatus.FAILED,
+                error="Supabase URL is empty"
             )
             return
         
-        # Step 3: Transcribe the audio using Deepgram API
+        # Update the upload record with the Supabase URL
+        if upload_id:
+            print(f"Updating upload record {upload_id} with Supabase URL")
+            update_result = await asyncio.get_event_loop().run_in_executor(
+                thread_pool,
+                lambda: sync_update_upload_status(
+                    upload_id=upload_id,
+                    status="processing",
+                    supabase_url=supabase_url
+                )
+            )
+            print(f"Update result: {update_result}")
+            if not update_result:
+                print("WARNING: Failed to update upload record with Supabase URL")
+        
+        # Step 4: Transcribe the audio
         update_job_status(
             job_id, 
             JobStatus.TRANSCRIBING,
@@ -359,26 +440,156 @@ async def process_audio_background(
             except json.JSONDecodeError:
                 transcribe_options = {}
             
-            # Get URL for the file - upload to tmpfiles.org for Deepgram to access
-            # Use run_in_executor with sync wrapper
-            tmpfiles_url = await asyncio.get_event_loop().run_in_executor(
+            # Use the Supabase URL for transcription with sync wrapper
+            transcription_data = await asyncio.get_event_loop().run_in_executor(
                 thread_pool,
-                lambda: sync_upload_to_tmpfiles(local_file_path)
+                lambda: sync_transcribe_audio(supabase_url, transcribe_options)
             )
             
-            if not tmpfiles_url:
+            if not transcription_data:
                 update_job_status(
                     job_id,
                     JobStatus.FAILED,
-                    error="Failed to upload file for transcription"
+                    error="Failed to transcribe the audio"
                 )
                 return
             
-            # Use the tmpfiles URL for transcription with sync wrapper
-            transcription_data = await asyncio.get_event_loop().run_in_executor(
+            # Extract transcript information
+            results = transcription_data.get("results", {})
+            transcript_text = results.get("channels", [{}])[0].get("alternatives", [{}])[0].get("transcript", "")
+            detected_language = results.get("channels", [{}])[0].get("detected_language", "en")
+            confidence = results.get("channels", [{}])[0].get("alternatives", [{}])[0].get("confidence", 0)
+            words = results.get("channels", [{}])[0].get("alternatives", [{}])[0].get("words", [])
+            
+            # Create podcast record
+            duration = transcription_data.get("metadata", {}).get("duration", 0)
+            file_basename = os.path.basename(local_file_path)
+            
+            # Generate a cleaner title from the filename
+            title = file_basename
+            if "." in title:  # Remove file extension for title
+                title = title.rsplit(".", 1)[0]
+            # Replace underscores and hyphens with spaces for readability
+            title = title.replace("_", " ").replace("-", " ").title()
+            
+            # Get user details for author field
+            author = current_user.get("username", "unknown")
+            if current_user.get("full_name"):
+                author = current_user.get("full_name")
+            
+            # Create podcast record with permanent Supabase URL
+            podcast_id = await asyncio.get_event_loop().run_in_executor(
                 thread_pool,
-                lambda: sync_transcribe_audio(tmpfiles_url, transcribe_options)
+                lambda: sync_create_podcast(
+                    title=title,
+                    description=f"Uploaded on {datetime.utcnow().strftime('%Y-%m-%d %H:%M')}",
+                    audio_url=supabase_url,
+                    duration_seconds=duration,
+                    author=author,
+                    language=detected_language,
+                    upload_id=upload_id,
+                    supabase_url=supabase_url
+                )
             )
+            
+            print(f"Created podcast record with ID: {podcast_id}")
+            
+            # Mark podcast as transcription in progress
+            await asyncio.get_event_loop().run_in_executor(
+                thread_pool,
+                lambda: sync_update_podcast_transcription_status(
+                    podcast_id=podcast_id,
+                    status="in_progress"
+                )
+            )
+            
+            # Create segments from words
+            segments = []
+            if words:
+                for word in words:
+                    segments.append({
+                        "text": word.get("word", ""),
+                        "start": word.get("start", 0),
+                        "end": word.get("end", 0),
+                        "confidence": word.get("confidence", 0)
+                    })
+            
+            # Create transcript record
+            transcript_id = await asyncio.get_event_loop().run_in_executor(
+                thread_pool,
+                lambda: sync_create_transcript(
+                    podcast_id=podcast_id,
+                    content=transcript_text,
+                    language=detected_language,
+                    segments=segments,
+                    confidence_score=confidence
+                )
+            )
+            
+            print(f"Created transcript record with ID: {transcript_id}")
+            
+            # Update podcast with transcription status
+            await asyncio.get_event_loop().run_in_executor(
+                thread_pool,
+                lambda: sync_update_podcast_transcription_status(
+                    podcast_id=podcast_id,
+                    status="completed",
+                    transcript_id=transcript_id
+                )
+            )
+            
+            # Update upload status
+            await asyncio.get_event_loop().run_in_executor(
+                thread_pool,
+                lambda: sync_update_upload_status(
+                    upload_id=upload_id,
+                    status="processing"
+                )
+            )
+            
+            # Step 5: Index the transcript in Pinecone
+            update_job_status(
+                job_id, 
+                JobStatus.INDEXING,
+                progress=60,
+                current_step="indexing"
+            )
+            
+            try:
+                # Index the transcript in Pinecone
+                indexed = await asyncio.get_event_loop().run_in_executor(
+                    thread_pool,
+                    lambda: sync_index_transcript(
+                        transcript_data=transcription_data,
+                        file_url=supabase_url,
+                        file_name=file_basename,
+                        is_permanent_url=True
+                    )
+                )
+                transcription_data["indexed"] = indexed
+            except Exception as e:
+                transcription_data["indexed"] = False
+                transcription_data["indexing_error"] = str(e)
+            
+            # Index the transcript in Pinecone if needed
+            try:
+                # First check if we have a Supabase URL to use
+                file_url_for_index = supabase_url if 'supabase_url' in locals() else tmpfiles_url
+                
+                # Use run_in_executor with sync wrapper for indexing
+                indexed = await asyncio.get_event_loop().run_in_executor(
+                    thread_pool,
+                    lambda: sync_index_transcript(
+                        transcript_data=transcription_data,
+                        file_url=file_url_for_index,
+                        file_name=file_basename,
+                        is_permanent_url='supabase_url' in locals()
+                    )
+                )
+                transcription_data["indexed"] = indexed
+            except Exception as e:
+                transcription_data["indexed"] = False
+                transcription_data["indexing_error"] = str(e)
             
             # Update job with transcription result
             current_result = get_job_status(job_id).get("result", {}) or {}
@@ -390,7 +601,47 @@ async def process_audio_background(
                 result=current_result,
                 progress=50  # 50% progress
             )
+            
+            # Track transcription stats directly here
+            processing_time = time.time() - start_time
+            audio_length = transcription_data.get("metadata", {}).get("duration", 0)
+            status = "success"
+            detected_language = transcription_data.get("results", {}).get("channels", [{}])[0].get("detected_language", "en")
+            confidence = transcription_data.get("results", {}).get("channels", [{}])[0].get("alternatives", [{}])[0].get("confidence", 0)
+            
+            stats_data = {
+                "timestamp": datetime.utcnow(),
+                "status": status,
+                "processing_time": processing_time,
+                "audio_length": audio_length,
+                "language": detected_language,
+                "user_id": str(current_user.get("_id", "")),
+                "confidence": confidence,
+                "model": transcribe_options.get("model", "default"),
+                "podcast_id": podcast_id,
+                "transcript_id": transcript_id
+            }
+            
+            # Directly await the insertion, as process_audio_background is already in an async context
+            await _insert_transcription_stats(stats_data)
+
         except Exception as e:
+            # Track transcription error directly here
+            processing_time = time.time() - start_time
+            error_stats_data = {
+                "timestamp": datetime.utcnow(),
+                "status": "error",
+                "processing_time": processing_time,
+                "audio_length": 0,  # Unknown in case of error
+                "language": transcribe_options.get("language", "en"),
+                "user_id": str(current_user.get("_id", "")),
+                "error": str(e),
+                "url": supabase_url # Use supabase_url as the source URL
+            }
+            
+            # Directly await the insertion for error stats
+            await _insert_transcription_stats(error_stats_data)
+
             update_job_status(
                 job_id,
                 JobStatus.FAILED,
@@ -398,7 +649,7 @@ async def process_audio_background(
             )
             return
         
-        # Step 4: Embed the transcription metadata into the audio file
+        # Step 6: Embed the transcription metadata into the audio file
         update_job_status(
             job_id, 
             JobStatus.EMBEDDING,
@@ -438,59 +689,7 @@ async def process_audio_background(
             )
             return
         
-        # Step 5: Upload to Supabase
-        update_job_status(
-            job_id, 
-            JobStatus.UPLOADING_TO_SUPABASE,
-            current_step="uploading_to_supabase"
-        )
-        
-        try:
-            # Use run_in_executor with sync wrapper for Supabase
-            supabase_response = await asyncio.get_event_loop().run_in_executor(
-                thread_pool,
-                lambda: sync_upload_to_supabase(embedded_file_path, os.path.basename(embedded_file_path))
-            )
-            
-            # Add metadata to the response
-            if transcription_data and isinstance(transcription_data, dict):
-                supabase_response["metadata"] = transcription_data
-                
-                # Index the transcript in Pinecone for search
-                try:
-                    # Use run_in_executor with sync wrapper for indexing
-                    indexed = await asyncio.get_event_loop().run_in_executor(
-                        thread_pool,
-                        lambda: sync_index_transcript(
-                            transcript_data=transcription_data,
-                            file_url=supabase_response.get("file_url", ""),
-                            file_name=supabase_response.get("file_name", "")
-                        )
-                    )
-                    supabase_response["indexed"] = indexed
-                except Exception as e:
-                    supabase_response["indexed"] = False
-                    supabase_response["indexing_error"] = str(e)
-            
-            # Update job with Supabase result
-            current_result = get_job_status(job_id).get("result", {}) or {}
-            current_result["supabase"] = supabase_response
-            
-            update_job_status(
-                job_id,
-                status=JobStatus.UPLOADING_TO_SUPABASE,
-                result=current_result,
-                progress=83  # 83% progress
-            )
-        except Exception as e:
-            update_job_status(
-                job_id,
-                JobStatus.FAILED,
-                error=f"Error uploading to Supabase: {str(e)}"
-            )
-            return
-        
-        # Step 6: Deduct credit - using direct database access
+        # Step 7: Deduct credit - using direct database access
         update_job_status(
             job_id, 
             JobStatus.DEDUCTING_CREDITS,
@@ -732,9 +931,9 @@ async def embed_metadata_in_file_async(src_file: str, dest_file: str, metadata_j
         print(f"Error embedding metadata: {str(e)}")
         return src_file
 
-async def upload_to_supabase_async(file_path: str, filename: str) -> Dict[str, Any]:
+async def upload_to_supabase_async(file_path: str, filename: str, user_id: str = None) -> Dict[str, Any]:
     """Upload file to Supabase"""
-    result = await upload_file_to_supabase(file_path, filename)
+    result = await upload_file_to_supabase(file_path, filename, user_id)
     return result
 
 # Add a synchronous wrapper for the credit check function
@@ -875,7 +1074,7 @@ def sync_embed_metadata(src_file: str, dest_file: str, metadata_json: str) -> st
         return src_file  # Return original file on error
 
 # Add a synchronous wrapper for Supabase upload
-def sync_upload_to_supabase(file_path: str, filename: str) -> Dict[str, Any]:
+def sync_upload_to_supabase(file_path: str, filename: str, user_id: str = None) -> Dict[str, Any]:
     """Synchronous wrapper for uploading to Supabase"""
     import asyncio
     
@@ -885,7 +1084,7 @@ def sync_upload_to_supabase(file_path: str, filename: str) -> Dict[str, Any]:
         asyncio.set_event_loop(loop)
         
         # Run the async function in this loop
-        result = loop.run_until_complete(upload_to_supabase_async(file_path, filename))
+        result = loop.run_until_complete(upload_to_supabase_async(file_path, filename, user_id))
         
         # Clean up
         loop.close()
@@ -917,8 +1116,16 @@ def sync_upload_to_tmpfiles(file_path: str) -> Optional[str]:
         return None
 
 # Add a synchronous wrapper for Pinecone indexing
-def sync_index_transcript(transcript_data: Dict[str, Any], file_url: str, file_name: str) -> bool:
-    """Synchronous wrapper for indexing transcript in Pinecone"""
+def sync_index_transcript(transcript_data: Dict[str, Any], file_url: str, file_name: str, is_permanent_url: bool = False) -> bool:
+    """
+    Synchronous wrapper for indexing transcript in Pinecone
+    
+    Args:
+        transcript_data: The transcription data
+        file_url: URL to the audio file
+        file_name: Name of the audio file
+        is_permanent_url: Whether the URL is permanent (Supabase) or temporary (tmpfiles)
+    """
     import asyncio
     
     try:
@@ -927,18 +1134,63 @@ def sync_index_transcript(transcript_data: Dict[str, Any], file_url: str, file_n
         asyncio.set_event_loop(loop)
         
         # Run the async function in this loop
-        loop.run_until_complete(index_transcript(
-            transcript_data=transcript_data,
-            file_url=file_url,
-            file_name=file_name
-        ))
+        from services.pinecone_service import index_transcript
+        result = loop.run_until_complete(
+            index_transcript(
+                transcript_data=transcript_data,
+                file_url=file_url,
+                file_name=file_name,
+                is_permanent_url=is_permanent_url
+            )
+        )
         
         # Clean up
         loop.close()
         
-        return True
+        return result
     except Exception as e:
         print(f"Error in sync_index_transcript: {str(e)}")
+        return False
+
+# Add a synchronous wrapper for updating podcast URL
+def sync_update_podcast_url(podcast_id: str, supabase_url: str) -> bool:
+    """
+    Update a podcast record with the permanent Supabase URL
+    
+    Args:
+        podcast_id: ID of the podcast to update
+        supabase_url: Permanent Supabase URL to set
+    """
+    import asyncio
+    from bson import ObjectId
+    from datetime import datetime
+    
+    try:
+        # Create a new event loop for this function
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        
+        # Run the update in this loop
+        from services.database import podcasts_collection
+        
+        async def update_podcast():
+            result = await podcasts_collection.update_one(
+                {"_id": ObjectId(podcast_id)},
+                {"$set": {
+                    "supabase_url": supabase_url,
+                    "updated_at": datetime.utcnow()
+                }}
+            )
+            return result.modified_count > 0
+        
+        result = loop.run_until_complete(update_podcast())
+        
+        # Clean up
+        loop.close()
+        
+        return result
+    except Exception as e:
+        print(f"Error in sync_update_podcast_url: {str(e)}")
         return False
 
 # Update the direct_deduct_credit function to remove simulation fallbacks
@@ -1043,4 +1295,4 @@ def direct_deduct_credit(ip_address: str, current_user: dict) -> Dict[str, Any]:
             "status": False,
             "detail": f"Error calling credit API: {str(e)}",
             "credits_remaining": 0
-        } 
+        }
