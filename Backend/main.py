@@ -1,6 +1,6 @@
 from fastapi import FastAPI, Depends, Request
 from fastapi.middleware.cors import CORSMiddleware
-from api import health, transcribe, embedding, upload, llm_translation, supabase_upload, auth, ip_detection, search, credit_management, oauth, all_in_one
+from api import health, transcribe, embedding, upload, llm_translation, supabase_upload, auth, ip_detection, search, credit_management, oauth, all_in_one, otpEmailService
 import uvicorn
 
 # Create FastAPI application with concurrency settings
@@ -59,6 +59,9 @@ app.include_router(credit_management.router, prefix="/api", tags=["credit"])
 
 # OAUTH Router
 app.include_router(oauth.router, prefix="/api", tags=["oauth"])
+
+# Mail Service Router
+app.include_router(otpEmailService.router, prefix="/api", tags=["mail-service"])
 
 # All-in-one Router
 app.include_router(all_in_one.router, prefix="/api", tags=["all-in-one"])
