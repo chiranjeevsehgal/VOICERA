@@ -1,57 +1,18 @@
-import os
-import smtplib
-from email.message import EmailMessage
 from fastapi import APIRouter, HTTPException, Request, status
-from pydantic import BaseModel
 from dotenv import load_dotenv
-from pathlib import Path
 from utils.generateOtp import generate_otp, verify_otp
+from utils.send_email import send_email
 from services.auth import get_user_by_email
 from fastapi.responses import JSONResponse
-
+from models.otpRequest_models import GenerateOtpRequest, OtpVerificationRequest
 
 load_dotenv()
 
 router = APIRouter(prefix='/mail')
 
-# Load HTML template
-TEMPLATE_PATH = Path(__file__).parent.parent / "utils" / "reset_password.html"
-HTML_TEMPLATE = TEMPLATE_PATH.read_text(encoding="utf-8")
-
-class EmailRequest(BaseModel):
-    email: str
-    
-class OtpVerificationRequest(BaseModel):
-    email: str
-    otp: str
-
-def send_email(to: str, otp: str) -> bool:
-    try:
-        # Inject OTP into HTML template
-        email_body = HTML_TEMPLATE.replace("{{OTP}}", otp)
-        
-        msg = EmailMessage()
-        msg["From"] = os.getenv("SMTP_USER")
-        msg["To"] = to
-        msg["Subject"] = "Password Reset OTP"
-        msg.add_alternative(email_body, subtype="html")  # Set as HTML email
-
-        with smtplib.SMTP_SSL(
-            os.getenv("SMTP_HOST"),
-            int(os.getenv("SMTP_PORT")),
-        ) as server:
-            server.login(
-                os.getenv("SMTP_USER"),
-                os.getenv("SMTP_PASSWORD"),
-            )
-            server.send_message(msg)
-        return True
-    except Exception as e:
-        print(f"Failed to send email: {str(e)}")
-        return False
 
 @router.post("/get-otp")
-async def send_reset_email(request: EmailRequest):
+async def send_reset_email(request: GenerateOtpRequest):
     # Verify if the user exsists
     user = await get_user_by_email(request.email)
     
