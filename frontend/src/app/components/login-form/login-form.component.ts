@@ -47,7 +47,7 @@ export class LoginFormComponent {
           next: (response) => {
             // console.log("Login Successfull", response);
             this.isLoading = false;
-            this.messageService.add({ severity: 'success', summary: 'Success', detail: "Login Successful", life: 3000 });
+            this.router.navigate(['/search']);
             this.loginForm.reset();
           },
           error: (error) => {

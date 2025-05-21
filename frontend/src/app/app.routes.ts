@@ -2,12 +2,16 @@ import { Routes } from '@angular/router';
 import { LoginPageComponent } from './pages/login-page/login-page.component';
 import { SearchComponent } from './pages/search/search.component';
 import { RegisterPageComponent } from './pages/register-page/register-page.component';
+import { PageNotFound } from './pages/error-page/error-page';
+import { authGuard } from './guards/auth.guard';
+import { redirectGuard } from './guards/redirect.guard';
 
 
 export const routes: Routes = [
 
-    {path:"login", component: LoginPageComponent},
-    {path:"search", component: SearchComponent},
-    {path:"register", component: RegisterPageComponent},
-    { path: "", redirectTo: "login", pathMatch: "full" }
+    {path: "", redirectTo: "login", pathMatch: "full" },
+    {path:"login", component: LoginPageComponent, canActivate : [redirectGuard]},
+    {path:"search", component: SearchComponent, canActivate : [authGuard]},
+    {path:"register", component: RegisterPageComponent, canActivate : [redirectGuard]},
+    {path: "**", component: PageNotFound},
 ];
