@@ -60,7 +60,7 @@ class UploadBase(BaseModel):
     user_id: str
     file_name: str
     file_path: str
-    file_url: str
+    file_url: Optional[str] = None
     file_type: str  # audio, image, document
     file_size: int  # in bytes
     metadata: Optional[Dict[str, Any]] = None
@@ -108,4 +108,4 @@ class FeaturedContentResponse(BaseModel):
     featured_items: List[FeaturedContent]
     total_count: int
     page: int
-    limit: int 
+    limit: int

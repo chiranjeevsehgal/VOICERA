@@ -31,6 +31,8 @@ from utils.content_tracker import (
     update_upload_status, sync_track_upload, sync_create_podcast, sync_create_transcript, 
     sync_update_podcast_transcription_status, sync_update_upload_status
 )
+from utils.analytics import _insert_transcription_stats # Import the direct insertion function
+from services.database import transcription_stats_collection # Also import the collection directly
 
 router = APIRouter()
 
@@ -55,7 +57,8 @@ async def process_audio(
     custom_filename: Optional[str] = Form(None),
     transcription_options: Optional[str] = Form("{}"),  # JSON string with transcription options
     current_user: dict = Depends(get_current_user),
-    detected_ip: str = Depends(get_ip_for_request)
+    detected_ip: str = Depends(get_ip_for_request),
+    background_tasks: BackgroundTasks = BackgroundTasks() # Add BackgroundTasks here
 ):
     """
     All-in-one endpoint that performs the following operations sequentially:
@@ -133,7 +136,8 @@ async def process_audio(
             custom_filename,
             transcription_options,
             enhanced_user,  # Use enhanced user with auth token
-            detected_ip
+            detected_ip,
+            background_tasks # Pass background_tasks here
         )
     )
     thread.daemon = True  # Daemonize thread to allow the program to exit
@@ -181,9 +185,11 @@ def run_processing_in_thread(
     custom_filename: Optional[str],
     transcription_options_str: str,
     current_user: dict,
-    detected_ip: str
+    detected_ip: str,
+    background_tasks: BackgroundTasks # Add BackgroundTasks here
 ):
     """Run the processing in a separate thread with its own event loop"""
+    import time # Import time here to ensure it's available in this thread's context
     # Create a new event loop for this thread
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
@@ -198,7 +204,8 @@ def run_processing_in_thread(
                 custom_filename,
                 transcription_options_str,
                 current_user,
-                detected_ip
+                detected_ip,
+                background_tasks # Pass background_tasks here
             )
         )
     except Exception as e:
@@ -219,9 +226,13 @@ async def process_audio_background(
     custom_filename: Optional[str],
     transcription_options_str: str,
     current_user: dict,
-    detected_ip: str
+    detected_ip: str,
+    background_tasks: BackgroundTasks # Add BackgroundTasks here
 ):
     """Background task to process audio"""
+    import time # Import time here for start_time
+    start_time = time.time() # Define start_time at the beginning of the function
+
     # Create a temp directory for processing
     temp_dir = tempfile.mkdtemp()
     local_file_path = None
@@ -312,7 +323,7 @@ async def process_audio_background(
             upload_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "audio_uploads")
             os.makedirs(upload_dir, exist_ok=True)
             
-            file_path = os.path.join(upload_dir, filename)
+            file_path = os.path.join(upload_dir, f"{filename}")
             
             # Handle duplicates by adding a counter
             counter = 1
@@ -590,7 +601,47 @@ async def process_audio_background(
                 result=current_result,
                 progress=50  # 50% progress
             )
+            
+            # Track transcription stats directly here
+            processing_time = time.time() - start_time
+            audio_length = transcription_data.get("metadata", {}).get("duration", 0)
+            status = "success"
+            detected_language = transcription_data.get("results", {}).get("channels", [{}])[0].get("detected_language", "en")
+            confidence = transcription_data.get("results", {}).get("channels", [{}])[0].get("alternatives", [{}])[0].get("confidence", 0)
+            
+            stats_data = {
+                "timestamp": datetime.utcnow(),
+                "status": status,
+                "processing_time": processing_time,
+                "audio_length": audio_length,
+                "language": detected_language,
+                "user_id": str(current_user.get("_id", "")),
+                "confidence": confidence,
+                "model": transcribe_options.get("model", "default"),
+                "podcast_id": podcast_id,
+                "transcript_id": transcript_id
+            }
+            
+            # Directly await the insertion, as process_audio_background is already in an async context
+            await _insert_transcription_stats(stats_data)
+
         except Exception as e:
+            # Track transcription error directly here
+            processing_time = time.time() - start_time
+            error_stats_data = {
+                "timestamp": datetime.utcnow(),
+                "status": "error",
+                "processing_time": processing_time,
+                "audio_length": 0,  # Unknown in case of error
+                "language": transcribe_options.get("language", "en"),
+                "user_id": str(current_user.get("_id", "")),
+                "error": str(e),
+                "url": supabase_url # Use supabase_url as the source URL
+            }
+            
+            # Directly await the insertion for error stats
+            await _insert_transcription_stats(error_stats_data)
+
             update_job_status(
                 job_id,
                 JobStatus.FAILED,

@@ -3,6 +3,7 @@ from fastapi.responses import JSONResponse
 from typing import List, Optional, Dict, Any
 from bson import ObjectId
 from datetime import datetime
+from pydantic import HttpUrl # Import HttpUrl
 
 from services.auth import get_current_user, requires_role
 from services.database import (
@@ -19,11 +20,41 @@ from models.content import (
     Upload,
     UploadsResponse,
     FeaturedContent,
-    FeaturedContentResponse
+    FeaturedContentResponse,
+    PodcastBase, # Import PodcastBase for update model
+    TranscriptBase # Import TranscriptBase for update model
 )
 from utils.logging import log_info, log_error
 
 router = APIRouter(prefix='/admin')
+
+# Pydantic models for update operations
+class PodcastUpdate(PodcastBase):
+    title: Optional[str] = None
+    description: Optional[str] = None
+    image_url: Optional[HttpUrl] = None
+    audio_url: Optional[HttpUrl] = None
+    duration_seconds: Optional[float] = None
+    author: Optional[str] = None
+    published_date: Optional[datetime] = None
+    tags: Optional[List[str]] = None
+    language: Optional[str] = None
+    is_featured: Optional[bool] = None
+    is_published: Optional[bool] = None
+    views: Optional[int] = None
+    likes: Optional[int] = None
+    average_rating: Optional[float] = None
+    transcription_status: Optional[str] = None # Add transcription_status for updates
+
+class TranscriptUpdate(TranscriptBase):
+    podcast_id: Optional[str] = None
+    content: Optional[str] = None
+    language: Optional[str] = None
+    is_edited: Optional[bool] = None
+    is_published: Optional[bool] = None
+    segments: Optional[List[Dict[str, Any]]] = None
+    confidence_score: Optional[float] = None
+    word_count: Optional[int] = None
 
 # Helper functions
 def sanitize_mongo_doc(doc: Dict[str, Any]) -> Dict[str, Any]:
@@ -142,6 +173,87 @@ async def get_podcast_details(
     
     return sanitize_mongo_doc(podcast)
 
+@router.put("/podcasts/{podcast_id}", response_model=Podcast, status_code=status.HTTP_200_OK)
+async def update_podcast(
+    update_data: PodcastUpdate,
+    podcast_id: str = Path(..., description="Podcast ID"),
+    current_user: Dict[str, Any] = Depends(requires_role("admin"))
+):
+    """
+    Update details of a specific podcast.
+    Only accessible to administrators.
+    """
+    try:
+        obj_id = ObjectId(podcast_id)
+    except:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid podcast ID format"
+        )
+    
+    existing_podcast = await podcasts_collection.find_one({"_id": obj_id})
+    if not existing_podcast:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Podcast with ID {podcast_id} not found"
+        )
+    
+    update_dict = update_data.dict(exclude_unset=True, exclude_none=True)
+    
+    if not update_dict:
+        return sanitize_mongo_doc(existing_podcast)
+    
+    update_dict["updated_at"] = datetime.utcnow()
+    
+    await podcasts_collection.update_one(
+        {"_id": obj_id},
+        {"$set": update_dict}
+    )
+    
+    updated_podcast = await podcasts_collection.find_one({"_id": obj_id})
+    
+    log_info(
+        f"Admin updated podcast. Podcast ID: {podcast_id}, Changes: {update_dict}",
+        "content_management",
+        {"admin_id": str(current_user["_id"]), "podcast_id": podcast_id}
+    )
+    
+    return sanitize_mongo_doc(updated_podcast)
+
+@router.delete("/podcasts/{podcast_id}", status_code=status.HTTP_200_OK)
+async def delete_podcast(
+    podcast_id: str = Path(..., description="Podcast ID"),
+    current_user: Dict[str, Any] = Depends(requires_role("admin"))
+):
+    """
+    Permanently delete a podcast from the system.
+    Only accessible to administrators.
+    """
+    try:
+        obj_id = ObjectId(podcast_id)
+    except:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid podcast ID format"
+        )
+    
+    existing_podcast = await podcasts_collection.find_one({"_id": obj_id})
+    if not existing_podcast:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Podcast with ID {podcast_id} not found"
+        )
+    
+    await podcasts_collection.delete_one({"_id": obj_id})
+    
+    log_info(
+        f"Admin deleted podcast. Podcast ID: {podcast_id}",
+        "content_management",
+        {"admin_id": str(current_user["_id"]), "podcast_id": podcast_id}
+    )
+    
+    return {"status": "success", "detail": f"Podcast {podcast_id} has been permanently deleted"}
+
 # Transcripts Management
 @router.get("/transcripts", response_model=TranscriptsResponse, status_code=status.HTTP_200_OK)
 async def list_transcripts(
@@ -245,6 +357,87 @@ async def get_transcript_details(
     )
     
     return sanitize_mongo_doc(transcript)
+
+@router.put("/transcripts/{transcript_id}", response_model=Transcript, status_code=status.HTTP_200_OK)
+async def update_transcript(
+    update_data: TranscriptUpdate,
+    transcript_id: str = Path(..., description="Transcript ID"),
+    current_user: Dict[str, Any] = Depends(requires_role("admin"))
+):
+    """
+    Update details of a specific transcript.
+    Only accessible to administrators.
+    """
+    try:
+        obj_id = ObjectId(transcript_id)
+    except:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid transcript ID format"
+        )
+    
+    existing_transcript = await transcripts_collection.find_one({"_id": obj_id})
+    if not existing_transcript:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Transcript with ID {transcript_id} not found"
+        )
+    
+    update_dict = update_data.dict(exclude_unset=True, exclude_none=True)
+    
+    if not update_dict:
+        return sanitize_mongo_doc(existing_transcript)
+    
+    update_dict["updated_at"] = datetime.utcnow()
+    
+    await transcripts_collection.update_one(
+        {"_id": obj_id},
+        {"$set": update_dict}
+    )
+    
+    updated_transcript = await transcripts_collection.find_one({"_id": obj_id})
+    
+    log_info(
+        f"Admin updated transcript. Transcript ID: {transcript_id}, Changes: {update_dict}",
+        "content_management",
+        {"admin_id": str(current_user["_id"]), "transcript_id": transcript_id}
+    )
+    
+    return sanitize_mongo_doc(updated_transcript)
+
+@router.delete("/transcripts/{transcript_id}", status_code=status.HTTP_200_OK)
+async def delete_transcript(
+    transcript_id: str = Path(..., description="Transcript ID"),
+    current_user: Dict[str, Any] = Depends(requires_role("admin"))
+):
+    """
+    Permanently delete a transcript from the system.
+    Only accessible to administrators.
+    """
+    try:
+        obj_id = ObjectId(transcript_id)
+    except:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid transcript ID format"
+        )
+    
+    existing_transcript = await transcripts_collection.find_one({"_id": obj_id})
+    if not existing_transcript:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Transcript with ID {transcript_id} not found"
+        )
+    
+    await transcripts_collection.delete_one({"_id": obj_id})
+    
+    log_info(
+        f"Admin deleted transcript. Transcript ID: {transcript_id}",
+        "content_management",
+        {"admin_id": str(current_user["_id"]), "transcript_id": transcript_id}
+    )
+    
+    return {"status": "success", "detail": f"Transcript {transcript_id} has been permanently deleted"}
 
 # Uploads Management
 @router.get("/uploads", response_model=UploadsResponse, status_code=status.HTTP_200_OK)
@@ -434,4 +627,4 @@ async def get_featured_content_details(
         {"admin_id": str(current_user["_id"]), "content_id": content_id}
     )
     
-    return sanitize_mongo_doc(content_item) 
+    return sanitize_mongo_doc(content_item)
