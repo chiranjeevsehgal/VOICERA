@@ -1,9 +1,12 @@
-import { Component, NgZone, OnInit } from '@angular/core';
+import { Component, NgZone, OnInit, NgZone } from '@angular/core';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule, AbstractControl, ValidationErrors } from '@angular/forms';
 import { MessageService } from 'primeng/api';
 import { ProgressSpinner } from 'primeng/progressspinner';
 import { Toast } from 'primeng/toast';
 import { LoginService } from '../../services/auth/login.service';
+import { environment } from '../../../environments/environment';
+import { Router } from '@angular/router';
+import { LucideAngularModule, Eye, EyeOff } from 'lucide-angular';
 import { Router } from '@angular/router';
 
 
@@ -15,6 +18,7 @@ import { Router } from '@angular/router';
     Toast,
     ReactiveFormsModule,
     ProgressSpinner,
+    LucideAngularModule
   ],
   providers: [
     MessageService
@@ -23,12 +27,11 @@ import { Router } from '@angular/router';
 export class LoginFormComponent implements OnInit {
   loginForm: FormGroup;
   isLoading: boolean = false;
+  showPassword: boolean = false;
 
-  ngOnInit(): void {
-    // Initialize Google Sign-In
-    this.initGoogleSignIn();
-  }
-
+  // Icons
+  readonly eye = Eye;
+  readonly eyeOff = EyeOff;
 
   constructor(
     private fb: FormBuilder,
@@ -43,67 +46,42 @@ export class LoginFormComponent implements OnInit {
     });
   }
 
-  initGoogleSignIn(): void {
-    // @ts-ignore - Google is loaded via the script
-    window.google?.accounts.id.initialize({
-      client_id: '831027433891-violp93hiigrq3cm7t7kpdeavsmd5ek4.apps.googleusercontent.com',
-      callback: this.handleGoogleSignIn.bind(this),
-      auto_select: false,
-      cancel_on_tap_outside: true,
-      ux_mode: 'popup',
-      context: 'signin'
-    });
-
+  togglePasswordVisibility() {
+    this.showPassword = !this.showPassword; // Toggle the visibility
   }
 
-  triggerGoogleSignIn(): void {
-    // @ts-ignore - Google is loaded via the script
-    window.google?.accounts.id.prompt();
+  oauthSignIn() {
+    // Google's OAuth 2.0 endpoint for requesting an access token
+    var oauth2Endpoint = 'https://accounts.google.com/o/oauth2/v2/auth';
+
+    var form = document.createElement('form');
+    form.setAttribute('method', 'GET');
+    form.setAttribute('action', oauth2Endpoint);
+
+
+    // Passing to OAuth 2.0 endpoint.
+    const params: { [key: string]: string } =
+    {
+      'client_id': environment.googleClientId,
+      'redirect_uri': 'http://localhost:4200/auth/callback',
+      'scope': 'openid email profile',
+      'response_type': 'code',
+      'include_granted_scopes': 'true',
+      'state': 'pass-through value',
+      'access_type': 'offline'
+    };
+
+    for (var p in params) {
+      var input = document.createElement('input');
+      input.setAttribute('type', 'hidden');
+      input.setAttribute('name', p);
+      input.setAttribute('value', params[p]);
+      form.appendChild(input);
+    }
+
+    document.body.appendChild(form);
+    form.submit();
   }
-
-  handleGoogleSignIn(response: any): void {
-    // Using NgZone because this callback runs outside Angular's zone
-    this.ngZone.run(() => {
-      this.isLoading = true;
-
-      // Send the ID token to your backend
-      this.loginService.googleLogin(response.credential).subscribe({
-        next: (res) => {
-          this.isLoading = false;
-          if (res.status) {
-            this.messageService.add({
-              severity: 'success',
-              summary: 'Success',
-              detail: 'Login successful!'
-            });
-            this.router.navigate(['/']);
-          } else {
-            console.log(res);
-            
-            this.messageService.add({
-              severity: 'error',
-              summary: 'Error',
-              detail: res.detail || 'Login failed'
-            });
-          }
-        },
-        error: (err) => {
-          this.isLoading = false;
-
-          this.messageService.add({
-            severity: 'error',
-            summary: 'Error',
-            detail: err.error?.detail || 'Login failed'
-          });
-        }
-      });
-    });
-  }
-
-
-
-
-
 
   onSubmit() {
     if (this.loginForm.valid) {
@@ -115,7 +93,7 @@ export class LoginFormComponent implements OnInit {
           next: (response) => {
             // console.log("Login Successfull", response);
             this.isLoading = false;
-            this.messageService.add({ severity: 'success', summary: 'Success', detail: "Login Successful", life: 3000 });
+            this.router.navigate(['/search']);
             this.loginForm.reset();
           },
           error: (error) => {

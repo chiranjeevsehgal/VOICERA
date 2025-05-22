@@ -1,7 +1,7 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { environment } from '../../../environments/environment';
-import { delay, tap } from 'rxjs';
+import { catchError, delay, Observable, tap, throwError } from 'rxjs';
 
 interface LoginResponse {
   status: boolean,

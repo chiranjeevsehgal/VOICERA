@@ -681,7 +681,7 @@ def search_audio_section():
         # Update session state with current query
         st.session_state.search_query_input = search_query
     with search_col2:
-        limit = st.number_input("Results Limit:", min_value=1, max_value=50, value=5, step=1, key="search_limit_input")
+        limit = st.number_input("Results Limit:", min_value=1, max_value=10, value=2, step=1, key="search_limit_input")
 
     # Advanced Search Options in Two Rows
     st.markdown("<h5 style='margin-top: 1rem; margin-bottom: 0.5rem; color: white !important;'>Search Configuration:</h5>", unsafe_allow_html=True)
@@ -744,7 +744,7 @@ def search_audio_section():
     with opts_row2_col4:
         natural_language = st.checkbox(
             "NL Query Mode", 
-            value=False, 
+            value=True, 
             help="Process query as a natural language question for intent understanding.",
             key="search_nl_checkbox"
         )

@@ -14,6 +14,7 @@ class JobStatus:
     UPLOADING = "uploading"
     TRANSCRIBING = "transcribing"
     EMBEDDING = "embedding"
+    INDEXING = "indexing"
     UPLOADING_TO_SUPABASE = "uploading_to_supabase"
     DEDUCTING_CREDITS = "deducting_credits"
     COMPLETED = "completed"
@@ -109,4 +110,4 @@ def clean_old_jobs(max_age_seconds: int = 86400):
     for job_id in to_delete:
         del jobs_store[job_id]
         
-    return len(to_delete) 
+    return len(to_delete)

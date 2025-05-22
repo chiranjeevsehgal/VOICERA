@@ -15,9 +15,8 @@ export class RegisterService {
 
   constructor(private http: HttpClient) { }
 
-  // private token = localStorage.getItem('auth_token');
-
-  registerUser(userData: { fullName: string; email: string; password: string }) {
+  registerUser(userData: { full_name: string; email: string; password: string }) {
+    
     const apiUrl = `${environment.apiUrl}/api/auth/register`;
 
     return this.http.post<registerResponse>(apiUrl, userData).pipe(
