@@ -16,6 +16,7 @@ export class RegisterService {
   constructor(private http: HttpClient) { }
 
   registerUser(userData: { full_name: string; email: string; password: string }) {
+    
     const apiUrl = `${environment.apiUrl}/api/auth/register`;
 
     return this.http.post<registerResponse>(apiUrl, userData).pipe(
