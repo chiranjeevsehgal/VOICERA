@@ -40,6 +40,14 @@ async def upload_audio(
     Returns:
         JSON response with the Supabase URL and status
     """
+    # Define max file size (50 MB)
+    MAX_FILE_SIZE_MB = 50
+    MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024 # Convert MB to bytes
+
+    # Read file content into memory to check size
+    file_content = await file.read()
+    await file.seek(0) # Reset file pointer after reading
+
     # Check if file exists
     if not file:
         return JSONResponse(
@@ -47,6 +55,13 @@ async def upload_audio(
             content={"message": "No file provided"}
         )
     
+    # Check file size
+    if len(file_content) > MAX_FILE_SIZE_BYTES:
+        raise HTTPException(
+            status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+            detail=f"File size exceeds the limit of {MAX_FILE_SIZE_MB}MB."
+        )
+
     # Check if uploaded file is audio
     if file.content_type not in AUDIO_MIME_TYPES:
         raise HTTPException(
@@ -75,23 +90,23 @@ async def upload_audio(
     # Save the file locally
     try:
         with open(file_path, "wb") as buffer:
-            # Copy file content
-            shutil.copyfileobj(file.file, buffer)
+            buffer.write(file_content) # Write the content already read into memory
     except Exception as e:
         return JSONResponse(
             status_code=500,
             content={"message": f"Error saving file: {str(e)}"}
         )
     finally:
-        # Make sure the file is closed
-        file.file.close()
+        # Make sure the file is closed (if it was opened by FastAPI, it will be closed automatically)
+        # No need to explicitly close file.file here as we read it into memory
+        pass
     
     # Local file details
     local_file_info = {
         "filename": os.path.basename(file_path),
         "original_filename": original_filename,
         "file_path": file_path,
-        "file_size": os.path.getsize(file_path)
+        "file_size": len(file_content) # Use len(file_content) for size
     }
     
     # Track upload in content management system
@@ -125,7 +140,7 @@ async def upload_audio(
             await update_upload_status(
                 upload_id=upload_id,
                 status="uploaded",
-                file_url=response["file_url"]
+                supabase_url=response["file_url"]
             )
             
         return {

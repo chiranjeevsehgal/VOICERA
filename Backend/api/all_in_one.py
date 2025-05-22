@@ -99,12 +99,23 @@ async def process_audio(
     # Create a new job and get its ID
     job_id = create_job()
     
+    # Define max file size (50 MB)
+    MAX_FILE_SIZE_MB = 50
+    MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024 # Convert MB to bytes
+
     # Make a local copy of the file in memory
     file_content = await file.read()
     
     # Reset the file pointer for further processing
     await file.seek(0)
     
+    # Check file size
+    if len(file_content) > MAX_FILE_SIZE_BYTES:
+        raise HTTPException(
+            status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+            detail=f"File size exceeds the limit of {MAX_FILE_SIZE_MB}MB."
+        )
+
     # Extract the actual JWT token from headers for internal API calls
     auth_header = request.headers.get("Authorization", "")
     jwt_token = auth_header.replace("Bearer ", "") if auth_header.startswith("Bearer ") else None
