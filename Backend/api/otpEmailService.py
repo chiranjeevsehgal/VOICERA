@@ -47,7 +47,7 @@ async def send_reset_email(current_user: dict = Depends(get_current_user)):
             detail="Failed to send password reset email"
         )
         
-@router.post("/varify-otp")
+@router.post("/verify-otp")
 async def verifyOtp(
     request: OtpVerificationRequest,
     current_user: dict = Depends(get_current_user), 

@@ -5,6 +5,7 @@ import { RegisterPageComponent } from './pages/register-page/register-page.compo
 import { PageNotFound } from './pages/error-page/error-page';
 import { authGuard } from './guards/auth.guard';
 import { redirectGuard } from './guards/redirect.guard';
+import { ForgotPasswordPageComponent } from './pages/forgot-password-page/forgot-password-page.component';
 
 
 export const routes: Routes = [
@@ -13,5 +14,6 @@ export const routes: Routes = [
     {path:"login", component: LoginPageComponent, canActivate : [redirectGuard]},
     {path:"search", component: SearchComponent, canActivate : [authGuard]},
     {path:"register", component: RegisterPageComponent, canActivate : [redirectGuard]},
+    {path:"otp", component: ForgotPasswordPageComponent},
     {path: "**", component: PageNotFound},
 ];
