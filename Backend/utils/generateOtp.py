@@ -52,8 +52,6 @@ def verify_otp(email: str, user_provided_otp: str) -> bool:
     stored_otp, _ = stored_data
     
     if stored_otp == user_provided_otp:
-        # OTP is correct, delete the record
-        del _otp_storage[email]
         return True
         
     return False
@@ -89,3 +87,10 @@ def get_stored_otp(email: str) -> Optional[str]:
     _cleanup_expired_otps()
     stored_data = _otp_storage.get(email)
     return stored_data[0] if stored_data else None
+
+
+def delete_otp(email : str):
+    # OTP is correct, delete the record
+    del _otp_storage[email]
+    
+    

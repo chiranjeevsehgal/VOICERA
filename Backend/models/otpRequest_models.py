@@ -5,6 +5,12 @@ class GenerateOtpRequest(BaseModel):
     email: str
     
 class OtpVerificationRequest(BaseModel):
+    email : str
     otp: str
-    password: str
+    
+    
+class UpdatePasswordRequest(BaseModel):
+    email : str
+    otp : str
+    password : str
     

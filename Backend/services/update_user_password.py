@@ -1,13 +1,14 @@
 from dotenv import load_dotenv
 from fastapi import APIRouter, Depends
 from datetime import datetime
+from utils.generateOtp import delete_otp
 
 from services.auth import get_current_user, get_password_hash, users_collection
 
 
 async def update_user_password(
+    email: str,
     password : str,
-    current_user: dict,
 ):
     
     # Update the user's password and set updated_at
@@ -20,9 +21,12 @@ async def update_user_password(
     }
 
     await users_collection.update_one(
-        {"email": current_user['email']},  # Filter by email
+        {"email": email},  # Filter by email
         update_data
     )
+    
+    # Call delete OTP func
+    delete_otp(email)
     
     return {
         "status" : True,
