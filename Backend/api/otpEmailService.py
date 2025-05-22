@@ -15,7 +15,7 @@ router = APIRouter(prefix='/mail')
 @router.post("/get-otp")
 async def send_reset_email(req : GenerateOtpRequest):
     
-    user = get_user_by_email(req.email);
+    user = await get_user_by_email(req.email);
     
     
     if(user == None) :
@@ -35,6 +35,7 @@ async def send_reset_email(req : GenerateOtpRequest):
     
     if success:
         return {
+            "status" : True,
             "message": "Password reset email sent successfully!",
         }
     else:
