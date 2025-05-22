@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Query, HTTPException, Depends
 from typing import Optional, List, Dict, Tuple
 from services.pinecone_service import search_transcripts, test_pinecone_connection
-from services.enhanced_search import EnhancedSearch
+from services.enhanced_search import EnhancedSearch, TechnicalTermsScorer
 from services.auth import get_current_user
 from services.transcript_service import extract_transcript
 from pydantic import BaseModel, Field
@@ -13,6 +13,8 @@ import re
 import logging
 import asyncio
 from concurrent.futures import ThreadPoolExecutor
+from services.database import podcasts_collection, uploads_collection
+from utils.analytics import track_search_term, track_user_activity
 
 router = APIRouter()
 
@@ -434,10 +436,27 @@ async def llm_rerank_results(
         
         # Get LLM evaluation
         response = model.generate_content(formatted_prompt)
+        response_text = response.text.strip()
         
         try:
+            # Clean up the response text to ensure it's valid JSON
+            # Remove any markdown formatting or extra text
+            if '```json' in response_text:
+                response_text = response_text.split('```json')[1].split('```')[0].strip()
+                logger.info("Extracted JSON from markdown code block")
+            elif '```' in response_text:
+                response_text = response_text.split('```')[1].strip()
+                logger.info("Extracted content from code block")
+                
+            # Remove any leading/trailing whitespace or quotes
+            response_text = response_text.strip('"\'')
+            
+            # Log a sample of the response for debugging
+            logger.info(f"LLM response sample (first 100 chars): {response_text[:100]}...")
+            
             # Parse LLM response
-            llm_scores = json.loads(response.text)
+            llm_scores = json.loads(response_text)
+            logger.info(f"Successfully parsed LLM response with {len(llm_scores)} scored results")
             
             # Create a mapping of result_id to LLM score
             score_map = {
@@ -454,10 +473,8 @@ async def llm_rerank_results(
                 if result_id in score_map:
                     result["llm_score"] = score_map[result_id]["llm_score"]
                     result["llm_explanation"] = score_map[result_id]["explanation"]
-                    # Combine original score with LLM score (weighted average)
                     result["final_score"] = 0.4 * result.get("score", 0) + 0.6 * score_map[result_id]["llm_score"]
                 else:
-                    # Fallback if LLM didn't score this result
                     result["llm_score"] = 0.0
                     result["llm_explanation"] = "Not evaluated by LLM"
                     result["final_score"] = result.get("score", 0)
@@ -470,6 +487,50 @@ async def llm_rerank_results(
             
         except json.JSONDecodeError as e:
             logger.error(f"Error parsing LLM reranking response: {str(e)}")
+            logger.error(f"Response text that failed to parse: {response_text[:200]}...")
+            
+            # Try to salvage the response if it looks like it contains JSON arrays
+            if '[' in response_text and ']' in response_text:
+                try:
+                    # Try to extract just the JSON array part
+                    array_start = response_text.find('[')
+                    array_end = response_text.rfind(']') + 1
+                    if array_start >= 0 and array_end > array_start:
+                        array_text = response_text[array_start:array_end]
+                        logger.info(f"Attempting to parse extracted array: {array_text[:100]}...")
+                        llm_scores = json.loads(array_text)
+                        logger.info(f"Successfully parsed extracted JSON array with {len(llm_scores)} items")
+                        
+                        # Continue with the scoring logic
+                        score_map = {
+                            item["result_id"]: {
+                                "llm_score": item["llm_score"],
+                                "explanation": item["explanation"]
+                            }
+                            for item in llm_scores
+                        }
+                        
+                        # Update results with LLM scores
+                        for result in results:
+                            result_id = f"{result.get('file_name')}_{result.get('start_time')}_{result.get('end_time')}"
+                            if result_id in score_map:
+                                result["llm_score"] = score_map[result_id]["llm_score"]
+                                result["llm_explanation"] = score_map[result_id]["explanation"]
+                                result["final_score"] = 0.4 * result.get("score", 0) + 0.6 * score_map[result_id]["llm_score"]
+                            else:
+                                result["llm_score"] = 0.0
+                                result["llm_explanation"] = "Not evaluated by LLM"
+                                result["final_score"] = result.get("score", 0)
+                        
+                        # Sort by final score
+                        results.sort(key=lambda x: x.get("final_score", 0), reverse=True)
+                        logger.info("Recovered from JSON parse error using array extraction")
+                        return results
+                except Exception as inner_e:
+                    logger.error(f"Failed to recover from JSON parse error: {str(inner_e)}")
+            
+            # Fallback to original results if we can't parse the LLM response
+            logger.info("Falling back to original results without LLM reranking")
             return results
             
     except Exception as e:
@@ -853,6 +914,59 @@ async def search(
             if "end_time" in result:
                 result["end_time_formatted"] = format_seconds_to_time(result["end_time"])
         
+        # Process the results with keyword scoring, technical term recognition
+        processed_results = []
+        tech_scorer = TechnicalTermsScorer()
+        
+        for result in results:
+            # Get Supabase URL if available instead of tmpfiles.org URL
+            file_url = result.get("file_url", "")
+            
+            # Check if this is a tmpfiles.org URL and try to find a Supabase URL
+            if "tmpfiles.org" in file_url:
+                # First check if there's a tmp_url in the result that might be a temporary URL
+                if result.get("tmp_url") and "tmpfiles.org" in result.get("tmp_url"):
+                    # If we have a tmp_url field, it means file_url should be the permanent URL
+                    if "tmpfiles.org" not in file_url:
+                        # Keep the permanent URL, no need to search
+                        pass
+                    else:
+                        # Both URLs are temporary, search for permanent URL
+                        await find_permanent_url(result)
+                else:
+                    # No tmp_url field, search for permanent URL
+                    await find_permanent_url(result)
+            
+            # Calculate technical score
+            technical_score = tech_scorer.calculate_technical_score(
+                result.get("text", ""), 
+                result.get("original_query", query)
+            )
+            
+            # Calculate keyword score based on exact matches
+            keyword_score = 1.0 if result.get("has_exact_match", False) else 0.5
+            
+            # Format result with additional scores
+            processed_result = {
+                "text": result.get("text", ""),
+                "file_name": result.get("file_name", ""),
+                "file_url": result.get("file_url", ""),  # Use the result's file_url which may have been updated
+                "start_time": result.get("start_time", 0),
+                "end_time": result.get("end_time", 0),
+                "confidence": result.get("confidence", 0),
+                "semantic_score": result.get("score", 0),
+                "original_query": original_query,
+                "combined_score": result.get("combined_score", result.get("score", 0)),
+                "keyword_score": keyword_score,
+                "technical_score": technical_score
+            }
+            
+            # Add tmp_url if present in the result
+            if result.get("tmp_url"):
+                processed_result["tmp_url"] = result.get("tmp_url")
+            
+            processed_results.append(processed_result)
+        
         response_data = {
             "query": original_query,
             "cleaned_query": cleaned_query if cleaned_query != original_query else None,
@@ -865,7 +979,7 @@ async def search(
             } if start_time is not None else None,
             "total": len(results),
             "exact_matches": sum(1 for r in results if r.get("has_exact_match", False)),
-            "results": results,
+            "results": processed_results,
             "search_errors": search_errors if search_errors else None,
             "search_stats": {
                 "total_candidates": len(all_results),
@@ -887,6 +1001,21 @@ async def search(
         
         # Log search completion
         logger.info(f"Search completed - Found {len(results)} results from {len(all_results)} candidates")
+        
+        # Track search term
+        track_search_term(query, user_id=str(current_user.get("_id", "")))
+        
+        # Track user activity if user is authenticated
+        if current_user and "_id" in current_user:
+            track_user_activity(
+                user_id=str(current_user.get("_id", "")),
+                feature="search",
+                additional_data={
+                    "query": query,
+                    "results_count": len(results),
+                    "total_candidates": len(all_results)
+                }
+            )
         
         return response_data
         
@@ -1095,4 +1224,42 @@ async def test_connection():
         test_pinecone_connection()
         return {"status": "completed", "message": "Check the logs for details"}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error testing connection: {str(e)}") 
+        raise HTTPException(status_code=500, detail=f"Error testing connection: {str(e)}")
+
+async def find_permanent_url(result: Dict) -> None:
+    """
+    Find a permanent Supabase URL for a result with a temporary URL.
+    Updates the result in place if a permanent URL is found.
+    
+    Args:
+        result: The search result to update
+    """
+    file_url = result.get("file_url", "")
+    file_name = result.get("file_name", "")
+    
+    if not file_name or not "tmpfiles.org" in file_url:
+        return
+        
+    try:
+        # First check podcasts collection
+        podcast = await podcasts_collection.find_one({"file_name": {"$regex": file_name}})
+        if podcast and "supabase_url" in podcast and podcast["supabase_url"]:
+            result["file_url"] = podcast["supabase_url"]
+            # Store the temporary URL as tmp_url if not already present
+            if not result.get("tmp_url"):
+                result["tmp_url"] = file_url
+            return
+            
+        # Try uploads collection
+        upload = await uploads_collection.find_one({"file_name": {"$regex": file_name}})
+        if upload and "supabase_url" in upload and upload["supabase_url"]:
+            result["file_url"] = upload["supabase_url"]
+            # Store the temporary URL as tmp_url if not already present
+            if not result.get("tmp_url"):
+                result["tmp_url"] = file_url
+            return
+            
+        # If we get here, no permanent URL was found
+        logger.warning(f"No permanent URL found for file: {file_name}")
+    except Exception as e:
+        logger.error(f"Error finding permanent URL: {str(e)}") 

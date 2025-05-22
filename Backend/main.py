@@ -1,7 +1,40 @@
 from fastapi import FastAPI, Depends, Request
 from fastapi.middleware.cors import CORSMiddleware
-from api import health, transcribe, embedding, upload, llm_translation, supabase_upload, auth, ip_detection, search, credit_management, oauth, all_in_one, otpEmailService
+from api import health, transcribe, embedding, upload, llm_translation, supabase_upload, auth, ip_detection, search, credit_management, oauth, all_in_one, admin, content_management, otpEmailService
 import uvicorn
+import time
+from utils.analytics import track_api_usage
+from starlette.middleware.base import BaseHTTPMiddleware
+from services.auth import decode_token
+
+# Create a middleware class for API usage tracking
+class APIUsageMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next):
+        # Start timer
+        start_time = time.time()
+        
+        # Process the request
+        response = await call_next(request)
+        
+        # Calculate response time
+        response_time = (time.time() - start_time) * 1000  # Convert to milliseconds
+        
+        # Extract user ID from authorization header if present
+        user_id = None
+        auth_header = request.headers.get("Authorization")
+        if auth_header and auth_header.startswith("Bearer "):
+            token = auth_header.replace("Bearer ", "")
+            try:
+                payload = decode_token(token)
+                if payload and "sub" in payload:
+                    user_id = payload["sub"]
+            except Exception:
+                pass
+        
+        # Track API usage asynchronously
+        await track_api_usage(request, response, response_time, user_id)
+        
+        return response
 
 # Create FastAPI application with concurrency settings
 app = FastAPI(
@@ -17,6 +50,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Add API usage tracking middleware
+app.add_middleware(APIUsageMiddleware)
 
 @app.get("/")
 async def root():
@@ -65,6 +101,12 @@ app.include_router(otpEmailService.router, prefix="/api", tags=["mail-service"])
 
 # All-in-one Router
 app.include_router(all_in_one.router, prefix="/api", tags=["all-in-one"])
+
+# Admin Router
+app.include_router(admin.router, prefix="/api", tags=["admin"])
+
+# Content Management Router
+app.include_router(content_management.router, prefix="/api", tags=["admin"])
 
 # This allows the file to be run directly with the appropriate settings
 if __name__ == "__main__":

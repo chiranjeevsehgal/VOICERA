@@ -29,6 +29,17 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
 def get_password_hash(password: str) -> str:
     return pwd_context.hash(password)
 
+def decode_token(token: str) -> Dict[str, Any]:
+    """
+    Decode a JWT token and return the payload.
+    Returns None if the token is invalid.
+    """
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        return payload
+    except JWTError:
+        return None
+
 async def get_user(uid: str) -> Optional[Dict[str, Any]]:
     try:
         obj_id = ObjectId(uid)  # convert string to ObjectId
