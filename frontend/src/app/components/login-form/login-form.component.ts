@@ -1,11 +1,10 @@
-import { Component, NgZone, OnInit, NgZone } from '@angular/core';
+import { Component, NgZone, OnInit } from '@angular/core';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule, AbstractControl, ValidationErrors } from '@angular/forms';
 import { MessageService } from 'primeng/api';
 import { ProgressSpinner } from 'primeng/progressspinner';
 import { Toast } from 'primeng/toast';
 import { LoginService } from '../../services/auth/login.service';
 import { environment } from '../../../environments/environment';
-import { Router } from '@angular/router';
 import { LucideAngularModule, Eye, EyeOff } from 'lucide-angular';
 import { Router } from '@angular/router';
 
@@ -24,7 +23,7 @@ import { Router } from '@angular/router';
     MessageService
   ]
 })
-export class LoginFormComponent implements OnInit {
+export class LoginFormComponent {
   loginForm: FormGroup;
   isLoading: boolean = false;
   showPassword: boolean = false;

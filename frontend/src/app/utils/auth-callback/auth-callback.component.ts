@@ -76,10 +76,9 @@ export class AuthCallbackComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.startAnimations();
-    // Delay the auth callback to let animations run
     setTimeout(() => {
       this.handleAuthCallback();
-    }, 3000); // Wait 3 seconds before starting auth
+    }, 2000);
   }
 
   ngOnDestroy(): void {
@@ -90,22 +89,20 @@ export class AuthCallbackComponent implements OnInit, OnDestroy {
     let messageIndex = 0;
     let progress = 0;
 
-    // Progress bar animation (slower)
     this.progressInterval = setInterval(() => {
-      if (progress < 85) { // Stop at 85% until auth completes
+      if (progress < 85) {
         progress += Math.random() * 8;
         this.progressWidth = Math.min(progress, 85);
       }
-    }, 500); // Slower progress
+    }, 500); 
 
-    // Message rotation (slower)
     this.messageInterval = setInterval(() => {
       if (messageIndex < this.messages.length - 1) {
         messageIndex++;
         this.currentMessage = this.messages[messageIndex].main;
         this.subMessage = this.messages[messageIndex].sub;
       }
-    }, 2000); // Slower message rotation
+    }, 2000);
   }
 
   private clearIntervals(): void {
@@ -137,7 +134,6 @@ export class AuthCallbackComponent implements OnInit, OnDestroy {
     this.currentMessage = "Finalizing authentication...";
     this.subMessage = "Creating your secure session";
     
-    // Complete the progress bar
     this.progressWidth = 100;
     
     this.loginService.exchangeGoogleCode(code).subscribe({
@@ -147,7 +143,6 @@ export class AuthCallbackComponent implements OnInit, OnDestroy {
         
         localStorage.setItem('auth_token', response.access_token);
         
-        // Add delay before redirect
         setTimeout(() => {
           this.router.navigate(['/search']);
         }, 1500);
