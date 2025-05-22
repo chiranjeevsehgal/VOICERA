@@ -5,6 +5,7 @@ class Token(BaseModel):
     status: bool
     detail: str
     access_token: str
+    role: str
     token_type: str
 
 class TokenData(BaseModel):

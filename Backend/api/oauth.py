@@ -65,26 +65,13 @@ async def google_login(
         "status": True,
         "token_type": "bearer",
         "user": {
+            "role": user["role"],
             "email": user["email"],
             "full_name": user.get("full_name"),
-            "role": user["role"],
             "profile_picture": user.get("profile_picture")
         }
     }
 
-@router.get("/validate-token")
-async def validate_token(current_user = Depends(get_current_user)):
-    """
-    Validate a JWT token and return user information.
-    """
-    return {
-        "valid": True,
-        "user": {
-            "id": str(current_user["_id"]),
-            "email": current_user["email"],
-            "role": current_user["role"]
-        }
-    }
 
 async def exchange_code_for_tokens(code: str) -> dict:
     """

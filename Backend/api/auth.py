@@ -43,6 +43,7 @@ async def login_user(
     return {
         "status": True,
         "detail": "Login Successful",
+        "role": user["role"],
         "access_token": access_token, 
         "token_type": "bearer"
         }
@@ -82,3 +83,18 @@ async def usr_profile(current_user: dict = Depends(get_current_user)):
         full_name=current_user.get("full_name"),
         role=current_user.get("role", "user"),
     )
+
+
+@router.get("/validate-token")
+async def validate_token(current_user = Depends(get_current_user)):
+    """
+    Validate a JWT token and return user information.
+    """
+    return {
+        "valid": True,
+        "user": {
+            "id": str(current_user["_id"]),
+            "email": current_user["email"],
+            "role": current_user["role"]
+        }
+    }
