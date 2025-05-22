@@ -5,6 +5,8 @@ import { ProgressSpinner } from 'primeng/progressspinner';
 import { Toast } from 'primeng/toast';
 import { LoginService } from '../../services/auth/login.service';
 import { environment } from '../../../environments/environment';
+import { Router } from '@angular/router';
+import { LucideAngularModule, Eye, EyeOff } from 'lucide-angular';
 
 
 @Component({
@@ -15,6 +17,7 @@ import { environment } from '../../../environments/environment';
     Toast,
     ReactiveFormsModule,
     ProgressSpinner,
+    LucideAngularModule
   ],
   providers: [
     MessageService
@@ -23,17 +26,25 @@ import { environment } from '../../../environments/environment';
 export class LoginFormComponent {
   loginForm: FormGroup;
   isLoading: boolean = false;
+  showPassword: boolean = false;
+
+  // Icons
+  readonly eye = Eye;
+  readonly eyeOff = EyeOff;
 
   constructor(
     private fb: FormBuilder,
     private messageService: MessageService,
     private loginService: LoginService,
+    private router: Router
+     
   ) {
     this.loginForm = this.fb.group({
       email: ['', [Validators.required, Validators.email]],
       password: ['', [Validators.required]]
     });
   }
+
 
   oauthSignIn() {
     // Google's OAuth 2.0 endpoint for requesting an access token
@@ -42,6 +53,11 @@ export class LoginFormComponent {
     var form = document.createElement('form');
     form.setAttribute('method', 'GET');
     form.setAttribute('action', oauth2Endpoint);
+
+  togglePasswordVisibility() {
+    this.showPassword = !this.showPassword; // Toggle the visibility
+  }
+
 
     // Passing to OAuth 2.0 endpoint.
     const params: { [key: string]: string } =
@@ -77,7 +93,7 @@ export class LoginFormComponent {
           next: (response) => {
             // console.log("Login Successfull", response);
             this.isLoading = false;
-            this.messageService.add({ severity: 'success', summary: 'Success', detail: "Login Successful", life: 3000 });
+            this.router.navigate(['/search']);
             this.loginForm.reset();
           },
           error: (error) => {

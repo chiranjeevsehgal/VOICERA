@@ -1,11 +1,14 @@
-from fastapi import APIRouter, Request, HTTPException, status, Depends
+from fastapi import APIRouter, Request, HTTPException, status, Depends, BackgroundTasks
 from fastapi.responses import JSONResponse
 import requests
 import os
+import time
 from typing import Optional, List
 from pydantic import BaseModel, Field
 from dotenv import load_dotenv
 from services.auth import get_current_user
+from utils.content_tracker import create_podcast, create_transcript, update_podcast_transcription_status
+from utils.analytics import track_transcription
 
 # Load environment variables
 load_dotenv()
@@ -59,6 +62,10 @@ class TranscriptionRequest(BaseModel):
     topics: Optional[bool] = Field(None, description="Detect topics throughout transcript")
     summarize: Optional[str] = Field(None, description="Generate summary (v1 or v2)")
     custom_intent_mode: Optional[str] = Field(None, description="Sets how model interprets intents ('extended' or 'strict')")
+    # For content management integration
+    upload_id: Optional[str] = Field(None, description="ID of the uploaded file in the system")
+    title: Optional[str] = Field(None, description="Title for the podcast")
+    description: Optional[str] = Field(None, description="Description for the podcast")
 
     class Config:
         schema_extra = {
@@ -68,7 +75,9 @@ class TranscriptionRequest(BaseModel):
                 "diarize": True,
                 "smart_format": True,
                 "language": "en",
-                "model": "nova-2"
+                "model": "nova-2",
+                "title": "Sample Podcast Title",
+                "description": "This is a sample podcast description."
             }
         }
 
@@ -79,7 +88,8 @@ class TranscriptionRequest(BaseModel):
 )
 async def transcribe_audio(
     request: TranscriptionRequest,
-    current_user: dict = Depends(get_current_user)
+    current_user: dict = Depends(get_current_user),
+    background_tasks: BackgroundTasks = BackgroundTasks()
 ):
     """
     Transcribe audio from a URL using Deepgram API.
@@ -96,6 +106,9 @@ async def transcribe_audio(
         "model": "general"
     }
     """
+    # Start timer for tracking processing time
+    start_time = time.time()
+    
     # Check if API key is available
     if not DEEPGRAM_API_KEY:
         raise HTTPException(
@@ -161,6 +174,167 @@ async def transcribe_audio(
                 detail=f"Error from Deepgram API: {response.text}"
             )
             
-        return response.json()
+        # Get the response data
+        transcription_data = response.json()
+        
+        # Create podcast and transcript records if upload_id is provided
+        podcast_id = None
+        transcript_id = None
+        
+        if request.upload_id:
+            # Extract transcript information
+            results = transcription_data.get("results", {})
+            transcript_text = results.get("channels", [{}])[0].get("alternatives", [{}])[0].get("transcript", "")
+            detected_language = results.get("channels", [{}])[0].get("detected_language", "en")
+            confidence = results.get("channels", [{}])[0].get("alternatives", [{}])[0].get("confidence", 0)
+            words = results.get("channels", [{}])[0].get("alternatives", [{}])[0].get("words", [])
+            
+            # Get duration
+            duration = transcription_data.get("metadata", {}).get("duration", 0)
+            
+            # Get file name from URL
+            file_name = os.path.basename(request.url)
+            
+            # Create podcast record
+            podcast_id = await create_podcast(
+                title=request.title or file_name,
+                description=request.description or f"Transcribed on {os.environ.get('HOSTNAME', 'Voicera')}",
+                audio_url=request.url,
+                duration_seconds=duration,
+                author=current_user.get("username", "unknown"),
+                language=detected_language or request.language or "en",
+                upload_id=request.upload_id
+            )
+            
+            print(f"Created podcast record with ID: {podcast_id}")
+            
+            if podcast_id: # Only proceed if podcast was successfully created
+                # Mark podcast as transcription in progress
+                await update_podcast_transcription_status(
+                    podcast_id=podcast_id,
+                    status="in_progress"
+                )
+                
+                # Create segments from words
+                segments = []
+                if words:
+                    for word in words:
+                        segments.append({
+                            "text": word.get("word", ""),
+                            "start": word.get("start", 0),
+                            "end": word.get("end", 0),
+                            "confidence": word.get("confidence", 0)
+                        })
+                
+                # Create transcript record
+                transcript_id = await create_transcript(
+                    podcast_id=podcast_id,
+                    content=transcript_text,
+                    language=detected_language or request.language or "en",
+                    segments=segments,
+                    confidence_score=confidence
+                )
+                
+                print(f"Created transcript record with ID: {transcript_id}")
+                
+                # Update podcast with transcription status
+                # Verify transcription status was properly updated
+                status_update = await update_podcast_transcription_status(
+                    podcast_id=podcast_id,
+                    status="completed",
+                    transcript_id=transcript_id
+                )
+                
+                # If update failed, retry once with a delay
+                if not status_update:
+                    print(f"Warning: First attempt to update transcription status failed, retrying...")
+                    import asyncio
+                    await asyncio.sleep(1)  # Short delay before retry
+                    await update_podcast_transcription_status(
+                        podcast_id=podcast_id,
+                        status="completed",
+                        transcript_id=transcript_id
+                    )
+                    
+                    # Verify the status was actually updated
+                    from services.database import podcasts_collection
+                    from bson import ObjectId
+                    podcast_check = await podcasts_collection.find_one({"_id": ObjectId(podcast_id)})
+                    if podcast_check and podcast_check.get("transcription_status") != "completed":
+                        print(f"Error: Failed to update transcription status for podcast {podcast_id}")
+                
+                # Add the IDs to the response
+                transcription_data["podcast_id"] = podcast_id
+                transcription_data["transcript_id"] = transcript_id
+            else:
+                # If podcast creation failed, log and potentially update upload status to failed
+                print(f"Error: Podcast creation failed for upload_id: {request.upload_id}. Skipping transcript creation.")
+                if request.upload_id:
+                    from utils.content_tracker import update_upload_status
+                    await update_upload_status(
+                        upload_id=request.upload_id,
+                        status="failed",
+                        error_message="Podcast creation failed during transcription."
+                    )
+                raise HTTPException(
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    detail="Failed to create podcast record during transcription."
+                )
+            
+        # Track transcription
+        processing_time = time.time() - start_time
+        audio_length = transcription_data.get("metadata", {}).get("duration", 0)
+        status = "success"
+        
+        # Initialize variables for tracking
+        detected_language = "en"
+        confidence = 0
+        
+        # Extract transcript information if available
+        if "results" in transcription_data:
+            results = transcription_data.get("results", {})
+            detected_language = results.get("channels", [{}])[0].get("detected_language", "en")
+            confidence = results.get("channels", [{}])[0].get("alternatives", [{}])[0].get("confidence", 0)
+        
+        # Make sure podcast_id and transcript_id are included in tracking
+        track_data = {
+            "confidence": confidence,
+            "model": request.model or "default"
+        }
+        
+        if podcast_id:
+            track_data["podcast_id"] = podcast_id
+        if transcript_id:
+            track_data["transcript_id"] = transcript_id
+            
+        track_transcription(
+            status=status,
+            processing_time=processing_time,
+            audio_length=audio_length,
+            language=detected_language or request.language or "en",
+            user_id=str(current_user.get("_id", "")),
+            additional_data=track_data,
+            background_tasks=background_tasks # Pass background_tasks here
+        )
+        
+        return transcription_data
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error transcribing audio: {str(e)}") 
+        # Track transcription error
+        try:
+            processing_time = time.time() - start_time
+            track_transcription(
+                status="error",
+                processing_time=processing_time,
+                audio_length=0,  # Unknown in case of error
+                language=request.language or "en",
+                user_id=str(current_user.get("_id", "")),
+                additional_data={
+                    "error": str(e),
+                    "url": request.url
+                },
+                background_tasks=background_tasks # Pass background_tasks here
+            )
+        except Exception as tracking_error:
+            print(f"Error tracking transcription failure: {tracking_error}")
+            
+        raise HTTPException(status_code=500, detail=f"Error transcribing audio: {str(e)}")
