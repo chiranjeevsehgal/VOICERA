@@ -1,9 +1,8 @@
 from fastapi import APIRouter, HTTPException, Depends, status, Request
-from fastapi.security import OAuth2PasswordRequestForm
 from dotenv import load_dotenv
-from utils.generateOtp import generate_otp, verify_otp, otp_store
+from utils.generateOtp import generate_otp, verify_otp
 from utils.send_email import send_email
-from services.auth import get_user_by_email, get_current_user
+from services.auth import get_user_by_email
 from services.update_user_password import update_user_password
 from fastapi.responses import JSONResponse
 from models.otpRequest_models import GenerateOtpRequest, OtpVerificationRequest, UpdatePasswordRequest
