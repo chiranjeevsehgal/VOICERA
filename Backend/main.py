@@ -103,7 +103,7 @@ app.include_router(all_in_one.router, prefix="/api", tags=["all-in-one"])
 app.include_router(admin.router, prefix="/api", tags=["admin"])
 
 # Content Management Router
-app.include_router(content_management.router, prefix="/api", tags=["admin"])
+app.include_router(content_management.router, prefix="/api", tags=["content"])
 
 # This allows the file to be run directly with the appropriate settings
 if __name__ == "__main__":
