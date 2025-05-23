@@ -4,7 +4,6 @@ import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angula
 import { RouterModule } from '@angular/router';
 import { LucideAngularModule, Fingerprint } from 'lucide-angular';
 import { VerifyEmailService } from '../../../services/forgot-password/verify-email.service';
-import { Toast } from 'primeng/toast';
 
 
 @Component({
@@ -38,7 +37,7 @@ export class ForgotPasswordEmailComponent {
     if (this.forgotPasswordForm.valid) {
       
       // Here you would call your service to send reset instructions
-      console.log('Sending reset instructions to:', this.forgotPasswordForm.value.email);
+      // console.log('Sending reset instructions to:', this.forgotPasswordForm.value.email);
       this.isSubmitting = true;
       
       // Simulate API call
@@ -47,7 +46,7 @@ export class ForgotPasswordEmailComponent {
         this.verifyEmailService.verifyEmail(this.forgotPasswordForm.value.email).subscribe({
           next : (res) => {
             this.isSubmitting = false;
-            console.log(res);
+            // console.log(res);
             if(res.status){
               // Emmiting the status and email
               this.emailVerified.emit(true);
@@ -59,7 +58,8 @@ export class ForgotPasswordEmailComponent {
           },
           error : (error) => {
             this.isSubmitting = false;
-            console.log(error);
+            this.emailVerified.emit(false);
+            // console.error(error);
           }
         })
 

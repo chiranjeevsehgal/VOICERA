@@ -14,6 +14,6 @@ export const routes: Routes = [
     {path:"login", component: LoginPageComponent, canActivate : [redirectGuard]},
     {path:"search", component: SearchComponent, canActivate : [authGuard]},
     {path:"register", component: RegisterPageComponent, canActivate : [redirectGuard]},
-    {path:"otp", component: ForgotPasswordPageComponent},
+    {path:"forgot-password", component: ForgotPasswordPageComponent},
     {path: "**", component: PageNotFound},
 ];
