@@ -5,6 +5,7 @@ import { RegisterPageComponent } from './pages/register-page/register-page.compo
 import { PageNotFound } from './pages/error-page/error-page';
 import { authGuard } from './guards/auth.guard';
 import { redirectGuard } from './guards/redirect.guard';
+import { ForgotPasswordPageComponent } from './pages/forgot-password-page/forgot-password-page.component';
 import { AuthCallbackComponent } from './utils/auth-callback/auth-callback.component';
 import { AdminLoginPageComponent } from './pages/admin/login-page/login-page.component';
 import { AdminDashboardComponent } from './pages/admin/dashboard/dashboard.component';
@@ -16,6 +17,7 @@ export const routes: Routes = [
     {path:"login", component: LoginPageComponent, canActivate : [redirectGuard]},
     {path:"search", component: SearchComponent, canActivate : [authGuard]},
     {path:"register", component: RegisterPageComponent, canActivate : [redirectGuard]},
+    {path:"forgot-password", component: ForgotPasswordPageComponent},
     {path:"auth/callback", component: AuthCallbackComponent},
     
     // Admin route
