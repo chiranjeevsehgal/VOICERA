@@ -35,10 +35,10 @@ export class LoginService {
   }
 
 
-  exchangeGoogleCode(code: string): Observable<{access_token: string;user: any;message?: string;token_type: string;status: boolean}> {
+  exchangeGoogleCode(code: string): Observable<{access_token: string;detail?: string; role:string ;token_type: string;status: boolean}> {
   const payload: {code: string;} = { code };
   
-  return this.http.post<{access_token: string;user: any;message?: string;token_type: string;status: boolean}>(
+  return this.http.post<{access_token: string;detail?: string; role:string ;token_type: string;status: boolean}>(
     `${environment.apiUrl}/api/auth/google-login`,
     payload
   );

@@ -140,11 +140,14 @@ export class AuthCallbackComponent implements OnInit, OnDestroy {
       next: (response) => {
         this.currentMessage = "Welcome to VOICERA!";
         this.subMessage = "Redirecting to your dashboard...";
-        console.log(response);
         localStorage.setItem('auth_token', response.access_token);
         
         setTimeout(() => {
-          this.router.navigate(['/search']);
+          if(response.role == "admin") {
+            this.router.navigate(['/admin/dashboard']);
+          }
+          else{
+          this.router.navigate(['/search']);}
         }, 1500);
       },
       error: (error) => {
