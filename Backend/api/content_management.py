@@ -26,7 +26,7 @@ from models.content import (
 )
 from utils.logging import log_info, log_error
 
-router = APIRouter(prefix='/admin')
+router = APIRouter()
 
 # Pydantic models for update operations
 class PodcastUpdate(PodcastBase):
@@ -70,7 +70,6 @@ def sanitize_mongo_doc(doc: Dict[str, Any]) -> Dict[str, Any]:
 # Podcasts Management
 @router.get("/podcasts", response_model=PodcastsResponse, status_code=status.HTTP_200_OK)
 async def list_podcasts(
-    current_user: Dict[str, Any] = Depends(requires_role("admin")),
     page: int = Query(1, ge=1, description="Page number, starting from 1"),
     limit: int = Query(20, ge=1, le=100, description="Number of items per page"),
     sort_by: str = Query("created_at", description="Field to sort by"),
@@ -85,7 +84,6 @@ async def list_podcasts(
 ):
     """
     List and filter podcasts with pagination.
-    Only accessible to administrators.
     """
     # Build the filter query
     filter_query = {}
@@ -128,9 +126,9 @@ async def list_podcasts(
     sanitized_podcasts = [sanitize_mongo_doc(podcast) for podcast in podcasts]
     
     log_info(
-        f"Admin listed podcasts. Filters: {filter_query}, Total: {total_count}",
+        f"Listed podcasts. Filters: {filter_query}, Total: {total_count}",
         "content_management",
-        {"admin_id": str(current_user["_id"]), "page": page, "limit": limit}
+        {"page": page, "limit": limit}
     )
     
     return PodcastsResponse(
@@ -142,12 +140,10 @@ async def list_podcasts(
 
 @router.get("/podcasts/{podcast_id}", response_model=Podcast, status_code=status.HTTP_200_OK)
 async def get_podcast_details(
-    podcast_id: str = Path(..., description="Podcast ID"),
-    current_user: Dict[str, Any] = Depends(requires_role("admin"))
+    podcast_id: str = Path(..., description="Podcast ID")
 ):
     """
     Get detailed information about a specific podcast.
-    Only accessible to administrators.
     """
     try:
         obj_id = ObjectId(podcast_id)
@@ -166,9 +162,9 @@ async def get_podcast_details(
         )
     
     log_info(
-        f"Admin viewed podcast details. Podcast ID: {podcast_id}",
+        f"Viewed podcast details. Podcast ID: {podcast_id}",
         "content_management",
-        {"admin_id": str(current_user["_id"]), "podcast_id": podcast_id}
+        {"podcast_id": podcast_id}
     )
     
     return sanitize_mongo_doc(podcast)

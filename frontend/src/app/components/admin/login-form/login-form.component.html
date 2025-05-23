@@ -8,7 +8,7 @@
       <form [formGroup]="loginForm" (ngSubmit)="onSubmit()" class="p-6 md:p-8">
         <div class="flex flex-col gap-6">
           <div class="flex flex-col items-center text-center">
-            <h1 class="text-3xl font-bold text-black">Welcome back</h1>
+            <h1 class="text-3xl font-bold text-black">Welcome back, Admin</h1>
             <p class="text-gray-500 text-xs">Login to your account</p>
           </div>
 
@@ -21,7 +21,7 @@
           <div class="grid gap-2">
             <div class="flex items-center text-black">
               <label for="password" class="text-sm font-medium">Password</label>
-              <a href="/forgot-password" class="ml-auto text-xs hover:underline underline-offset-2 text-gray-500">
+              <a href="#" class="ml-auto text-xs hover:underline underline-offset-2 text-gray-500">
                 Forgot your password?
               </a>
             </div>
@@ -70,12 +70,6 @@
             </button>
           </div>
 
-          <div class="text-center text-xs text-black">
-            Don't have an account?
-            <a href="/register" class="underline underline-offset-4 ml-1">
-              Sign up
-            </a>
-          </div>
         </div>
       </form>
 
@@ -83,12 +77,11 @@
         <img
           src="https://images.unsplash.com/photo-1683304554869-8a871c913096?q=80&w=1974&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
           alt="Image" class="absolute inset-0 h-full w-full object-cover dark:brightness-[0.9]" />
+        <!-- <img
+          src="https://media1.tenor.com/m/W8__jFY9py0AAAAC/salam-sahib-chaiwala.gif"
+          alt="Image" class="absolute inset-0 h-full w-full object-cover dark:brightness-[0.9]" /> -->
       </div>
     </div>
   </div>
 
-  <div class="text-balance text-center text-xs text-gray-500">
-    By clicking continue, you agree to our <a href="#" class="underline underline-offset-4 hover:text-gray-900">Terms of
-      Service</a> and <a href="#" class="underline underline-offset-4 hover:text-gray-900">Privacy Policy</a>.
-  </div>
 </div>

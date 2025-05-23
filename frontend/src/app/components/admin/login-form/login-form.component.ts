@@ -1,29 +1,26 @@
-import { Component, NgZone, OnInit } from '@angular/core';
-import { FormBuilder, FormGroup, Validators, ReactiveFormsModule, AbstractControl, ValidationErrors } from '@angular/forms';
+import { Component, NgZone } from '@angular/core';
+import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import { Eye, EyeOff, LucideAngularModule } from 'lucide-angular';
 import { MessageService } from 'primeng/api';
 import { ProgressSpinner } from 'primeng/progressspinner';
 import { Toast } from 'primeng/toast';
-import { LoginService } from '../../services/auth/login.service';
-import { environment } from '../../../environments/environment';
-import { LucideAngularModule, Eye, EyeOff } from 'lucide-angular';
 import { Router } from '@angular/router';
-
+import { environment } from '../../../../environments/environment';
+import { AdminAuthService } from '../../../services/admin/admin.auth.service';
 
 @Component({
-  selector: 'app-login-form',
-  templateUrl: './login-form.component.html',
-  styles: ``,
-  imports: [
-    Toast,
+  selector: 'admin-app-login-form',
+  imports: [Toast,
     ReactiveFormsModule,
     ProgressSpinner,
-    LucideAngularModule
-  ],
+    LucideAngularModule],
+  templateUrl: './login-form.component.html',
+  styles: ``,
   providers: [
     MessageService
   ]
 })
-export class LoginFormComponent {
+export class AdminLoginFormComponent {
   loginForm: FormGroup;
   isLoading: boolean = false;
   showPassword: boolean = false;
@@ -35,7 +32,7 @@ export class LoginFormComponent {
   constructor(
     private fb: FormBuilder,
     private messageService: MessageService,
-    private loginService: LoginService,
+    private adminloginService: AdminAuthService,
     private ngZone: NgZone,
     private router: Router
   ) {
@@ -85,18 +82,26 @@ export class LoginFormComponent {
   onSubmit() {
     if (this.loginForm.valid) {
       this.isLoading = true;
-      console.log('Form submitted', this.loginForm.value);
-
       setTimeout(() => {
-        this.loginService.loginUser(this.loginForm.value).subscribe({
+        this.adminloginService.loginUser(this.loginForm.value).subscribe({
           next: (response) => {
             // console.log("Login Successfull", response);
             this.isLoading = false;
-            this.router.navigate(['/search']);
+            this.messageService.add({ 
+              severity: 'success', 
+              summary: 'Success', 
+              detail: 'Login successful! Redirecting...', 
+              life: 2000 
+            });
+
+            setTimeout(() => {
+              this.router.navigate(['/admin/dashboard']);
+            }, 1000);
+
             this.loginForm.reset();
           },
           error: (error) => {
-            // console.log("Login Error", error);
+            console.log("Login Error", error);
             this.isLoading = false;
             this.messageService.add({ severity: 'error', summary: 'Error', detail: error.error.detail, life: 3000 });
           }
@@ -104,4 +109,5 @@ export class LoginFormComponent {
       }, 3000);
     }
   }
+
 }

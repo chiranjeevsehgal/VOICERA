@@ -7,13 +7,14 @@ interface LoginResponse {
   status: boolean,
   detail: string,
   access_token: string,
-  token_type: string
+  token_type: string,
+  role: string,
 }
 
 @Injectable({
   providedIn: 'root'
 })
-export class LoginService {
+export class AdminAuthService {
 
   constructor(private http: HttpClient) { }
 
@@ -26,19 +27,26 @@ export class LoginService {
     formData.append('password', userDetails.password);
 
     return this.http.post<LoginResponse>(apiUrl, formData).pipe(
-      tap(resposne => {
-        if (resposne.status == true) {
-          localStorage.setItem('auth_token', resposne.access_token);
+      tap(response => {
+        
+        if (response.status == true && response.role == 'admin') {
+          localStorage.setItem('auth_token', response.access_token);
+        } else if (response.status == true && response.role !== 'admin') {
+          throw new Error('You are not authorized.');
         }
+      }), catchError(error => {
+        if (error.message === 'You are not authorized.') {
+          return throwError(() => ({ error: { detail: 'You are not authorized.' } }));
+        }
+        return throwError(() => error);
       })
     );
   }
 
-
-  exchangeGoogleCode(code: string): Observable<{access_token: string;detail?: string; role:string ;token_type: string;status: boolean}> {
+  exchangeGoogleCode(code: string): Observable<{access_token: string;user: any;message?: string;token_type: string;status: boolean}> {
   const payload: {code: string;} = { code };
   
-  return this.http.post<{access_token: string;detail?: string; role:string ;token_type: string;status: boolean}>(
+  return this.http.post<{access_token: string;user: any;message?: string;token_type: string;status: boolean}>(
     `${environment.apiUrl}/api/auth/google-login`,
     payload
   );
