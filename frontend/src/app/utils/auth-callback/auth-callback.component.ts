@@ -78,7 +78,7 @@ export class AuthCallbackComponent implements OnInit, OnDestroy {
     this.startAnimations();
     setTimeout(() => {
       this.handleAuthCallback();
-    }, 2000);
+    }, 1000);
   }
 
   ngOnDestroy(): void {
@@ -140,7 +140,7 @@ export class AuthCallbackComponent implements OnInit, OnDestroy {
       next: (response) => {
         this.currentMessage = "Welcome to VOICERA!";
         this.subMessage = "Redirecting to your dashboard...";
-        
+        console.log(response);
         localStorage.setItem('auth_token', response.access_token);
         
         setTimeout(() => {

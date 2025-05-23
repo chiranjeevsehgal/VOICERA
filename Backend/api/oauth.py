@@ -17,11 +17,11 @@ class GoogleCodeExchangeRequest(BaseModel):
     code: str
 
 class GoogleCodeExchangeResponse(BaseModel):
+    status: bool
+    detail: str
+    role: str
     access_token: str
     token_type: str
-    status: bool
-    user: dict
-    message: str = "Login successful"
 
 JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY")
 ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES"))
@@ -61,15 +61,10 @@ async def google_login(
     
     return {
         "status": True,
+        "detail": "Login Successful",
+        "role": user["role"],
         "access_token": access_token,
-        "status": True,
         "token_type": "bearer",
-        "user": {
-            "role": user["role"],
-            "email": user["email"],
-            "full_name": user.get("full_name"),
-            "profile_picture": user.get("profile_picture")
-        }
     }
 
 

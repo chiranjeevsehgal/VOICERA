@@ -43,18 +43,6 @@ export class AdminAuthService {
     );
   }
 
-  googleLogin(idToken: string) {
-    const apiUrl = `${environment.apiUrl}/api/auth/google-login`;
-    
-    return this.http.post<LoginResponse>(apiUrl, { token: idToken }).pipe(
-      tap(response => {
-        if (response.status == true) {
-          localStorage.setItem('auth_token', response.access_token);
-        }
-      })
-    );
-  }
-
   exchangeGoogleCode(code: string): Observable<{access_token: string;user: any;message?: string;token_type: string;status: boolean}> {
   const payload: {code: string;} = { code };
   
