@@ -9,6 +9,7 @@ import { ForgotPasswordPageComponent } from './pages/forgot-password-page/forgot
 import { AuthCallbackComponent } from './utils/auth-callback/auth-callback.component';
 import { AdminLoginPageComponent } from './pages/admin/login-page/login-page.component';
 import { AdminDashboardComponent } from './pages/admin/dashboard/dashboard.component';
+import { SemanticSearchComponent } from './pages/embedding-search/semantic-search.component';
 
 
 export const routes: Routes = [
@@ -16,6 +17,7 @@ export const routes: Routes = [
     {path: "", redirectTo: "login", pathMatch: "full" },
     {path:"login", component: LoginPageComponent, canActivate : [redirectGuard]},
     {path:"search", component: SearchComponent, canActivate : [authGuard]},
+    {path:"ai-search", component: SemanticSearchComponent, canActivate : [authGuard]},
     {path:"register", component: RegisterPageComponent, canActivate : [redirectGuard]},
     {path:"forgot-password", component: ForgotPasswordPageComponent},
     {path:"auth/callback", component: AuthCallbackComponent},
