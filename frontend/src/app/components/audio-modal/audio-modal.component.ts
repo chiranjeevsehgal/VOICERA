@@ -51,6 +51,8 @@ export class AudioModalComponent implements OnInit, OnDestroy {
 
   onLoadedMetadata() {
     if (this.audioPlayer?.nativeElement) {
+      console.log(this.audioPlayer.nativeElement);
+      
       this.duration = this.audioPlayer.nativeElement.duration;
     }
   }

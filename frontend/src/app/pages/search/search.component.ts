@@ -30,6 +30,8 @@ export class SearchComponent implements OnInit, OnDestroy {
   selectedPodcast: Podcast | null = null;
   isModalVisible = false;
   private subscription?: Subscription;
+  isSearching = false;
+  isLoading = true;
 
   constructor(
     private podcastService: PodcastService,

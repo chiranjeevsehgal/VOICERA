@@ -1,5 +1,9 @@
-<div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 text-black">
-    @for (podcast of podcasts; track podcast.id) {
-    <app-podcast-card [podcast]="podcast" (cardClick)="onCardClick($event)"></app-podcast-card>
-    }
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
+  @for (podcast of podcasts; track podcast.id) {
+    <app-podcast-card 
+      [podcast]="podcast" 
+      (cardClick)="onCardClick($event)"
+      class="transform transition-all duration-300 hover:-translate-y-2">
+    </app-podcast-card>
+  }
 </div>
