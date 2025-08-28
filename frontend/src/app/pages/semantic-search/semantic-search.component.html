@@ -1,0 +1,195 @@
+<div class="card flex justify-center">
+  <p-toast />
+</div>
+
+<div class="min-h-screen bg-white">
+  <app-header></app-header>
+  <main class="container mx-auto px-4 py-8 max-w-5xl">
+    <!-- Search Section -->
+    <section class="mt-8 mb-10">
+      <h1 class="text-2xl font-bold mb-6 text-black">AI-Powered Semantic Search</h1>
+      <div class="max-w-2xl">
+        <div class="flex space-x-3">
+          <div class="flex-1 relative">
+            <input
+              type="text"
+              placeholder="Ask a question or describe what you're looking for..."
+              [(ngModel)]="searchQuery"
+              (keyup.enter)="onSearchSubmit()"
+              (input)="onSearchInput()"
+              class="w-full px-4 py-3 pr-10 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-black"
+            />
+            <!-- Clear button -->
+            <button
+              *ngIf="searchQuery && !loading"
+              (click)="onSearchClear()"
+              class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+              aria-label="Clear search">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+              </svg>
+            </button>
+            <!-- Loading spinner -->
+            <div *ngIf="loading" class="absolute right-3 top-1/2 transform -translate-y-1/2">
+              <div class="animate-spin rounded-full h-4 w-4 border-2 border-purple-500 border-t-transparent"></div>
+            </div>
+          </div>
+          <button
+            (click)="onSearchSubmit()"
+            [disabled]="!searchQuery.trim() || loading"
+            class="px-6 py-3 bg-gradient-to-r from-purple-500 to-blue-500 text-white rounded-md hover:from-purple-600 hover:to-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200">
+            <span *ngIf="!loading">Search</span>
+            <span *ngIf="loading">Searching...</span>
+          </button>
+        </div>
+        <p class="text-sm text-gray-500 mt-2">
+          Use natural language to find relevant audio content based on meaning, not just keywords
+        </p>
+      </div>
+    </section>
+
+    <!-- Results Section -->
+    <section class="mt-8" *ngIf="searchQuery">
+      <h2 class="text-lg font-medium mb-4">
+        {{ loading ? 'Searching...' : searchResults.length > 0 ? 'AI Search Results (' + searchResults.length + ')' : 'No Results Found' }}
+      </h2>
+
+      <!-- Loading state -->
+      <div *ngIf="loading" class="text-center py-12">
+        <div class="animate-spin rounded-full h-12 w-12 border-4 border-purple-500 border-t-transparent mx-auto mb-4"></div>
+        <p class="text-gray-600">AI is analyzing your query...</p>
+      </div>
+
+      <!-- No results message -->
+      <div *ngIf="!loading && searchQuery && searchResults.length === 0" class="text-center py-12">
+        <div class="text-gray-500 mb-4">
+          <svg class="w-16 h-16 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>
+          </svg>
+        </div>
+        <p class="text-gray-600 text-lg mb-2">No audio content found for "{{ searchQuery }}"</p>
+        <p class="text-gray-500 text-sm">Try rephrasing your query or using different terms</p>
+      </div>
+
+      <!-- Search Results -->
+      <div *ngIf="!loading && searchResults.length > 0" class="space-y-4">
+        <div *ngFor="let podcast of searchResults" 
+             class="bg-white border border-gray-200 rounded-lg p-6 hover:shadow-md transition-shadow cursor-pointer"
+             (click)="onPodcastCardClick(podcast)">
+          <div class="flex items-start space-x-4">
+            <img [src]="podcast.imageUrl" [alt]="podcast.title" class="w-16 h-16 rounded-lg object-cover flex-shrink-0">
+            <div class="flex-1 min-w-0">
+              <h3 class="font-medium text-gray-900 mb-1">{{ podcast.title }}</h3>
+              <p class="text-sm text-gray-600 mb-3">{{ podcast.creator }}</p>
+              
+              <!-- Relevant excerpt -->
+              <div class="bg-gray-50 rounded-md p-3 mb-3">
+                <p class="text-sm text-gray-700 italic">"{{ podcast.searchResult.text }}"</p>
+              </div>
+              
+              <!-- Metadata -->
+              <div class="flex items-center space-x-4 text-xs text-gray-500">
+                <span>{{ formatTime(podcast.searchResult.start_time) }} - {{ formatTime(podcast.searchResult.end_time) }}</span>
+                <span>Confidence: {{ (podcast.searchResult.confidence * 100) | number:'1.0-0' }}%</span>
+                <span>Relevance: {{ (podcast.searchResult.semantic_score * 100) | number:'1.0-0' }}%</span>
+              </div>
+            </div>
+            
+            <!-- Play button -->
+            <div class="flex-shrink-0">
+              <div class="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center group-hover:bg-purple-200 transition-colors">
+                <svg class="w-5 h-5 text-purple-600" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M8 5v14l11-7z"/>
+                </svg>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Audio Modal for Semantic Search Results -->
+  <div *ngIf="selectedPodcast" 
+       class="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm bg-white/10"
+       (click)="onModalClose()">
+    <div class="bg-white rounded-lg shadow-xl max-w-lg w-full mx-4 max-h-[90vh] overflow-y-auto" 
+         (click)="$event.stopPropagation()">
+      
+      <!-- Header -->
+      <div class="flex items-center justify-between p-6 border-b">
+        <h2 class="text-xl font-semibold text-gray-900">AI Search Result</h2>
+        <button (click)="onModalClose()" 
+                class="text-gray-400 hover:text-gray-600 transition-colors">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+          </svg>
+        </button>
+      </div>
+
+      <!-- Content -->
+      <div class="p-6">
+        <!-- Audio Info -->
+        <div class="text-center mb-6">
+          <img [src]="selectedPodcast.imageUrl" [alt]="selectedPodcast.title"
+               class="w-32 h-32 mx-auto rounded-lg mb-4 object-cover">
+          <h3 class="text-lg font-semibold text-gray-900 mb-2">{{ selectedPodcast.title }}</h3>
+          <p class="text-gray-600 mb-4">{{ selectedPodcast.creator }}</p>
+        </div>
+
+        <!-- Relevant Excerpt -->
+        <div class="bg-purple-50 border border-purple-200 rounded-lg p-4 mb-6">
+          <h4 class="font-medium text-purple-900 mb-2">Relevant Content Found:</h4>
+          <p class="text-sm text-purple-800 italic">"{{ selectedPodcast.searchResult.text }}"</p>
+          <div class="mt-2 text-xs text-purple-600">
+            Timestamp: {{ formatTime(selectedPodcast.searchResult.start_time) }} - {{ formatTime(selectedPodcast.searchResult.end_time) }}
+          </div>
+        </div>
+
+        <!-- Audio Player -->
+        <div class="mb-6">
+          <audio controls class="w-full" [src]="selectedPodcast.file_url">
+            Your browser does not support the audio element.
+          </audio>
+        </div>
+
+        <!-- Search Metadata -->
+        <div class="space-y-3 text-sm">
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <span class="font-medium text-gray-700">Confidence:</span>
+              <p class="text-gray-600">{{ (selectedPodcast.searchResult.confidence * 100) | number:'1.1-1' }}%</p>
+            </div>
+            <div>
+              <span class="font-medium text-gray-700">Semantic Score:</span>
+              <p class="text-gray-600">{{ (selectedPodcast.searchResult.semantic_score * 100) | number:'1.1-1' }}%</p>
+            </div>
+          </div>
+          
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <span class="font-medium text-gray-700">Combined Score:</span>
+              <p class="text-gray-600">{{ (selectedPodcast.searchResult.combined_score * 100) | number:'1.1-1' }}%</p>
+            </div>
+            <div>
+              <span class="font-medium text-gray-700">Technical Score:</span>
+              <p class="text-gray-600">{{ selectedPodcast.searchResult.technical_score | number:'1.1-1' }}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Footer -->
+      <div class="flex justify-end space-x-3 p-6 border-t">
+        <button (click)="onModalClose()" 
+                class="px-4 py-2 text-gray-600 hover:text-gray-800 transition-colors">
+          Close
+        </button>
+        <a [href]="selectedPodcast.file_url" download 
+           class="px-4 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-colors">
+          Download
+        </a>
+      </div>
+    </div>
+  </div>
+</div>

@@ -9,7 +9,7 @@ import { ForgotPasswordPageComponent } from './pages/forgot-password-page/forgot
 import { AuthCallbackComponent } from './utils/auth-callback/auth-callback.component';
 import { AdminLoginPageComponent } from './pages/admin/login-page/login-page.component';
 import { AdminDashboardComponent } from './pages/admin/dashboard/dashboard.component';
-import { SemanticSearchComponent } from './pages/embedding-search/semantic-search.component';
+import { SemanticSearchComponent } from './pages/semantic-search/semantic-search.component';
 
 
 export const routes: Routes = [
