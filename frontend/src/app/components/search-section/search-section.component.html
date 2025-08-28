@@ -1,7 +1,41 @@
-<section class="mt-8 mb-10">
-    <h1 class="text-2xl font-bold mb-6 text-black">Search and explore audio</h1>
-    <div class="max-w-md">
-        <input type="text" placeholder="Artists/songs or TaylorSwift..."
-            class="w-full px-4 py-2.5 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-0 focus:ring-offset-0 text-black"/>
+<style>
+  @keyframes spin-slow {
+    0% {
+      transform: rotate(0deg);
+    }
+
+    100% {
+      transform: rotate(360deg);
+    }
+  }
+
+  .animate-spin-slow {
+    animation: spin-slow 5s linear infinite;
+  }
+</style>
+
+<section class="mt-8 mb-10 flex justify-center">
+  <!-- Group wrapper for focus tracking -->
+  <div class="group relative p-[3px] rounded-full overflow-hidden w-full max-w-3xl">
+
+    <!-- Rotating Gradient Layer (hidden on focus) -->
+    <div
+      class="absolute inset-0 rounded-full animate-spin-slow z-0 transition-opacity duration-300 group-focus-within:opacity-0"
+      style="background: conic-gradient(from 0deg, #3b82f6, #ec4899);">
     </div>
+
+    <!-- Static Focus Border -->
+    <div
+      class="absolute inset-0 rounded-full z-0 border border-blue-500 opacity-0 group-focus-within:opacity-100 transition-opacity duration-300">
+    </div>
+
+    <!-- Search Bar -->
+    <div class="relative z-10 rounded-full bg-white">
+      <input
+        type="text"
+        placeholder="Search voices, sounds or conversations"
+        class="w-full px-8 py-6 rounded-full text-sm text-black placeholder:text-gray-500 bg-white focus:outline-none focus:ring-0"
+      />
+    </div>
+  </div>
 </section>
