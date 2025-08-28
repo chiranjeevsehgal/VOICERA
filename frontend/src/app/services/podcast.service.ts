@@ -43,6 +43,7 @@ export interface Podcast {
   title: string;
   creator: string;
   imageUrl: string;
+  audioFile: AudioFile;
 }
 
 @Injectable({
@@ -71,7 +72,8 @@ export class PodcastService {
       id: file.id,
       title: file.user_data.file_name.replace('.mp3', ''), // Remove extension for title
       creator: file.user_data.user_details.full_name,
-      imageUrl: "https://developers.elementor.com/docs/assets/img/elementor-placeholder-image.png"
+      imageUrl: "https://developers.elementor.com/docs/assets/img/elementor-placeholder-image.png",
+      audioFile: file
     }));
   }
 }

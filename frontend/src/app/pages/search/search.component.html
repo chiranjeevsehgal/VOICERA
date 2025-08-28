@@ -1,11 +1,21 @@
 <div class="min-h-screen bg-white">
-    <app-header></app-header>
-    <main class="container mx-auto px-4 py-8 max-w-5xl">
-        <app-search-section></app-search-section>
-        <!-- <app-trending-searches></app-trending-searches> -->
-        <section class="mt-8">
-            <h2 class="text-lg font-medium mb-4">Top podcasts</h2>
-            <app-podcast-grid [podcasts]="podcasts"></app-podcast-grid>
-        </section>
-    </main>
+  <app-header></app-header>
+  <main class="container mx-auto px-4 py-8 max-w-5xl">
+    <app-search-section></app-search-section>
+    <!-- <app-trending-searches></app-trending-searches> -->
+    <section class="mt-8">
+      <h2 class="text-lg font-medium mb-4">Top podcasts</h2>
+      <app-podcast-grid
+        [podcasts]="podcasts"
+        (podcastClick)="onPodcastCardClick($event)"
+      ></app-podcast-grid>
+    </section>
+  </main>
+
+  <app-audio-modal
+    [podcast]="selectedPodcast"
+    [isVisible]="isModalVisible"
+    (close)="onModalClose()"
+  >
+  </app-audio-modal>
 </div>

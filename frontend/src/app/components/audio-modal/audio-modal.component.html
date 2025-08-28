@@ -1,0 +1,117 @@
+<div
+  *ngIf="isVisible"
+  class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50"
+  (click)="onBackdropClick($event)"
+>
+  <div
+    class="bg-white rounded-lg shadow-xl max-w-md w-full mx-4 max-h-[90vh] overflow-y-auto"
+    (click)="$event.stopPropagation()"
+  >
+    <!-- Header -->
+    <div class="flex items-center justify-between p-6 border-b">
+      <h2 class="text-xl font-semibold text-gray-900">Audio Details</h2>
+      <button
+        (click)="closeModal()"
+        class="text-gray-400 cursor-pointer hover:text-gray-600 transition-colors"
+        aria-label="Close modal"
+      >
+        <svg
+          class="w-6 h-6"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M6 18L18 6M6 6l12 12"
+          ></path>
+        </svg>
+      </button>
+    </div>
+
+    <!-- Content -->
+    <div class="p-6" *ngIf="podcast">
+      <!-- Audio Info -->
+      <div class="text-center mb-6">
+        <img
+          [src]="podcast.imageUrl"
+          [alt]="podcast.title"
+          class="w-32 h-32 mx-auto rounded-lg mb-4 object-cover"
+        />
+        <h3 class="text-lg font-semibold text-gray-900 mb-2">
+          {{ podcast.title }}
+        </h3>
+        <!-- <p class="text-gray-600 mb-4">{{ podcast.creator }}</p> -->
+      </div>
+
+      <!-- Audio Player -->
+      <div class="mb-6">
+        <audio
+          #audioPlayer
+          controls
+          class="w-full"
+          [src]="podcast.audioFile.user_data.file_url"
+          (timeupdate)="onTimeUpdate()"
+          (loadedmetadata)="onLoadedMetadata()"
+          (play)="isPlaying = true"
+          (pause)="isPlaying = false"
+          (ended)="isPlaying = false"
+        >
+          Your browser does not support the audio element.
+        </audio>
+      </div>
+
+      <!-- Audio Details -->
+      <div class="space-y-4 text-sm">
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <span class="font-medium text-gray-700">Duration:</span>
+            <p class="text-gray-600">{{ formatTime(duration) }}</p>
+          </div>
+          <div>
+            <span class="font-medium text-gray-700">Size:</span>
+            <p class="text-gray-600">
+              {{ formatFileSize(podcast.audioFile.metadata.size) }}
+            </p>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <span class="font-medium text-gray-700">Format:</span>
+            <p class="text-gray-600">
+              {{ podcast.audioFile.metadata.mimetype }}
+            </p>
+          </div>
+          <div>
+            <span class="font-medium text-gray-700">Uploaded:</span>
+            <p class="text-gray-600">
+              {{ formatDate(podcast.audioFile.created_at) }}
+            </p>
+          </div>
+        </div>
+
+        <div>
+          <span class="font-medium text-gray-700">Uploaded by:</span>
+          <p class="text-gray-600">
+            {{ podcast.audioFile.user_data.user_details.full_name }}
+          </p>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="flex justify-end space-x-3 p-6 border-t">
+      <a
+        [href]="podcast?.audioFile?.user_data?.file_url"
+        download
+        class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+      >
+        Download
+      </a>
+    </div>
+  </div>
+</div>

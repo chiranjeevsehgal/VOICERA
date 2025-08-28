@@ -1,11 +1,12 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { Subscription } from 'rxjs';
-import { PodcastService } from '../../services/podcast.service';
+import { Podcast, PodcastService } from '../../services/podcast.service';
 import { HeaderComponent } from '../../components/header/header.component';
 import { SerachSectionComponent } from '../../components/search-section/search-section.component';
 import { TrendingSearchesComponent } from '../../components/trending-searches/trending-searches.component';
 import { PodcastGridComponent } from '../../components/podcast-grid/podcast-grid.component';
 import { MessageService } from 'primeng/api';
+import { AudioModalComponent } from '../../components/audio-modal/audio-modal.component';
 
 @Component({
     selector: 'app-search',
@@ -15,6 +16,7 @@ import { MessageService } from 'primeng/api';
       HeaderComponent, 
       SerachSectionComponent, 
       TrendingSearchesComponent, 
+      AudioModalComponent,
       PodcastGridComponent
     ],
     providers : [
@@ -23,6 +25,8 @@ import { MessageService } from 'primeng/api';
 })
 export class SearchComponent implements OnInit, OnDestroy {
   podcasts: any[] = [];
+  selectedPodcast: Podcast | null = null;
+  isModalVisible = false; 
   private subscription?: Subscription;
 
   constructor(
@@ -55,5 +59,16 @@ export class SearchComponent implements OnInit, OnDestroy {
         });
       }
     });
+  }
+
+    // Add these methods
+  onPodcastCardClick(podcast: Podcast): void {
+    this.selectedPodcast = podcast;
+    this.isModalVisible = true;
+  }
+
+  onModalClose(): void {
+    this.isModalVisible = false;
+    this.selectedPodcast = null;
   }
 }
