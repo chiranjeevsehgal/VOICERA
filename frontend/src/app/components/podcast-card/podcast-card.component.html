@@ -1,21 +1,28 @@
-<div class="bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow cursor-pointer group" 
+<div class="bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow cursor-pointer group h-full flex flex-col" 
      (click)="onCardClick()">
-  <div class="relative overflow-hidden rounded-t-lg">
+  <!-- Image container with fixed aspect ratio -->
+  <div class="relative overflow-hidden rounded-t-lg aspect-square">
     <img 
       [src]="podcast.imageUrl" 
       [alt]="podcast.title"
-      class="w-full h-40 object-cover group-hover:scale-105 transition-transform duration-300">
+      class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">
     <!-- Play button overlay -->
     <div class="absolute inset-0 bg-black bg-opacity-40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-      <div class="w-12 h-12 bg-white rounded-full flex items-center justify-center">
-        <svg class="w-6 h-6 text-blue-500 ml-1" fill="currentColor" viewBox="0 0 24 24">
+      <div class="w-10 h-10 sm:w-12 sm:h-12 bg-white rounded-full flex items-center justify-center">
+        <svg class="w-4 h-4 sm:w-6 sm:h-6 text-blue-500 ml-0.5" fill="currentColor" viewBox="0 0 24 24">
           <path d="M8 5v14l11-7z"/>
         </svg>
       </div>
     </div>
   </div>
-  <div class="p-3">
-    <h3 class="font-medium text-gray-900 mb-1 line-clamp-2">{{ podcast.title }}</h3>
-    <p class="text-sm text-gray-600">{{ podcast.creator }}</p>
+  
+  <!-- Content container with space-between to push author to bottom -->
+  <div class="p-2 sm:p-3 flex-1 flex flex-col justify-between">
+    <!-- Title takes available space -->
+    <h3 class="font-medium text-gray-900 mb-1 text-sm sm:text-base leading-tight line-clamp-2 flex-1">
+      {{ podcast.title }}
+    </h3>
+    <!-- Author always at bottom -->
+    <p class="text-xs sm:text-sm text-gray-600 line-clamp-1 mt-1">{{ podcast.creator }}</p>
   </div>
 </div>
