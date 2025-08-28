@@ -50,10 +50,12 @@ export class SearchComponent implements OnInit, OnDestroy {
   }
 
   private loadPodcasts(): void {
+    this.isLoading = true;
     this.subscription = this.podcastService.getPodcasts().subscribe({
       next: (podcasts) => {
-        this.podcasts = podcasts;
+        this.podcasts = this.sortPodcastsByDate(podcasts);
         this.filteredPodcasts = podcasts;
+        this.isLoading = false
       },
       error: (error) => {
         console.error('Error loading podcasts:', error);
@@ -62,6 +64,7 @@ export class SearchComponent implements OnInit, OnDestroy {
           summary: 'Error',
           detail: 'Failed to load podcasts',
         });
+        this.isLoading = false;
       },
     });
   }
@@ -69,6 +72,22 @@ export class SearchComponent implements OnInit, OnDestroy {
   onSearchChange(query: string): void {
     this.searchQuery = query.trim();
     this.filterPodcasts();
+  }
+
+  private sortPodcastsByDate(podcasts: Podcast[]): Podcast[] {
+    return podcasts.sort((a, b) => {
+      // Assuming the podcast object has a date field like 'created_at', 'uploadDate', or 'audioFile.created_at'
+      // Adjust the property path based on your actual data structure
+      const dateA = new Date(
+        a.audioFile?.created_at
+      );
+      const dateB = new Date(
+        b.audioFile?.created_at
+      );
+
+      // Sort in descending order (newest first)
+      return dateB.getTime() - dateA.getTime();
+    });
   }
 
   private filterPodcasts(): void {
