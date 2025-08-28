@@ -123,7 +123,7 @@ ng serve
 
 ### Storage & Indexing
 - `POST /api/uploadToSupabase`: Upload to permanent storage with automatic indexing
-- `GET /api/listSupabaseFiles`: List files in storage
+- `GET /api/listAudioFiles`: List files in storage
 
 ### Search & Analysis
 - `GET /api/search`: Search through audio transcripts

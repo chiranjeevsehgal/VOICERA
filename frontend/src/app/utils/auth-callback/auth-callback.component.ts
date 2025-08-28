@@ -76,9 +76,9 @@ export class AuthCallbackComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.startAnimations();
-    setTimeout(() => {
-      this.handleAuthCallback();
-    }, 1000);
+    this.handleAuthCallback();
+    // setTimeout(() => {
+    // }, 1000);
   }
 
   ngOnDestroy(): void {

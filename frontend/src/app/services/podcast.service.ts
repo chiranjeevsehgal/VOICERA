@@ -1,74 +1,77 @@
-import { Injectable } from "@angular/core"
-// import type { Podcast } from "../models/podcast.model"
+import { Injectable } from "@angular/core";
+import { HttpClient, HttpHeaders } from "@angular/common/http";
+import { Observable, map } from "rxjs";
+import { environment } from "../../environments/environment"; // Adjust path as needed
+
+export interface AudioFile {
+  name: string;
+  id: string;
+  updated_at: string;
+  created_at: string;
+  last_accessed_at: string;
+  metadata: {
+    eTag: string;
+    size: number;
+    mimetype: string;
+    cacheControl: string;
+    lastModified: string;
+    contentLength: number;
+    httpStatusCode: number;
+  };
+  user_data: {
+    id: string;
+    user_id: string;
+    file_name: string;
+    file_path: string;
+    file_url: string;
+    metadata: any;
+    created_at: string;
+    updated_at: string;
+    user_details: {
+      email: string;
+      full_name: string;
+    };
+  };
+}
+
+export interface ApiResponse {
+  files: AudioFile[];
+}
+
+export interface Podcast {
+  id: string;
+  title: string;
+  creator: string;
+  imageUrl: string;
+}
 
 @Injectable({
   providedIn: "root",
 })
 export class PodcastService {
-  private podcasts: any[] = [
-    {
-      id: "1",
-      title: "The Daily",
-      creator: "The New York Times",
-      imageUrl: "https://via.placeholder.com/300",
-    },
-    {
-      id: "2",
-      title: "Stuff You Should Know",
-      creator: "iHR",
-      imageUrl: "https://via.placeholder.com/300",
-    },
-    {
-      id: "3",
-      title: "TED Radio Hour",
-      creator: "NPR",
-      imageUrl: "https://via.placeholder.com/300",
-    },
-    {
-      id: "4",
-      title: "How I Built This",
-      creator: "NPR",
-      imageUrl: "https://via.placeholder.com/300",
-    },
-    {
-      id: "5",
-      title: "Wait Wait... Don't Tell Me!",
-      creator: "NPR",
-      imageUrl: "https://via.placeholder.com/300",
-    },
-    {
-      id: "6",
-      title: "The Joe Rogan Experience",
-      creator: "Joe Rogan",
-      imageUrl: "https://via.placeholder.com/300",
-    },
-    {
-      id: "7",
-      title: "Radiolab",
-      creator: "WNYC Studios",
-      imageUrl: "https://via.placeholder.com/300",
-    },
-    {
-      id: "8",
-      title: "Planet Money",
-      creator: "NPR",
-      imageUrl: "https://via.placeholder.com/300",
-    },
-    {
-      id: "9",
-      title: "The Dave Ramsey Show",
-      creator: "Ramsey Solutions",
-      imageUrl: "https://via.placeholder.com/300",
-    },
-    {
-      id: "10",
-      title: "Freakonomics Radio",
-      creator: "Freakonomics Radio",
-      imageUrl: "https://via.placeholder.com/300",
-    },
-  ]
+  private baseUrl = environment.apiUrl; 
+  private authToken = localStorage.getItem('auth_token'); 
 
-  getPodcasts(): any[] {
-    return this.podcasts
+  constructor(private http: HttpClient) {}
+
+  getPodcasts(): Observable<Podcast[]> {
+    const headers = new HttpHeaders({
+      'Authorization': `Bearer ${this.authToken}`,
+      'Content-Type': 'application/json'
+    });
+
+    return this.http.get<ApiResponse>(`${this.baseUrl}/api/listAudioFiles`, { headers })
+      .pipe(
+        map(response => this.transformApiResponseToPodcasts(response.files))
+      );
+  }
+
+  private transformApiResponseToPodcasts(files: AudioFile[]): Podcast[] {
+    return files.map(file => ({
+      id: file.id,
+      title: file.user_data.file_name.replace('.mp3', ''), // Remove extension for title
+      creator: file.user_data.user_details.full_name,
+      imageUrl: "https://developers.elementor.com/docs/assets/img/elementor-placeholder-image.png"
+    }));
   }
 }

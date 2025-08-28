@@ -14,8 +14,8 @@ TOGETHER_API_KEY = os.getenv("TOGETHER_API_KEY")
 PINECONE_API_KEY = os.getenv("PINECONE_API_KEY")
 PINECONE_ENVIRONMENT = os.getenv("PINECONE_ENVIRONMENT", "gcp-starter")
 PINECONE_INDEX_NAME = os.getenv("PINECONE_INDEX_NAME", "voicera-audio-search")
-EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "togethercomputer/m2-bert-80M-8k-retrieval")
-EMBEDDING_DIMENSION = int(os.getenv("EMBEDDING_DIMENSION", "768"))  # 768 for m2-bert-80M-8k-retrieval
+EMBEDDING_MODEL = os.getenv("TOGETHER_EMBEDDING_MODEL", "togethercomputer/m2-bert-80M-32k-retrieval")
+EMBEDDING_DIMENSION = int(os.getenv("EMBEDDING_DIMENSION", "768"))  # 768 for m2-bert-80M-32k-retrieval
 
 # Initialize the Together AI client
 together_client = Together(api_key=TOGETHER_API_KEY)
