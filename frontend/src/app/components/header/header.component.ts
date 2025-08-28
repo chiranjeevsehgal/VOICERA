@@ -12,4 +12,8 @@ export class HeaderComponent {
   onAISearchClick(): void {
     this.router.navigate(['/ai-search']);
   }
+  
+  onLibraryClick(): void {
+    this.router.navigate(['/search']);
+  }
 }

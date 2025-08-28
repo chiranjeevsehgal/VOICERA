@@ -66,6 +66,8 @@ export class SemanticSearchComponent implements OnInit, OnDestroy {
     this.subscription = this.semanticSearchService.searchAudio(query).subscribe({
       next: (response) => {
         this.searchResults = this.transformSearchResults(response.results);
+        console.log(this.searchResults);
+        
         this.loading = false;
       },
       error: (error) => {
