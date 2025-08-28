@@ -7,26 +7,28 @@ import { TrendingSearchesComponent } from '../../components/trending-searches/tr
 import { PodcastGridComponent } from '../../components/podcast-grid/podcast-grid.component';
 import { MessageService } from 'primeng/api';
 import { AudioModalComponent } from '../../components/audio-modal/audio-modal.component';
+import { CommonModule } from '@angular/common';
 
 @Component({
-    selector: 'app-search',
-    templateUrl: './search.component.html',
-    styles: ``,
-    imports: [
-      HeaderComponent, 
-      SerachSectionComponent, 
-      TrendingSearchesComponent, 
-      AudioModalComponent,
-      PodcastGridComponent
-    ],
-    providers : [
-      MessageService
-    ]
+  selector: 'app-search',
+  templateUrl: './search.component.html',
+  styles: ``,
+  imports: [
+    CommonModule,
+    HeaderComponent,
+    SerachSectionComponent,
+    TrendingSearchesComponent,
+    AudioModalComponent,
+    PodcastGridComponent,
+  ],
+  providers: [MessageService],
 })
 export class SearchComponent implements OnInit, OnDestroy {
   podcasts: any[] = [];
+  filteredPodcasts: Podcast[] = [];
+  searchQuery: string = '';
   selectedPodcast: Podcast | null = null;
-  isModalVisible = false; 
+  isModalVisible = false;
   private subscription?: Subscription;
 
   constructor(
@@ -49,19 +51,38 @@ export class SearchComponent implements OnInit, OnDestroy {
     this.subscription = this.podcastService.getPodcasts().subscribe({
       next: (podcasts) => {
         this.podcasts = podcasts;
+        this.filteredPodcasts = podcasts;
       },
       error: (error) => {
         console.error('Error loading podcasts:', error);
         this.messageService.add({
           severity: 'error',
           summary: 'Error',
-          detail: 'Failed to load podcasts'
+          detail: 'Failed to load podcasts',
         });
-      }
+      },
     });
   }
 
-    // Add these methods
+  onSearchChange(query: string): void {
+    this.searchQuery = query.trim();
+    this.filterPodcasts();
+  }
+
+  private filterPodcasts(): void {
+    if (!this.searchQuery) {
+      this.filteredPodcasts = this.podcasts;
+    } else {
+      this.filteredPodcasts = this.podcasts.filter(
+        (podcast) =>
+          podcast.title
+            .toLowerCase()
+            .includes(this.searchQuery.toLowerCase()) ||
+          podcast.creator.toLowerCase().includes(this.searchQuery.toLowerCase())
+      );
+    }
+  }
+
   onPodcastCardClick(podcast: Podcast): void {
     this.selectedPodcast = podcast;
     this.isModalVisible = true;

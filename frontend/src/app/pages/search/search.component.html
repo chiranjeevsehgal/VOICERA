@@ -1,12 +1,26 @@
 <div class="min-h-screen bg-white">
   <app-header></app-header>
   <main class="container mx-auto px-4 py-8 max-w-5xl">
-    <app-search-section></app-search-section>
+    <app-search-section-title (searchChange)="onSearchChange($event)"></app-search-section-title>
     <!-- <app-trending-searches></app-trending-searches> -->
     <section class="mt-8">
-      <h2 class="text-lg font-medium mb-4">Top audios</h2>
+      <h2 class="text-lg font-medium mb-4">
+        {{ searchQuery ? 'Search Results (' + filteredPodcasts.length + ')' : 'Top audios' }}
+      </h2>
+      <!-- Show message when no results found -->
+      <div *ngIf="searchQuery && filteredPodcasts.length === 0" class="text-center py-8">
+        <div class="text-gray-500 mb-2">
+          <svg class="w-16 h-16 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+          </svg>
+        </div>
+        <p class="text-gray-600 text-lg">No audio files found for "{{ searchQuery }}"</p>
+        <p class="text-gray-500 text-sm mt-2">Try adjusting your search terms</p>
+      </div>
+      <!-- Show results -->
       <app-podcast-grid
-        [podcasts]="podcasts"
+        *ngIf="filteredPodcasts.length > 0"
+        [podcasts]="filteredPodcasts"
         (podcastClick)="onPodcastCardClick($event)"
       ></app-podcast-grid>
     </section>
