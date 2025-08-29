@@ -1,7 +1,10 @@
 import { Component, OnDestroy, OnInit } from '@angular/core';
 import { interval, Subscription } from 'rxjs';
 import { ActivatedRoute } from '@angular/router';
-import { UploadAudioService, JobStatus } from '../../services/upload-audio.service';
+import {
+  UploadAudioService,
+  JobStatus,
+} from '../../services/upload-audio.service';
 import { MessageService } from 'primeng/api';
 import { CommonModule } from '@angular/common';
 import { Toast } from 'primeng/toast';
@@ -13,7 +16,7 @@ import { FormsModule } from '@angular/forms';
   imports: [Toast, CommonModule, FormsModule, HeaderComponent],
   providers: [MessageService],
   templateUrl: './upload-tracking.component.html',
-  styles: ``
+  styles: ``,
 })
 export class UploadTrackingComponent implements OnInit, OnDestroy {
   jobId = '';
@@ -22,6 +25,7 @@ export class UploadTrackingComponent implements OnInit, OnDestroy {
   autoRefresh = false;
   refreshSubscription?: Subscription;
   errorMessage = '';
+  manualRefreshInProgress = false;
 
   private readonly processingStatuses = [
     'pending',
@@ -31,7 +35,7 @@ export class UploadTrackingComponent implements OnInit, OnDestroy {
     'embedding',
     'indexing',
     'uploading_to_supabase',
-    'deducting_credits'
+    'deducting_credits',
   ];
 
   constructor(
@@ -40,7 +44,7 @@ export class UploadTrackingComponent implements OnInit, OnDestroy {
   ) {}
 
   ngOnInit() {
-    this.route.queryParams.subscribe(params => {
+    this.route.queryParams.subscribe((params) => {
       if (params['jobId']) {
         this.jobId = params['jobId'];
         this.checkStatus();
@@ -49,40 +53,55 @@ export class UploadTrackingComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy() {
-    if (this.refreshSubscription) {
-      this.refreshSubscription.unsubscribe();
-    }
+    this.stopAutoRefresh();
   }
 
   checkStatus() {
     if (!this.jobId.trim()) return;
 
+    // Track if this is a manual refresh to prevent auto-enabling auto-refresh
+    this.manualRefreshInProgress = !this.loading;
     this.loading = true;
     this.errorMessage = '';
-    
+
     this.uploadService.getJobStatus(this.jobId).subscribe({
-      next: (status) => {
+      next: (status:any) => {
         this.jobStatus = status;
         this.loading = false;
-        
-        // Auto-enable refresh for processing jobs
-        if (this.isProcessingStatus() && !this.autoRefresh) {
+
+        // Only auto-enable refresh for processing jobs if this is NOT a manual refresh
+        // and auto-refresh is not already enabled
+        if (
+          this.isProcessingStatus() &&
+          !this.autoRefresh &&
+          !this.manualRefreshInProgress
+        ) {
           this.autoRefresh = true;
           this.startAutoRefresh();
-        } else if (status.status === 'completed' || status.status === 'failed') {
+        } else if (
+          status.status === 'completed' ||
+          status.status === 'failed'
+        ) {
           this.autoRefresh = false;
           this.stopAutoRefresh();
         }
+
+        this.manualRefreshInProgress = false;
       },
-      error: (error:any) => {
+      error: (error) => {
         this.loading = false;
-        this.errorMessage = error.error?.message || 'Failed to fetch job status. Please check your job ID and try again.';
-      }
+        this.manualRefreshInProgress = false;
+        this.errorMessage =
+          error.error?.message ||
+          'Failed to fetch job status. Please check your job ID and try again.';
+      },
     });
   }
 
   isProcessingStatus(): boolean {
-    return this.jobStatus ? this.processingStatuses.includes(this.jobStatus.status) : false;
+    return this.jobStatus
+      ? this.processingStatuses.includes(this.jobStatus.status)
+      : false;
   }
 
   toggleAutoRefresh() {
@@ -95,8 +114,11 @@ export class UploadTrackingComponent implements OnInit, OnDestroy {
 
   private startAutoRefresh() {
     this.stopAutoRefresh();
-    this.refreshSubscription = interval(5000).subscribe(() => {
+    this.refreshSubscription = interval(10000).subscribe(() => {
+      // Changed to 10 seconds
       if (this.jobStatus && this.isProcessingStatus()) {
+        // Don't treat auto-refresh as manual refresh
+        this.manualRefreshInProgress = false;
         this.checkStatus();
       } else {
         this.autoRefresh = false;
@@ -117,6 +139,7 @@ export class UploadTrackingComponent implements OnInit, OnDestroy {
     this.jobStatus = null;
     this.errorMessage = '';
     this.autoRefresh = false;
+    this.manualRefreshInProgress = false;
     this.stopAutoRefresh();
   }
 
@@ -127,7 +150,7 @@ export class UploadTrackingComponent implements OnInit, OnDestroy {
 
   getStatusTitle(): string {
     if (!this.jobStatus) return '';
-    
+
     switch (this.jobStatus.status) {
       case 'pending':
         return 'Job Queued';
@@ -156,7 +179,7 @@ export class UploadTrackingComponent implements OnInit, OnDestroy {
 
   getStatusDescription(): string {
     if (!this.jobStatus) return '';
-    
+
     switch (this.jobStatus.status) {
       case 'pending':
         return 'Your job is waiting in the queue to be processed';
@@ -185,10 +208,10 @@ export class UploadTrackingComponent implements OnInit, OnDestroy {
 
   getStatusDisplayName(): string {
     if (!this.jobStatus) return '';
-    
+
     return this.jobStatus.status
       .split('_')
-      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
       .join(' ');
   }
 
