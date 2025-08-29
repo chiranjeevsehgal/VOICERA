@@ -11,6 +11,7 @@ import { AdminLoginPageComponent } from './pages/admin/login-page/login-page.com
 import { AdminDashboardComponent } from './pages/admin/dashboard/dashboard.component';
 import { SemanticSearchComponent } from './pages/semantic-search/semantic-search.component';
 import { UploadComponent } from './pages/upload/upload.component';
+import { UploadTrackingComponent } from './pages/upload-tracking/upload-tracking.component';
 
 
 export const routes: Routes = [
@@ -20,6 +21,7 @@ export const routes: Routes = [
     {path:"search", component: SearchComponent, canActivate : [authGuard]},
     {path:"ai-search", component: SemanticSearchComponent, canActivate : [authGuard]},
     {path:"upload", component: UploadComponent, canActivate : [authGuard]},
+    {path:"track", component: UploadTrackingComponent, canActivate : [authGuard]},
     {path:"register", component: RegisterPageComponent, canActivate : [redirectGuard]},
     {path:"forgot-password", component: ForgotPasswordPageComponent},
     {path:"auth/callback", component: AuthCallbackComponent},

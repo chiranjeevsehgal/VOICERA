@@ -10,11 +10,11 @@ export interface UploadResponse {
 }
 
 export interface JobStatus {
-  job_id: string;
+  id: string;
   status: string;
-  progress?: number;
-  message?: string;
-  result?: any;
+  created_at: string;
+  updated_at: string;
+  progress: number;
   error?: string;
 }
 
