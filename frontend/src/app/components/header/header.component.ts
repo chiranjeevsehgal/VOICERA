@@ -13,6 +13,10 @@ export class HeaderComponent {
     this.router.navigate(['/ai-search']);
   }
   
+  onUploadClick(): void {
+    this.router.navigate(['/upload']);
+  }
+  
   onLibraryClick(): void {
     this.router.navigate(['/search']);
   }

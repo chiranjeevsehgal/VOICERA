@@ -1,0 +1,172 @@
+import { Component } from '@angular/core';
+import { HttpEventType } from '@angular/common/http';
+import { UploadAudioService, UploadResponse } from '../../services/upload-audio.service';
+import { Toast } from 'primeng/toast';
+import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
+import { HeaderComponent } from '../../components/header/header.component';
+import { MessageService } from 'primeng/api';
+import { Router } from '@angular/router';
+
+@Component({
+  selector: 'app-upload',
+  imports: [Toast, CommonModule, FormsModule, HeaderComponent],
+  providers: [MessageService],
+  templateUrl: './upload.component.html',
+  styles: ''
+})
+export class UploadComponent {
+  selectedFile: File | null = null;
+  isDragOver = false;
+  isUploading = false;
+  uploadProgress = 0;
+  uploadStatus = '';
+  uploadSuccess = false;
+  uploadError = false;
+  errorMessage = '';
+  uploadResponse: UploadResponse | null = null;
+
+  supportedFormats = [
+    'MP3', 'WAV', 'FLAC', 'AAC', 'OGG', 'M4A', 'WMA'
+  ];
+
+  constructor(
+    private uploadService: UploadAudioService,
+    private router: Router
+  ) {}
+
+  onDragOver(event: DragEvent) {
+    event.preventDefault();
+    this.isDragOver = true;
+  }
+
+  onDragLeave(event: DragEvent) {
+    event.preventDefault();
+    this.isDragOver = false;
+  }
+
+  onDrop(event: DragEvent) {
+    event.preventDefault();
+    this.isDragOver = false;
+    
+    const files = event.dataTransfer?.files;
+    if (files && files.length > 0) {
+      this.handleFile(files[0]);
+    }
+  }
+
+  onFileSelected(event: any) {
+    const file = event.target.files[0];
+    if (file) {
+      this.handleFile(file);
+    }
+  }
+
+  private handleFile(file: File) {
+    if (!file.type.startsWith('audio/')) {
+      this.showError('Please select a valid audio file');
+      return;
+    }
+
+    const maxSize = 50 * 1024 * 1024; // 50MB in bytes (matching the UI text)
+    if (file.size > maxSize) {
+      this.showError('File size exceeds 50MB limit');
+      return;
+    }
+
+    this.selectedFile = file;
+    this.resetUploadState();
+  }
+
+  uploadFile() {
+    if (!this.selectedFile) return;
+
+    this.isUploading = true;
+    this.uploadProgress = 0;
+    this.uploadStatus = 'Preparing upload...';
+
+    this.uploadService.processAudio(this.selectedFile).subscribe({
+      next: (event: any) => {
+        if (event.type === HttpEventType.UploadProgress) {
+          if (event.total) {
+            this.uploadProgress = Math.round(100 * event.loaded / event.total);
+            this.updateUploadStatus();
+          }
+        } else if (event.type === HttpEventType.Response) {
+          this.uploadProgress = 100;
+          this.uploadStatus = 'Upload complete!';
+          this.uploadResponse = event.body;
+          setTimeout(() => {
+            this.isUploading = false;
+            this.uploadSuccess = true;
+          }, 500);
+        }
+      },
+      error: (error) => {
+        this.isUploading = false;
+        this.showError(error.error?.message || 'Upload failed. Please try again.');
+      }
+    });
+  }
+
+  private updateUploadStatus() {
+    if (this.uploadProgress < 30) {
+      this.uploadStatus = 'Uploading audio file...';
+    } else if (this.uploadProgress < 70) {
+      this.uploadStatus = 'Validating file...';
+    } else if (this.uploadProgress < 100) {
+      this.uploadStatus = 'Processing request...';
+    }
+  }
+
+  trackJob() {
+    if (this.uploadResponse?.job_id) {
+      this.router.navigate(['/track'], { 
+        queryParams: { jobId: this.uploadResponse.job_id } 
+      });
+    }
+  }
+
+  clearFile() {
+    this.selectedFile = null;
+    this.resetUploadState();
+  }
+
+  uploadAnother() {
+    this.selectedFile = null;
+    this.uploadResponse = null;
+    this.resetUploadState();
+  }
+
+  retryUpload() {
+    this.resetUploadState();
+  }
+
+  private resetUploadState() {
+    this.isUploading = false;
+    this.uploadProgress = 0;
+    this.uploadStatus = '';
+    this.uploadSuccess = false;
+    this.uploadError = false;
+    this.errorMessage = '';
+  }
+
+  private showError(message: string) {
+    this.errorMessage = message;
+    this.uploadError = true;
+    this.isUploading = false;
+  }
+
+  formatFileSize(bytes: number): string {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  }
+
+  getFileType(filename: string): string {
+    const extension = filename.split('.').pop()?.toLowerCase();
+    return extension ? extension.toUpperCase() : 'Unknown';
+  }
+}

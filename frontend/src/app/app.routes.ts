@@ -10,6 +10,7 @@ import { AuthCallbackComponent } from './utils/auth-callback/auth-callback.compo
 import { AdminLoginPageComponent } from './pages/admin/login-page/login-page.component';
 import { AdminDashboardComponent } from './pages/admin/dashboard/dashboard.component';
 import { SemanticSearchComponent } from './pages/semantic-search/semantic-search.component';
+import { UploadComponent } from './pages/upload/upload.component';
 
 
 export const routes: Routes = [
@@ -18,6 +19,7 @@ export const routes: Routes = [
     {path:"login", component: LoginPageComponent, canActivate : [redirectGuard]},
     {path:"search", component: SearchComponent, canActivate : [authGuard]},
     {path:"ai-search", component: SemanticSearchComponent, canActivate : [authGuard]},
+    {path:"upload", component: UploadComponent, canActivate : [authGuard]},
     {path:"register", component: RegisterPageComponent, canActivate : [redirectGuard]},
     {path:"forgot-password", component: ForgotPasswordPageComponent},
     {path:"auth/callback", component: AuthCallbackComponent},
