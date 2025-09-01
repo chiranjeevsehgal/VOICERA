@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, HostListener } from '@angular/core';
+import { Component, OnInit, OnDestroy, HostListener, ViewChild, ElementRef } from '@angular/core';
 import { Router } from '@angular/router';
 import {
   ProfileService,
@@ -15,10 +15,16 @@ import { FormsModule } from '@angular/forms';
   styles: ``,
 })
 export class HeaderComponent implements OnInit, OnDestroy {
+  @ViewChild('mobileMenuButton') mobileMenuButton!: ElementRef;
+  @ViewChild('mobileMenu') mobileMenu!: ElementRef;
+  @ViewChild('profileDropdown') profileDropdown!: ElementRef;
+  @ViewChild('mobileProfileDropdown') mobileProfileDropdown!: ElementRef;
+
   userProfile: UserProfile | null = null;
   credits: number = 0;
   userInitials: string = '';
   showProfileDropdown: boolean = false;
+  showMobileMenu: boolean = false;
   isLoadingProfile: boolean = true;
   isLoadingCredits: boolean = true;
 
@@ -36,14 +42,28 @@ export class HeaderComponent implements OnInit, OnDestroy {
     this.destroy$.complete();
   }
 
-  // Listen for clicks outside the component
   @HostListener('document:click', ['$event'])
   onDocumentClick(event: MouseEvent): void {
     const target = event.target as HTMLElement;
-    const profileDropdown = document.querySelector('.relative') as HTMLElement;
 
-    if (profileDropdown && !profileDropdown.contains(target)) {
+    // Handle profile dropdown clicks
+    if (this.profileDropdown && !this.profileDropdown.nativeElement.contains(target) &&
+        this.mobileProfileDropdown && !this.mobileProfileDropdown.nativeElement.contains(target)) {
       this.showProfileDropdown = false;
+    }
+
+    // Handle mobile menu clicks
+    if (this.showMobileMenu && 
+        this.mobileMenuButton && !this.mobileMenuButton.nativeElement.contains(target) &&
+        this.mobileMenu && !this.mobileMenu.nativeElement.contains(target)) {
+      this.showMobileMenu = false;
+    }
+  }
+
+  @HostListener('window:resize', ['$event'])
+  onResize(event: any): void {
+    if (event.target.innerWidth >= 768) {
+      this.showMobileMenu = false;
     }
   }
 
@@ -59,12 +79,23 @@ export class HeaderComponent implements OnInit, OnDestroy {
     this.router.navigate(['/search']);
   }
 
+  toggleMobileMenu(): void {
+    this.showMobileMenu = !this.showMobileMenu;
+    
+    if (this.showMobileMenu) {
+      this.showProfileDropdown = false;
+    }
+  }
+
+  closeMobileMenu(): void {
+    this.showMobileMenu = false;
+  }
+
   private loadUserData(): void {
     this.profileService.loadUserData();
   }
 
   private subscribeToProfileData(): void {
-    // Subscribe to user profile changes
     this.profileService.userProfile$
       .pipe(takeUntil(this.destroy$))
       .subscribe((profile) => {
@@ -77,7 +108,6 @@ export class HeaderComponent implements OnInit, OnDestroy {
         }
       });
 
-    // Subscribe to credits changes
     this.profileService.credits$
       .pipe(takeUntil(this.destroy$))
       .subscribe((credits) => {
@@ -88,6 +118,10 @@ export class HeaderComponent implements OnInit, OnDestroy {
 
   onProfileClick(): void {
     this.showProfileDropdown = !this.showProfileDropdown;
+    
+    if (this.showProfileDropdown) {
+      this.showMobileMenu = false;
+    }
   }
 
   onProfileDropdownClose(): void {
@@ -95,6 +129,9 @@ export class HeaderComponent implements OnInit, OnDestroy {
   }
 
   onSignOut(): void {
+    this.showProfileDropdown = false;
+    this.showMobileMenu = false;
+    
     localStorage.removeItem('vEra_auth_token');
     localStorage.removeItem('vEra_user_profile');
     this.router.navigate(['/login']);
