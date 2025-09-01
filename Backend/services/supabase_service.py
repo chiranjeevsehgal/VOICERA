@@ -13,8 +13,13 @@ load_dotenv()
 
 # Supabase configuration
 supabase_url = os.getenv("SUPABASE_URL")
-supabase_key = os.getenv("SUPABASE_KEY")
+# Prefer service role key on the server to bypass RLS
+supabase_service_role_key = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
+supabase_key = supabase_service_role_key or os.getenv("SUPABASE_KEY")
 supabase_bucket = os.getenv("SUPABASE_BUCKET", "audiofiles")
+# Optional specialized buckets (fallback to SUPABASE_BUCKET if not set)
+supabase_bucket_original = os.getenv("SUPABASE_BUCKET_ORIGINAL", supabase_bucket)
+supabase_bucket_embedded = os.getenv("SUPABASE_BUCKET_EMBEDDED", supabase_bucket)
 
 # Initialize Supabase client
 supabase: Client = None
@@ -25,7 +30,8 @@ def init_supabase():
     if supabase_url and supabase_key:
         try:
             supabase = create_client(supabase_url, supabase_key)
-            print(f"Supabase client initialized for bucket: {supabase_bucket}")
+            key_mode = "service-role" if supabase_service_role_key else "standard"
+            print(f"Supabase client initialized ({key_mode} key). Default bucket: {supabase_bucket}; original: {supabase_bucket_original}; embedded: {supabase_bucket_embedded}")
             # We don't try to create buckets - they should be created in the dashboard
         except Exception as e:
             print(f"Warning: Failed to initialize Supabase client: {str(e)}")
@@ -35,7 +41,7 @@ def init_supabase():
 # Initialize on module import
 init_supabase()
 
-async def upload_file_to_supabase(file_path, file_name=None, user_id=None):
+async def upload_file_to_supabase(file_path, file_name=None, user_id=None, bucket_name: str = None):
     """
     Upload a file to Supabase storage and track user ownership
     
@@ -62,6 +68,8 @@ async def upload_file_to_supabase(file_path, file_name=None, user_id=None):
     
     # Place files in the 'public' subfolder to match RLS policy
     file_path_in_bucket = f"public/{unique_file_name}"
+    # Select bucket
+    selected_bucket = bucket_name or supabase_bucket
     
     try:
         # Read file contents
@@ -71,7 +79,7 @@ async def upload_file_to_supabase(file_path, file_name=None, user_id=None):
         print(f"[DEBUG] File read successfully: {file_path}")
         
         # Upload to Supabase
-        response = supabase.storage.from_(supabase_bucket).upload(
+        response = supabase.storage.from_(selected_bucket).upload(
             path=file_path_in_bucket,
             file=file_contents,
             file_options={"content-type": "audio/mpeg"}
@@ -80,13 +88,14 @@ async def upload_file_to_supabase(file_path, file_name=None, user_id=None):
         print(f"[DEBUG] Storage upload response: {response}")
         
         # Generate public URL
-        file_url = supabase.storage.from_(supabase_bucket).get_public_url(file_path_in_bucket)
+        file_url = supabase.storage.from_(selected_bucket).get_public_url(file_path_in_bucket)
         
         result = {
             "success": True,
             "file_name": unique_file_name,
             "file_path": file_path_in_bucket,
-            "file_url": file_url
+            "file_url": file_url,
+            "bucket": selected_bucket
         }
 
         # If user_id is provided, track the upload in the database
@@ -130,7 +139,7 @@ async def upload_file_to_supabase(file_path, file_name=None, user_id=None):
         print(f"[DEBUG] Upload failed with error: {str(e)}")
         raise ValueError(f"Failed to upload file: {str(e)}")
 
-async def list_files_in_bucket(user_id=None):
+async def list_files_in_bucket(user_id=None, bucket_name: str = None, folder: str = "public"):
     """
     List files in the storage bucket with user information
     
@@ -141,8 +150,9 @@ async def list_files_in_bucket(user_id=None):
         raise ValueError("Supabase client not initialized. Check your environment variables.")
     
     try:
+        selected_bucket = bucket_name or supabase_bucket
         # Get storage files
-        storage_files = supabase.storage.from_(supabase_bucket).list("public")
+        storage_files = supabase.storage.from_(selected_bucket).list(folder)
         
         # Get user upload records
         query = supabase.table("user_uploads").select("*")
@@ -191,7 +201,7 @@ async def list_files_in_bucket(user_id=None):
         print(f"[DEBUG] Error listing files: {str(e)}")
         return []
 
-async def delete_file_from_supabase(file_name):
+async def delete_file_from_supabase(file_name, bucket_name: str = None):
     """Delete a file from Supabase storage"""
     if not supabase:
         raise ValueError("Supabase client not initialized. Check your environment variables.")
@@ -200,9 +210,10 @@ async def delete_file_from_supabase(file_name):
     if not file_name.startswith("public/"):
         file_name = f"public/{file_name}"
     
-    response = supabase.storage.from_(supabase_bucket).remove([file_name])
+    selected_bucket = bucket_name or supabase_bucket
+    response = supabase.storage.from_(selected_bucket).remove([file_name])
     return {
         "success": True,
         "message": f"File {file_name} deleted successfully",
         "response": response
-    } 
+    }

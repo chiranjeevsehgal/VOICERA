@@ -56,6 +56,9 @@ SECRET_KEY=your_jwt_secret_key
 SUPABASE_URL=your_supabase_url
 SUPABASE_KEY=your_supabase_key
 SUPABASE_BUCKET=audiofiles
+# Optional: Separate buckets for originals vs embedded files
+SUPABASE_BUCKET_ORIGINAL=audiofiles
+SUPABASE_BUCKET_EMBEDDED=audiofiles-embedded
 
 # Vector Database Configuration
 PINECONE_ENVIRONMENT=gcp-starter
@@ -71,6 +74,15 @@ RESET_TIMEFRAME=86400  # 24 hours in seconds
 ADMIN_EMAIL=admin@example.com
 ADMIN_PASSWORD=admin123
 ```
+
+### Supabase Bucket Separation
+
+VOICERA can store original uploads and embedded (metadata-enriched) audio in different Supabase buckets.
+
+- **Original uploads** go to `SUPABASE_BUCKET_ORIGINAL`.
+- **Embedded files** go to `SUPABASE_BUCKET_EMBEDDED`.
+
+If these are not set, both will fall back to `SUPABASE_BUCKET`.
 
 ### Installation
 

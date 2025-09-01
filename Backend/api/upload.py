@@ -128,7 +128,8 @@ async def upload_audio(
         response = await upload_file_to_supabase(
             file_path=file_path,
             file_name=filename,
-            user_id=str(current_user.get("_id", "unknown"))
+            user_id=str(current_user.get("_id", "unknown")),
+            bucket_name=os.getenv("SUPABASE_BUCKET_ORIGINAL")
         )
         
         if not response or "file_url" not in response:

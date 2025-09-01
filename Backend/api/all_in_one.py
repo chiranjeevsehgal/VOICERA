@@ -400,7 +400,12 @@ async def process_audio_background(
             supabase_result = await asyncio.wait_for(
                 asyncio.get_event_loop().run_in_executor(
                     thread_pool,
-                    lambda: sync_upload_to_supabase(local_file_path, file_name, user_id)
+                    lambda: sync_upload_to_supabase(
+                        local_file_path,
+                        file_name,
+                        user_id,
+                        bucket_name=os.getenv("SUPABASE_BUCKET_ORIGINAL")
+                    )
                 ),
                 timeout=90
             )
@@ -436,6 +441,7 @@ async def process_audio_background(
         # Store original Supabase storage identifiers for potential cleanup
         original_supabase_file_name = supabase_result.get("file_name")
         original_supabase_file_path = supabase_result.get("file_path")
+        original_supabase_bucket = supabase_result.get("bucket")
         
         # Update the upload record with the Supabase URL
         if upload_id:
@@ -697,7 +703,12 @@ async def process_audio_background(
                     embedded_upload_result = await asyncio.wait_for(
                         asyncio.get_event_loop().run_in_executor(
                             thread_pool,
-                            lambda: sync_upload_to_supabase(embedded_file_path, embedded_filename, user_id)
+                            lambda: sync_upload_to_supabase(
+                                embedded_file_path,
+                                embedded_filename,
+                                user_id,
+                                bucket_name=os.getenv("SUPABASE_BUCKET_EMBEDDED")
+                            )
                         ),
                         timeout=90
                     )
@@ -748,7 +759,10 @@ async def process_audio_background(
                         await asyncio.wait_for(
                             asyncio.get_event_loop().run_in_executor(
                                 thread_pool,
-                                lambda: sync_delete_from_supabase(name_or_path)
+                                lambda: sync_delete_from_supabase(
+                                    name_or_path,
+                                    bucket_name=original_supabase_bucket or os.getenv("SUPABASE_BUCKET_ORIGINAL")
+                                )
                             ),
                             timeout=30
                         )
@@ -1016,9 +1030,9 @@ async def embed_metadata_in_file_async(src_file: str, dest_file: str, metadata_j
         print(f"Error embedding metadata: {str(e)}")
         return src_file
 
-async def upload_to_supabase_async(file_path: str, filename: str, user_id: str = None) -> Dict[str, Any]:
+async def upload_to_supabase_async(file_path: str, filename: str, user_id: str = None, bucket_name: str = None) -> Dict[str, Any]:
     """Upload file to Supabase"""
-    result = await upload_file_to_supabase(file_path, filename, user_id)
+    result = await upload_file_to_supabase(file_path, filename, user_id, bucket_name=bucket_name)
     return result
 
 # Add a synchronous wrapper for the credit check function
@@ -1159,7 +1173,7 @@ def sync_embed_metadata(src_file: str, dest_file: str, metadata_json: str) -> st
         return src_file  # Return original file on error
 
 # Add a synchronous wrapper for Supabase upload
-def sync_upload_to_supabase(file_path: str, filename: str, user_id: str = None) -> Dict[str, Any]:
+def sync_upload_to_supabase(file_path: str, filename: str, user_id: str = None, bucket_name: str = None) -> Dict[str, Any]:
     """Synchronous wrapper for uploading to Supabase"""
     import asyncio
     
@@ -1169,7 +1183,7 @@ def sync_upload_to_supabase(file_path: str, filename: str, user_id: str = None) 
         asyncio.set_event_loop(loop)
         
         # Run the async function in this loop
-        result = loop.run_until_complete(upload_to_supabase_async(file_path, filename, user_id))
+        result = loop.run_until_complete(upload_to_supabase_async(file_path, filename, user_id, bucket_name))
         
         # Clean up
         loop.close()
@@ -1180,14 +1194,14 @@ def sync_upload_to_supabase(file_path: str, filename: str, user_id: str = None) 
         return {"error": str(e), "file_name": filename}
 
 # Add a synchronous wrapper for Supabase delete
-def sync_delete_from_supabase(name_or_path: str) -> Dict[str, Any]:
+def sync_delete_from_supabase(name_or_path: str, bucket_name: str = None) -> Dict[str, Any]:
     """Synchronous wrapper for deleting a file from Supabase storage"""
     import asyncio
     try:
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
         from services.supabase_service import delete_file_from_supabase
-        result = loop.run_until_complete(delete_file_from_supabase(name_or_path))
+        result = loop.run_until_complete(delete_file_from_supabase(name_or_path, bucket_name=bucket_name))
         loop.close()
         return result
     except Exception as e:

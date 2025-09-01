@@ -9,7 +9,7 @@ import { FormsModule } from '@angular/forms';
   styles: ``,
 })
 export class SerachSectionComponent implements OnInit {
-  searchQuery: string = 'she said';
+  searchQuery: string = '';
   @Output() searchChange = new EventEmitter<string>();
   @Output() searchSubmit = new EventEmitter<string>();
 

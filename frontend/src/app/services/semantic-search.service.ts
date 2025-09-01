@@ -60,7 +60,7 @@ export class SemanticSearchService {
 
   searchAudio(query: string): Observable<SearchResponse> {
     // Fetch latest token at call time
-    const token = localStorage.getItem('auth_token') || '';
+    const token = localStorage.getItem('vEra_auth_token') || '';
     const headers = new HttpHeaders({
       Authorization: `Bearer ${token}`,
       'Content-Type': 'application/json',
