@@ -18,7 +18,7 @@ export const routes: Routes = [
 
     {path: "", redirectTo: "login", pathMatch: "full" },
     {path:"login", component: LoginPageComponent, canActivate : [redirectGuard]},
-    {path:"search", component: SearchComponent, canActivate : [authGuard]},
+    {path:"library", component: SearchComponent, canActivate : [authGuard]},
     {path:"ai-search", component: SemanticSearchComponent, canActivate : [authGuard]},
     {path:"upload", component: UploadComponent, canActivate : [authGuard]},
     {path:"track", component: UploadTrackingComponent, canActivate : [authGuard]},
