@@ -32,6 +32,7 @@ export class SearchComponent implements OnInit, OnDestroy {
   private subscription?: Subscription;
   isSearching = false;
   isLoading = true;
+  hasSearched = false;
 
   constructor(
     private podcastService: PodcastService,
@@ -71,6 +72,15 @@ export class SearchComponent implements OnInit, OnDestroy {
 
   onSearchChange(query: string): void {
     this.searchQuery = query.trim();
+    if (!this.searchQuery) {
+      this.hasSearched = false;
+    }
+    this.filterPodcasts();
+  }
+
+  onSearchSubmit(query: string): void {
+    this.searchQuery = (query || '').trim();
+    this.hasSearched = true;
     this.filterPodcasts();
   }
 
