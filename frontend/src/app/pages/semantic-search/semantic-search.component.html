@@ -2,9 +2,11 @@
   <p-toast />
 </div>
 
-<div class="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
+<div
+  class="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50"
+>
   <app-header></app-header>
-  
+
   <!-- Hero Section with Abstract Designs -->
   <section class="bg-gradient-to-br from-indigo-600 via-purple-600 to-blue-700 text-white pt-12 sm:pt-16 pb-16 sm:pb-24 px-4 sm:px-6 relative overflow-hidden">
     <!-- Dynamic Background Elements -->
@@ -52,7 +54,7 @@
           <div class="flex-1 relative">
             <input
               type="text"
-              placeholder="Ask a question or describe what you're looking for..."
+              placeholder="Describe what you're looking for..."
               [(ngModel)]="searchQuery"
               (keyup.enter)="onSearchSubmit()"
               (input)="onSearchInput()"
@@ -73,6 +75,7 @@
               <div class="animate-spin rounded-full h-4 sm:h-5 w-4 sm:w-5 border-2 border-indigo-600 border-t-transparent"></div>
             </div>
           </div>
+
           <button
             (click)="onSearchSubmit()"
             [disabled]="!searchQuery.trim() || loading"
@@ -90,7 +93,9 @@
     <!-- Results Section -->
     <section class="space-y-6 sm:space-y-8" *ngIf="searchQuery">
       <!-- Section Header -->
-      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div
+        class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4"
+      >
         <div>
           <h2 class="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">
             {{ loading
@@ -101,7 +106,10 @@
                     ? 'No Results Found'
                     : '' }}
           </h2>
-          <p class="text-gray-600" *ngIf="!loading && hasSearched && searchResults.length > 0">
+          <p
+            class="text-gray-600"
+            *ngIf="!loading && hasSearched && searchResults.length > 0"
+          >
             {{ searchResults.length }} results found
           </p>
           <div *ngIf="loading" class="flex items-center space-x-2">
@@ -164,14 +172,46 @@
                   <p class="text-gray-700 italic leading-relaxed text-sm sm:text-base">"{{ podcast.searchResult.text }}"</p>
                 </div>
               </div>
-              
+
               <!-- Metadata -->
               <div class="flex flex-wrap items-center gap-2 sm:gap-4 text-xs sm:text-sm justify-center sm:justify-start">
                 <div class="flex items-center space-x-1 bg-gray-100 rounded-full px-2 sm:px-3 py-1">
                   <svg class="w-3 sm:w-4 h-3 sm:h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                   </svg>
-                  <span class="text-gray-600">{{ formatTime(podcast.searchResult.start_time) }} - {{ formatTime(podcast.searchResult.end_time) }}</span>
+                  <span class="text-gray-600"
+                    >{{ formatTime(group.segments[0].start_time) }} -
+                    {{ formatTime(group.segments[0].end_time) }}</span
+                  >
+                </div>
+                <div
+                  class="flex items-center space-x-1 rounded-full px-3 py-1"
+                  [ngClass]="{
+                    'bg-red-100': group.segments[0].confidence < 0.4,
+                    'bg-orange-100': group.segments[0].confidence >= 0.4 && group.segments[0].confidence < 0.6,
+                    'bg-yellow-100': group.segments[0].confidence >= 0.6 && group.segments[0].confidence < 0.8,
+                    'bg-green-100': group.segments[0].confidence >= 0.8
+                  }"
+                >
+                  <div
+                    class="w-2 h-2 rounded-full"
+                    [ngClass]="{
+                      'bg-red-500': group.segments[0].confidence < 0.4,
+                      'bg-orange-500': group.segments[0].confidence >= 0.4 && group.segments[0].confidence < 0.6,
+                      'bg-yellow-500': group.segments[0].confidence >= 0.6 && group.segments[0].confidence < 0.8,
+                      'bg-green-500': group.segments[0].confidence >= 0.8
+                    }"
+                  ></div>
+                  <span
+                    class="font-medium"
+                    [ngClass]="{
+                      'text-red-700': group.segments[0].confidence < 0.4,
+                      'text-orange-700': group.segments[0].confidence >= 0.4 && group.segments[0].confidence < 0.6,
+                      'text-yellow-700': group.segments[0].confidence >= 0.6 && group.segments[0].confidence < 0.8,
+                      'text-green-700': group.segments[0].confidence >= 0.8
+                    }"
+                    >{{ group.segments[0].confidence * 100 | number : "1.0-0" }}% Confidence</span
+                  >
                 </div>
                 <div class="flex items-center space-x-1 bg-green-100 rounded-full px-2 sm:px-3 py-1">
                   <div class="w-1.5 sm:w-2 h-1.5 sm:h-2 bg-green-500 rounded-full"></div>
@@ -242,7 +282,20 @@
             </svg>
             <span class="font-medium">Timestamp: {{ formatTime(selectedPodcast.searchResult.start_time) }} - {{ formatTime(selectedPodcast.searchResult.end_time) }}</span>
           </div>
-        </div>
+
+          <!-- Carousel Controls -->
+          <div class="flex items-center justify-between mb-6">
+            <button (click)="prevSegment()" class="px-3 py-2 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium transition">
+              ◀ Prev
+            </button>
+            <div class="text-sm text-gray-500">
+              Segment {{ currentSegmentIndex + 1 }} of {{ selectedGroup!.segments.length }}
+            </div>
+            <button (click)="nextSegment()" class="px-3 py-2 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium transition">
+              Next ▶
+            </button>
+          </div>
+        </ng-container>
 
         <!-- Audio Player -->
         <div class="mb-6 sm:mb-8 bg-gray-50 rounded-2xl sm:rounded-3xl p-4 sm:p-6">
