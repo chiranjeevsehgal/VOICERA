@@ -72,7 +72,7 @@ export class PodcastService {
       id: file.id,
       title: file.user_data.file_name.replace('.mp3', ''), // Remove extension for title
       creator: file.user_data.user_details.full_name,
-      imageUrl: "https://developers.elementor.com/docs/assets/img/elementor-placeholder-image.png",
+      imageUrl: "https://media.istockphoto.com/id/1244097573/vector/headphones-minimal-icon-with-sound-waves.jpg?s=612x612&w=0&k=20&c=OvARZEMYt_CM9M9-oJmMZ3O-HtEB-CAKqpGZPSA1acM=",
       audioFile: file
     }));
   }

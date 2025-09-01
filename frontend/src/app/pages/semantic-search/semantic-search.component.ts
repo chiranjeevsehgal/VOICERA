@@ -91,7 +91,7 @@ export class SemanticSearchComponent implements OnInit, OnDestroy {
       id: `semantic-${index}`,
       title: this.extractTitleFromFilename(result.file_name),
       creator: 'AI Search Result',
-      imageUrl: 'https://developers.elementor.com/docs/assets/img/elementor-placeholder-image.png',
+      imageUrl: 'https://media.istockphoto.com/id/1244097573/vector/headphones-minimal-icon-with-sound-waves.jpg?s=612x612&w=0&k=20&c=OvARZEMYt_CM9M9-oJmMZ3O-HtEB-CAKqpGZPSA1acM=',
       file_url: result.file_url,
       searchResult: result
     }));
