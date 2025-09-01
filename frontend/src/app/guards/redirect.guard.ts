@@ -5,7 +5,7 @@ export const redirectGuard: CanActivateFn = (route, state) => {
 
   const router = inject(Router);
 
-  const token = localStorage.getItem('auth_token');
+  const token = localStorage.getItem('vEra_auth_token');
 
   if (token) {
     router.navigate(['/search']);

@@ -93,7 +93,8 @@ export class HeaderComponent implements OnInit, OnDestroy {
   }
 
   onSignOut(): void {
-    localStorage.removeItem('auth_token');
+    localStorage.removeItem('vEra_auth_token');
+    localStorage.removeItem('vEra_user_profile');
     this.router.navigate(['/login']);
   }
 }

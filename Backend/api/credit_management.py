@@ -128,7 +128,7 @@ async def check_credits(
         if not ip_record:
             # IP not found, would get default credits on first check
             return {
-                "ip_address": ip_address,
+                # "ip_address": ip_address,
                 "credits_remaining": DEFAULT_CREDITS,
                 "status": "unused"
             }
@@ -154,12 +154,12 @@ async def check_credits(
             last_used = updated_doc.get("last_used", current_time)
             
             return {
-                "ip_address": ip_address,
+                # "ip_address": ip_address,
                 "credits_remaining": credits,
             }
         
         return {
-            "ip_address": ip_address,
+            # "ip_address": ip_address,
             "credits_remaining": credits,
         }
     except Exception as e:
