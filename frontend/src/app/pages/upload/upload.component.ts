@@ -1,6 +1,9 @@
 import { Component } from '@angular/core';
 import { HttpEventType } from '@angular/common/http';
-import { UploadAudioService, UploadResponse } from '../../services/upload-audio.service';
+import {
+  UploadAudioService,
+  UploadResponse,
+} from '../../services/upload-audio.service';
 import { Toast } from 'primeng/toast';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -14,7 +17,7 @@ import { ProfileService } from '../../services/auth/profile.service';
   imports: [Toast, CommonModule, FormsModule, HeaderComponent],
   providers: [MessageService],
   templateUrl: './upload.component.html',
-  styles: ''
+  styles: '',
 })
 export class UploadComponent {
   selectedFile: File | null = null;
@@ -27,9 +30,7 @@ export class UploadComponent {
   errorMessage = '';
   uploadResponse: UploadResponse | null = null;
 
-  supportedFormats = [
-    'MP3', 'WAV', 'FLAC', 'AAC', 'OGG', 'M4A', 'WMA'
-  ];
+  supportedFormats = ['MP3', 'WAV', 'FLAC', 'AAC', 'OGG', 'M4A', 'WMA'];
 
   constructor(
     private uploadService: UploadAudioService,
@@ -50,7 +51,7 @@ export class UploadComponent {
   onDrop(event: DragEvent) {
     event.preventDefault();
     this.isDragOver = false;
-    
+
     const files = event.dataTransfer?.files;
     if (files && files.length > 0) {
       this.handleFile(files[0]);
@@ -91,7 +92,9 @@ export class UploadComponent {
       next: (event: any) => {
         if (event.type === HttpEventType.UploadProgress) {
           if (event.total) {
-            this.uploadProgress = Math.round(100 * event.loaded / event.total);
+            this.uploadProgress = Math.round(
+              (100 * event.loaded) / event.total
+            );
             this.updateUploadStatus();
           }
         } else if (event.type === HttpEventType.Response) {
@@ -107,8 +110,10 @@ export class UploadComponent {
       },
       error: (error) => {
         this.isUploading = false;
-        this.showError(error.error?.message || 'Upload failed. Please try again.');
-      }
+        this.showError(
+          error.error?.message || 'Upload failed. Please try again.'
+        );
+      },
     });
   }
 
@@ -124,8 +129,8 @@ export class UploadComponent {
 
   trackJob() {
     if (this.uploadResponse?.job_id) {
-      this.router.navigate(['/track'], { 
-        queryParams: { jobId: this.uploadResponse.job_id } 
+      this.router.navigate(['/track'], {
+        queryParams: { jobId: this.uploadResponse.job_id },
       });
     }
   }
@@ -171,5 +176,9 @@ export class UploadComponent {
   getFileType(filename: string): string {
     const extension = filename.split('.').pop()?.toLowerCase();
     return extension ? extension.toUpperCase() : 'Unknown';
+  }
+
+  navigateToTrack() {
+    this.router.navigate(['/track']);
   }
 }
