@@ -739,13 +739,13 @@ async def validate_results_batch(results: List[Dict], query: str, config: LLMCon
 )
 async def search(
     query: str = Query(..., description="Search query"),
-    limit: int = Query(10, description="Maximum number of results to return"),
+    limit: Optional[int] = Query(5, description="Maximum number of results to return"),
     min_confidence: Optional[float] = Query(0.7, description="Minimum confidence threshold (0-1)"),
     speaker: Optional[int] = Query(None, description="Filter by speaker ID"),
-    use_llm_expansion: bool = Query(True, description="Use LLM to expand search query"),
-    natural_language: bool = Query(False, description="Process as natural language query"),
-    use_llm_rerank: bool = Query(True, description="Use LLM for final reranking"),
-    validate_content: bool = Query(True, description="Use LLM to validate result content relevance"),
+    use_llm_expansion: Optional[bool] = Query(True, description="Use LLM to expand search query"),
+    natural_language: Optional[bool] = Query(True, description="Process as natural language query"),
+    use_llm_rerank: Optional[bool] = Query(True, description="Use LLM for final reranking"),
+    validate_content: Optional[bool] = Query(True, description="Use LLM to validate result content relevance"),
     current_user: dict = Depends(get_current_user)
 ):
     """

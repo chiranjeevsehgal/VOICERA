@@ -116,8 +116,8 @@ async def upload_to_supabase(
             shutil.rmtree(temp_dir)
             print("[DEBUG] Temporary files cleaned up")
 
-@router.get("/listSupabaseFiles")
-async def list_supabase_files(
+@router.get("/listAudioFiles")
+async def list_audio_files(
     current_user: dict = Depends(get_current_user),
     user_files_only: bool = False
 ):
