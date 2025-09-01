@@ -51,7 +51,7 @@ export interface Podcast {
 })
 export class PodcastService {
   private baseUrl = environment.apiUrl; 
-  private authToken = localStorage.getItem('auth_token'); 
+  private authToken = localStorage.getItem('vEra_auth_token'); 
 
   constructor(private http: HttpClient) {}
 

@@ -30,7 +30,7 @@ export class AdminAuthService {
       tap(response => {
         
         if (response.status == true && response.role == 'admin') {
-          localStorage.setItem('auth_token', response.access_token);
+          localStorage.setItem('vEra_auth_token', response.access_token);
         } else if (response.status == true && response.role !== 'admin') {
           throw new Error('You are not authorized.');
         }

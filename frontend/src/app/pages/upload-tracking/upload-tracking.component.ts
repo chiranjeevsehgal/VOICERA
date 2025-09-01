@@ -10,6 +10,7 @@ import { CommonModule } from '@angular/common';
 import { Toast } from 'primeng/toast';
 import { HeaderComponent } from '../../components/header/header.component';
 import { FormsModule } from '@angular/forms';
+import { ProfileService } from '../../services/auth/profile.service';
 
 @Component({
   selector: 'app-upload-tracking',
@@ -40,7 +41,8 @@ export class UploadTrackingComponent implements OnInit, OnDestroy {
 
   constructor(
     private route: ActivatedRoute,
-    private uploadService: UploadAudioService
+    private uploadService: UploadAudioService,
+    private profileService: ProfileService
   ) {}
 
   ngOnInit() {
@@ -69,8 +71,6 @@ export class UploadTrackingComponent implements OnInit, OnDestroy {
         this.jobStatus = status;
         this.loading = false;
 
-        // Only auto-enable refresh for processing jobs if this is NOT a manual refresh
-        // and auto-refresh is not already enabled
         if (
           this.isProcessingStatus() &&
           !this.autoRefresh &&
@@ -85,7 +85,7 @@ export class UploadTrackingComponent implements OnInit, OnDestroy {
           this.autoRefresh = false;
           this.stopAutoRefresh();
         }
-
+        this.profileService.refreshCredits();
         this.manualRefreshInProgress = false;
       },
       error: (error) => {

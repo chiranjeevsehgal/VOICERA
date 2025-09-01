@@ -140,7 +140,7 @@ export class AuthCallbackComponent implements OnInit, OnDestroy {
       next: (response) => {
         this.currentMessage = "Welcome to VOICERA!";
         this.subMessage = "Redirecting to your dashboard...";
-        localStorage.setItem('auth_token', response.access_token);
+        localStorage.setItem('vEra_auth_token', response.access_token);
         
         setTimeout(() => {
           if(response.role == "admin") {
