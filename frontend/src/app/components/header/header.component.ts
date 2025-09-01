@@ -20,6 +20,7 @@ export class HeaderComponent implements OnInit, OnDestroy {
   userInitials: string = '';
   showProfileDropdown: boolean = false;
   isLoadingProfile: boolean = true;
+  isLoadingCredits: boolean = true;
 
   private destroy$ = new Subject<void>();
 
@@ -81,6 +82,7 @@ export class HeaderComponent implements OnInit, OnDestroy {
       .pipe(takeUntil(this.destroy$))
       .subscribe((credits) => {
         this.credits = credits;
+        this.isLoadingCredits = false;
       });
   }
 
