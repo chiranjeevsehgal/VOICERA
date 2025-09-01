@@ -76,7 +76,7 @@ export class HeaderComponent implements OnInit, OnDestroy {
   }
 
   onLibraryClick(): void {
-    this.router.navigate(['/search']);
+    this.router.navigate(['/library']);
   }
 
   toggleMobileMenu(): void {

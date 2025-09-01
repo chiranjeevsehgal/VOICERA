@@ -147,7 +147,7 @@ export class AuthCallbackComponent implements OnInit, OnDestroy {
             this.router.navigate(['/admin/dashboard']);
           }
           else{
-          this.router.navigate(['/search']);}
+          this.router.navigate(['/library']);}
         }, 1500);
       },
       error: (error) => {
