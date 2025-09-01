@@ -77,7 +77,6 @@ export class SemanticSearchComponent implements OnInit, OnDestroy {
         this.searchResults = response.results;
         // Group by audio file for UI
         this.groupedResults = this.transformAndGroupResults(response.results);
-        console.log(this.groupedResults);
         
         this.loading = false;
         this.hasSearched = true;
