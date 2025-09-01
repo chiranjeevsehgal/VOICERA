@@ -3,7 +3,6 @@ import { Subscription } from 'rxjs';
 import { Podcast, PodcastService } from '../../services/podcast.service';
 import { HeaderComponent } from '../../components/header/header.component';
 import { SerachSectionComponent } from '../../components/search-section/search-section.component';
-import { TrendingSearchesComponent } from '../../components/trending-searches/trending-searches.component';
 import { PodcastGridComponent } from '../../components/podcast-grid/podcast-grid.component';
 import { MessageService } from 'primeng/api';
 import { AudioModalComponent } from '../../components/audio-modal/audio-modal.component';
@@ -17,7 +16,6 @@ import { CommonModule } from '@angular/common';
     CommonModule,
     HeaderComponent,
     SerachSectionComponent,
-    TrendingSearchesComponent,
     AudioModalComponent,
     PodcastGridComponent,
   ],
