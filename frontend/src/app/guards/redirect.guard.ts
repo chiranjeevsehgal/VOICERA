@@ -8,7 +8,7 @@ export const redirectGuard: CanActivateFn = (route, state) => {
   const token = localStorage.getItem('vEra_auth_token');
 
   if (token) {
-    router.navigate(['/search']);
+    router.navigate(['/library']);
     return false;
   }
 

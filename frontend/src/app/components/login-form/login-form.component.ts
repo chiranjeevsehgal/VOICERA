@@ -92,7 +92,7 @@ export class LoginFormComponent {
           next: (response) => {
             // console.log("Login Successfull", response);
             this.isLoading = false;
-            this.router.navigate(['/search']);
+            this.router.navigate(['/library']);
             this.loginForm.reset();
           },
           error: (error) => {
