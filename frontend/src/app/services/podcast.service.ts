@@ -18,7 +18,7 @@ export interface AudioFile {
     contentLength: number;
     httpStatusCode: number;
   };
-  user_data: {
+  user_data?: {
     id: string;
     user_id: string;
     file_name: string;
@@ -27,9 +27,9 @@ export interface AudioFile {
     metadata: any;
     created_at: string;
     updated_at: string;
-    user_details: {
-      email: string;
-      full_name: string;
+    user_details?: {
+      email?: string;
+      full_name?: string;
     };
   };
 }
@@ -68,12 +68,26 @@ export class PodcastService {
   }
 
   private transformApiResponseToPodcasts(files: AudioFile[]): Podcast[] {
-    return files.map(file => ({
-      id: file.id,
-      title: file.user_data.file_name.replace('.mp3', ''), // Remove extension for title
-      creator: file.user_data.user_details.full_name,
-      imageUrl: "https://media.istockphoto.com/id/1244097573/vector/headphones-minimal-icon-with-sound-waves.jpg?s=612x612&w=0&k=20&c=OvARZEMYt_CM9M9-oJmMZ3O-HtEB-CAKqpGZPSA1acM=",
-      audioFile: file
-    }));
+    if (!Array.isArray(files)) return [];
+
+    return files
+      .filter((f): f is AudioFile => !!f && typeof f.id === 'string')
+      .map((file) => {
+        const rawTitle = file.user_data?.file_name || file.name || 'Untitled';
+        const title = rawTitle.replace(/\.mp3$/i, '');
+        const creator =
+          file.user_data?.user_details?.full_name ||
+          file.user_data?.user_id ||
+          'Unknown';
+
+        return {
+          id: file.id,
+          title,
+          creator,
+          imageUrl:
+            "https://media.istockphoto.com/id/1244097573/vector/headphones-minimal-icon-with-sound-waves.jpg?s=612x612&w=0&k=20&c=OvARZEMYt_CM9M9-oJmMZ3O-HtEB-CAKqpGZPSA1acM=",
+          audioFile: file,
+        };
+      });
   }
 }

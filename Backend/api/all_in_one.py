@@ -1,6 +1,6 @@
 from fastapi import APIRouter, UploadFile, File, Form, HTTPException, status, Depends, Request, BackgroundTasks
 from fastapi.responses import JSONResponse
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, List
 import os
 import json
 import requests
@@ -15,7 +15,7 @@ from pymongo import MongoClient
 from bson.objectid import ObjectId
 
 # Import services and dependencies
-from services.auth import get_current_user
+from services.auth import get_current_user, requires_role
 from services.ip_utils import get_ip_for_request
 from services.job_tracker import (
     create_job, update_job_status, get_job_status, JobStatus, clean_old_jobs
@@ -158,6 +158,112 @@ async def process_audio(
         "job_id": job_id,
         "status": "accepted",
         "message": "Your audio is being processed. You can check the status using the job_id."
+    }
+
+@router.post("/process_audio_bulk", status_code=202)
+async def process_audio_bulk(
+    request: Request,
+    files: List[UploadFile] = File(...),
+    custom_filenames: Optional[str] = Form(None),  # JSON mapping: {"index": "custom_name.mp3"}
+    transcription_options: Optional[str] = Form("{}"),
+    current_user: dict = Depends(requires_role("admin")),
+    detected_ip: str = Depends(get_ip_for_request),
+    background_tasks: BackgroundTasks = BackgroundTasks()
+):
+    """
+    Admin-only bulk processing endpoint.
+    - Validates auth and file types/sizes
+    - Spawns a separate background job per file using the same processing pipeline
+    - Returns list of job_ids for tracking
+    """
+    # Validate files list
+    if not files or len(files) == 0:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="No files provided")
+
+    MAX_FILES = 20
+    if len(files) > MAX_FILES:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Too many files. Max {MAX_FILES} allowed")
+
+    # Parse optional custom filename mapping
+    filename_map: Dict[str, str] = {}
+    try:
+        if custom_filenames:
+            filename_map = json.loads(custom_filenames) or {}
+            if not isinstance(filename_map, dict):
+                filename_map = {}
+    except Exception:
+        filename_map = {}
+
+    # Extract JWT token for internal API calls, like in single-file endpoint
+    auth_header = request.headers.get("Authorization", "")
+    jwt_token = auth_header.replace("Bearer ", "") if auth_header.startswith("Bearer ") else None
+    enhanced_user = dict(current_user)
+    if jwt_token:
+        enhanced_user["auth_token"] = jwt_token
+
+    # Per-file size limit (same as single endpoint)
+    MAX_FILE_SIZE_MB = 50
+    MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024
+
+    job_items: List[Dict[str, Any]] = []
+
+    # Iterate files and dispatch processing threads
+    for idx, file in enumerate(files):
+        if file.content_type not in AUDIO_MIME_TYPES:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Unsupported file type for {file.filename}: {file.content_type}. Please upload an audio file."
+            )
+
+        # Read into memory (consistent with single-file logic)
+        file_content = await file.read()
+        await file.seek(0)
+
+        if len(file_content) > MAX_FILE_SIZE_BYTES:
+            raise HTTPException(
+                status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+                detail=f"File {file.filename} exceeds {MAX_FILE_SIZE_MB}MB limit."
+            )
+
+        # Determine custom filename if provided
+        custom_name = None
+        # filename_map keys can be either index as string or original filename
+        if str(idx) in filename_map:
+            custom_name = filename_map[str(idx)]
+        elif file.filename in filename_map:
+            custom_name = filename_map[file.filename]
+
+        # Create job and spawn processing
+        job_id = create_job()
+
+        file_info = {
+            "filename": file.filename,
+            "content_type": file.content_type,
+            "size": len(file_content)
+        }
+
+        thread = threading.Thread(
+            target=run_processing_in_thread,
+            args=(
+                job_id,
+                file_content,
+                file_info,
+                custom_name,
+                transcription_options,
+                enhanced_user,
+                detected_ip,
+                background_tasks
+            )
+        )
+        thread.daemon = True
+        thread.start()
+
+        job_items.append({"file": file.filename, "job_id": job_id})
+
+    return {
+        "status": "accepted",
+        "message": "Bulk processing started. Track each job via job_id.",
+        "items": job_items
     }
 
 @router.get("/job-status/{job_id}")
