@@ -43,7 +43,7 @@
   <main class="container mx-auto px-4 py-12 max-w-7xl relative -mt-12 z-20">
     <!-- Search Card -->
     <div class="bg-white rounded-3xl shadow-2xl p-8 mb-12 border border-gray-100">
-      <app-search-section-title (searchChange)="onSearchChange($event)"></app-search-section-title>
+      <app-search-section-title (searchChange)="onSearchChange($event)" (searchSubmit)="onSearchSubmit($event)"></app-search-section-title>
     </div>
 
     <!-- Results Section -->
@@ -105,7 +105,7 @@
       </div>
 
       <!-- No Results State -->
-      <div *ngIf="!isLoading && searchQuery && filteredPodcasts.length === 0" 
+      <div *ngIf="!isLoading && hasSearched && searchQuery && filteredPodcasts.length === 0" 
            class="text-center py-20 bg-white rounded-3xl shadow-lg border border-gray-100">
         <div class="max-w-md mx-auto">
           <div class="w-24 h-24 mx-auto mb-6 bg-gradient-to-br from-indigo-100 to-purple-100 rounded-full flex items-center justify-center">
@@ -126,7 +126,7 @@
 
       <!-- Results Grid -->
       <app-podcast-grid
-        *ngIf="!isLoading && filteredPodcasts.length > 0"
+        *ngIf="!isLoading && (!hasSearched || filteredPodcasts.length > 0)"
         [podcasts]="filteredPodcasts"
         (podcastClick)="onPodcastCardClick($event)"
       ></app-podcast-grid>

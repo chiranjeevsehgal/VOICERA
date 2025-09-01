@@ -80,7 +80,8 @@ async def upload_to_supabase(
         response = await upload_file_to_supabase(
             file_path=file_path, 
             file_name=file.filename,
-            user_id=user_id
+            user_id=user_id,
+            bucket_name=os.getenv("SUPABASE_BUCKET_ORIGINAL")
         )
         
         print(f"[DEBUG] Upload response received: {json.dumps(response, default=str)}")
@@ -130,7 +131,7 @@ async def list_audio_files(
     """
     try:
         user_id = current_user["id"] if user_files_only else None
-        response = await list_files_in_bucket(user_id=user_id)
+        response = await list_files_in_bucket(user_id=user_id, bucket_name=os.getenv("SUPABASE_BUCKET_ORIGINAL"))
         return {"files": response}
     except Exception as e:
         raise HTTPException(

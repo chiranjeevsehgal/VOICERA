@@ -1,6 +1,6 @@
 // services/semantic-search.service.ts
 import { Injectable } from '@angular/core';
-import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../environments/environment';
 
@@ -50,7 +50,7 @@ export interface SearchResponse {
 }
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class SemanticSearchService {
   private baseUrl = environment.apiUrl;
@@ -59,12 +59,26 @@ export class SemanticSearchService {
   constructor(private http: HttpClient) {}
 
   searchAudio(query: string): Observable<SearchResponse> {
+    // Fetch latest token at call time
+    const token = localStorage.getItem('vEra_auth_token') || '';
     const headers = new HttpHeaders({
-      'Authorization': `Bearer ${this.authToken}`,
-      'Content-Type': 'application/json'
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json',
     });
 
-    const searchUrl = `${this.baseUrl}/api/search?query=${encodeURIComponent(query)}`;
-    return this.http.get<SearchResponse>(searchUrl, { headers });
+    const url = `${this.baseUrl}/api/search`;
+    // Defaults per backend contract and requested values
+    const effectiveQuery = query;
+    let params = new HttpParams()
+      .set('query', effectiveQuery)
+      .set('limit', '1')
+      .set('min_confidence', '0.5')
+      .set('use_llm_expansion', 'false')
+      .set('natural_language', 'false')
+      .set('validate_content', 'false')
+      // Frontend flag for clarity; backend ignores this but we include it to reflect requested defaults
+      .set('use_algorithmic_rank', 'true');
+
+    return this.http.get<SearchResponse>(url, { headers, params });
   }
 }

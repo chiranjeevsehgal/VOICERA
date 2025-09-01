@@ -213,36 +213,68 @@ class EnhancedSearch:
         metadata: List[Dict]
     ) -> List[float]:
         """
-        Perform keyword search with context awareness
+        Perform keyword search with context awareness and return scores aligned
+        to the original semantic_results/texts order.
         """
-        scores = []
-        
-        # Group texts by file and temporal proximity
-        grouped_texts = self._group_by_context(texts, metadata)
-        
-        # Process each group in batches
-        for group in grouped_texts:
-            group_scores = []
-            
-            # Calculate score for each text in group
-            for text in group:
+        # Prepare aligned scores
+        aligned_scores = [0.0] * len(texts)
+
+        # Build sortable entries preserving original indices
+        entries = [
+            (i, (texts[i] or ""), metadata[i] if i < len(metadata) else {})
+            for i in range(len(texts))
+        ]
+
+        # Sort by file name and start time to establish contextual order within each file
+        entries.sort(key=lambda x: (x[2].get('file_name'), x[2].get('start_time', 0)))
+
+        # Iterate per file to compute context-aware scores
+        current_file = None
+        group: List[tuple] = []
+
+        def flush_group(g: List[tuple]):
+            # Compute scores within this group using local positional context
+            for idx_in_group, (orig_idx, text, meta) in enumerate(g):
+                text_lower = (text or "").lower()
                 # Basic term matching score
-                term_score = 0
-                text_lower = text.lower()
-                
+                term_score = 0.0
                 for term, weight in query_terms.items():
                     if term in text_lower:
                         term_score += weight
-                
-                # Context bonus for adjacent matches
-                context_bonus = self._calculate_context_bonus(text, group, query_terms)
-                
-                final_score = term_score + context_bonus
-                group_scores.append(final_score)
-            
-            scores.extend(group_scores)
-        
-        return scores
+
+                # Context bonus from neighboring chunks in same file
+                context_bonus = 0.0
+                start_idx = max(0, idx_in_group - self.context_window)
+                end_idx = min(len(g), idx_in_group + self.context_window + 1)
+                for j in range(start_idx, end_idx):
+                    if j == idx_in_group:
+                        continue
+                    neighbor_text_lower = (g[j][1] or "").lower()
+                    distance_factor = 1 / (abs(j - idx_in_group) + 1)
+                    for term, weight in query_terms.items():
+                        if term in neighbor_text_lower:
+                            context_bonus += weight * distance_factor * 0.5
+
+                aligned_scores[orig_idx] = term_score + context_bonus
+
+        for entry in entries:
+            file_name = entry[2].get('file_name')
+            if current_file is None:
+                current_file = file_name
+                group = [entry]
+            elif file_name == current_file:
+                group.append(entry)
+            else:
+                # Flush previous file group and start a new one
+                flush_group(group)
+                current_file = file_name
+                group = [entry]
+
+        # Flush the last group
+        if group:
+            flush_group(group)
+
+        return aligned_scores
 
     def _group_by_context(self, texts: List[str], metadata: List[Dict]) -> List[List[str]]:
         """
@@ -305,7 +337,11 @@ class EnhancedSearch:
         return frozenset({
             "a", "an", "and", "are", "as", "at", "be", "by", "for",
             "from", "has", "he", "in", "is", "it", "its", "of", "on",
-            "that", "the", "to", "was", "were", "will", "with"
+            "that", "the", "to", "was", "were", "will", "with",
+            # Conversational fillers and generic words
+            "said", "say", "says", "she", "he", "they", "we", "you",
+            "yeah", "okay", "ok", "um", "uh", "like", "well", "right",
+            "oh", "hi", "hello", "thanks", "thank", "please", "just"
         })
 
     async def _semantic_search(
@@ -527,7 +563,21 @@ class EnhancedSearch:
             # Normalize scores
             max_semantic = max(r.get("semantic_score", 0) for r in semantic_results)
             max_keyword = max(keyword_scores) if keyword_scores else 1
-            
+
+            # Determine dynamic weighting based on query specificity (short queries rely more on keywords)
+            # We infer the query from the first result's original_query (present on all)
+            original_query = semantic_results[0].get("original_query", "") if semantic_results else ""
+            cleaned_query = re.sub(r'[^\w\s]', ' ', original_query.lower()).strip()
+            query_terms = [w for w in cleaned_query.split() if w and w not in self._get_stopwords()]
+            # Heuristic: if query is short (<=2 terms) or contains a rare/long token, boost keyword weight
+            short_query = len(query_terms) <= 2
+            has_specific_token = any(len(t) >= 7 for t in query_terms)
+
+            if short_query or has_specific_token:
+                dyn_weights = {"semantic": 0.3, "keyword": 0.5, "technical": 0.2}
+            else:
+                dyn_weights = {"semantic": 0.4, "keyword": 0.3, "technical": 0.3}
+
             combined_results = []
             for result, keyword_score in zip(semantic_results, keyword_scores):
                 # Ensure all required fields are present
@@ -537,20 +587,42 @@ class EnhancedSearch:
 
                 normalized_semantic = result.get("semantic_score", 0) / max_semantic if max_semantic else 0
                 normalized_keyword = keyword_score / max_keyword if max_keyword else 0
-                
+
                 # Calculate technical relevance score
-                tech_score = tech_scorer.calculate_technical_score(
+                raw_tech_score = tech_scorer.calculate_technical_score(
                     text=result.get("text", ""),
                     query=result.get("original_query", "")
                 )
-                
-                # Adjust weights to include technical score
+                # Map technical score to 0..1 range. Treat <=0 as 0, cap at 1.
+                # If the scorer returns in [0,1], this is a no-op; if it returns up to 2, we compress.
+                # Map such that 1.0 (neutral) -> 0.0, 2.0 (max) -> 1.0
+                tech_score = max(0.0, min(1.0, raw_tech_score - 1.0))
+
+                # Base combination with dynamic weights
                 combined_score = (
-                    0.4 * normalized_semantic +  # Reduced from 0.6
-                    0.3 * normalized_keyword +   # Reduced from 0.4
-                    0.3 * tech_score            # New technical component
+                    dyn_weights["semantic"] * normalized_semantic +
+                    dyn_weights["keyword"] * normalized_keyword +
+                    dyn_weights["technical"] * tech_score
                 )
-                
+
+                # Strong penalty if there's zero keyword match for specific/short queries
+                if (short_query or has_specific_token) and normalized_keyword == 0:
+                    # down-rank items that share no lexical overlap with the query
+                    combined_score *= 0.2
+
+                # Hard relevance gate: for short/specific queries, discard items with
+                # - no keyword evidence
+                # - no technical overlap (tech_score ~ 0)
+                # - very low semantic score (both normalized and absolute thresholds)
+                # - and the query term(s) not present in the text
+                if (short_query or has_specific_token):
+                    raw_semantic = result.get("semantic_score", 0.0)
+                    text_lower = result.get("text", "").lower()
+                    has_query_token_in_text = any(t in text_lower for t in query_terms)
+                    if normalized_keyword == 0 and tech_score <= 0.01 and (normalized_semantic < 0.2 or raw_semantic < 0.2) and not has_query_token_in_text:
+                        # Skip this result entirely as likely irrelevant
+                        continue
+
                 # Add all metadata fields
                 combined_result = {
                     **result,
@@ -559,17 +631,17 @@ class EnhancedSearch:
                     "semantic_score": normalized_semantic,
                     "technical_score": tech_score,
                     "weights_used": {
-                        "semantic": 0.4,
-                        "keyword": 0.3,
-                        "technical": 0.3
+                        "semantic": dyn_weights["semantic"],
+                        "keyword": dyn_weights["keyword"],
+                        "technical": dyn_weights["technical"]
                     }
                 }
-                
+
                 combined_results.append(combined_result)
-            
+
             # Sort by combined score
             combined_results.sort(key=lambda x: x["combined_score"], reverse=True)
-            
+
             # Debug logging
             print(f"Combined {len(combined_results)} results")
             if combined_results:

@@ -2,7 +2,6 @@ import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Subscription } from 'rxjs';
 import { HeaderComponent } from '../../components/header/header.component';
-import { AudioModalComponent } from '../../components/audio-modal/audio-modal.component';
 import { MessageService } from 'primeng/api';
 import { FormsModule } from '@angular/forms';
 import { Toast } from 'primeng/toast';
@@ -19,7 +18,7 @@ export interface SemanticPodcast {
 
 @Component({
   selector: 'app-semantic-search',
-  imports: [Toast, CommonModule, FormsModule, HeaderComponent, AudioModalComponent],
+  imports: [Toast, CommonModule, FormsModule, HeaderComponent],
   providers: [MessageService],
   templateUrl: './semantic-search.component.html',
   styles: ``
@@ -28,6 +27,7 @@ export class SemanticSearchComponent implements OnInit, OnDestroy {
   searchQuery: string = '';
   searchResults: SemanticPodcast[] = [];
   loading = false;
+  hasSearched = false;
   selectedPodcast: SemanticPodcast | null = null;
   isModalVisible = false;
   private subscription?: Subscription;
@@ -58,10 +58,12 @@ export class SemanticSearchComponent implements OnInit, OnDestroy {
   onSearchClear(): void {
     this.searchQuery = '';
     this.searchResults = [];
+    this.hasSearched = false;
   }
 
   private performSearch(query: string): void {
     this.loading = true;
+    this.hasSearched = false;
     
     this.subscription = this.semanticSearchService.searchAudio(query).subscribe({
       next: (response) => {
@@ -69,10 +71,12 @@ export class SemanticSearchComponent implements OnInit, OnDestroy {
         console.log(this.searchResults);
         
         this.loading = false;
+        this.hasSearched = true;
       },
       error: (error) => {
         console.error('Search error:', error);
         this.loading = false;
+        this.hasSearched = true;
         this.messageService.add({
           severity: 'error',
           summary: 'Search Error',

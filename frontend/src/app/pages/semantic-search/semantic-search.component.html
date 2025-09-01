@@ -93,9 +93,15 @@
       <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h2 class="text-3xl font-bold text-gray-900 mb-2">
-            {{ loading ? 'AI is analyzing your query...' : searchResults.length > 0 ? 'AI Search Results' : 'No Results Found' }}
+            {{ loading
+                ? 'AI is analyzing your query...'
+                : (hasSearched && searchResults.length > 0)
+                  ? 'AI Search Results'
+                  : (hasSearched && searchResults.length === 0)
+                    ? 'No Results Found'
+                    : '' }}
           </h2>
-          <p class="text-gray-600" *ngIf="!loading && searchResults.length > 0">
+          <p class="text-gray-600" *ngIf="!loading && hasSearched && searchResults.length > 0">
             {{ searchResults.length }} results found
           </p>
           <div *ngIf="loading" class="flex items-center space-x-2">
@@ -115,7 +121,7 @@
       </div>
 
       <!-- No results message -->
-      <div *ngIf="!loading && searchQuery && searchResults.length === 0" 
+      <div *ngIf="hasSearched && !loading && searchQuery && searchResults.length === 0" 
            class="text-center py-20 bg-white rounded-3xl shadow-lg border border-gray-100">
         <div class="max-w-md mx-auto">
           <div class="w-24 h-24 mx-auto mb-6 bg-gradient-to-br from-indigo-100 to-purple-100 rounded-full flex items-center justify-center">
@@ -130,7 +136,7 @@
       </div>
 
       <!-- Search Results -->
-      <div *ngIf="!loading && searchResults.length > 0" class="space-y-6">
+      <div *ngIf="hasSearched && !loading && searchResults.length > 0" class="space-y-6">
         <div *ngFor="let podcast of searchResults" 
              class="bg-white rounded-3xl shadow-lg p-6 hover:shadow-xl transition-all duration-300 cursor-pointer border border-gray-100 hover:-translate-y-1"
              (click)="onPodcastCardClick(podcast)">
@@ -187,7 +193,7 @@
   <div *ngIf="selectedPodcast" 
        class="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm bg-black/20"
        (click)="onModalClose()">
-    <div class="bg-white rounded-3xl shadow-2xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto border border-gray-100" 
+    <div class="bg-white rounded-3xl shadow-2xl max-w-2xl w-full mx-4 max-h-[100vh] overflow-y-auto border border-gray-100" 
          (click)="$event.stopPropagation()">
       
       <!-- Header -->

@@ -396,10 +396,26 @@ async def process_audio_background(
         )
         
         # Upload to Supabase
-        supabase_result = await asyncio.get_event_loop().run_in_executor(
-            thread_pool,
-            lambda: sync_upload_to_supabase(local_file_path, file_name, user_id)
-        )
+        try:
+            supabase_result = await asyncio.wait_for(
+                asyncio.get_event_loop().run_in_executor(
+                    thread_pool,
+                    lambda: sync_upload_to_supabase(
+                        local_file_path,
+                        file_name,
+                        user_id,
+                        bucket_name=os.getenv("SUPABASE_BUCKET_ORIGINAL")
+                    )
+                ),
+                timeout=90
+            )
+        except asyncio.TimeoutError:
+            update_job_status(
+                job_id,
+                JobStatus.FAILED,
+                error="Supabase upload timed out after 90s"
+            )
+            return
         
         print(f"[DEBUG] Supabase upload result: {json.dumps(supabase_result, default=str)}")
         
@@ -421,6 +437,11 @@ async def process_audio_background(
                 error="Supabase URL is empty"
             )
             return
+        
+        # Store original Supabase storage identifiers for potential cleanup
+        original_supabase_file_name = supabase_result.get("file_name")
+        original_supabase_file_path = supabase_result.get("file_path")
+        original_supabase_bucket = supabase_result.get("bucket")
         
         # Update the upload record with the Supabase URL
         if upload_id:
@@ -444,6 +465,8 @@ async def process_audio_background(
             current_step="transcribing"
         )
         
+        # Ensure options dict exists for safe access in exception paths
+        transcribe_options = {}
         try:
             # Parse transcription options
             try:
@@ -549,25 +572,8 @@ async def process_audio_background(
                 )
             )
             
-            # Update upload status
-            await asyncio.get_event_loop().run_in_executor(
-                thread_pool,
-                lambda: sync_update_upload_status(
-                    upload_id=upload_id,
-                    status="processing"
-                )
-            )
-            
-            # Step 5: Index the transcript in Pinecone
-            update_job_status(
-                job_id, 
-                JobStatus.INDEXING,
-                progress=60,
-                current_step="indexing"
-            )
-            
+            # Index transcript in Pinecone (single call)
             try:
-                # Index the transcript in Pinecone
                 indexed = await asyncio.get_event_loop().run_in_executor(
                     thread_pool,
                     lambda: sync_index_transcript(
@@ -577,27 +583,7 @@ async def process_audio_background(
                         is_permanent_url=True
                     )
                 )
-                transcription_data["indexed"] = indexed
-            except Exception as e:
-                transcription_data["indexed"] = False
-                transcription_data["indexing_error"] = str(e)
-            
-            # Index the transcript in Pinecone if needed
-            try:
-                # First check if we have a Supabase URL to use
-                file_url_for_index = supabase_url if 'supabase_url' in locals() else tmpfiles_url
-                
-                # Use run_in_executor with sync wrapper for indexing
-                indexed = await asyncio.get_event_loop().run_in_executor(
-                    thread_pool,
-                    lambda: sync_index_transcript(
-                        transcript_data=transcription_data,
-                        file_url=file_url_for_index,
-                        file_name=file_basename,
-                        is_permanent_url='supabase_url' in locals()
-                    )
-                )
-                transcription_data["indexed"] = indexed
+                transcription_data["indexed"] = bool(indexed)
             except Exception as e:
                 transcription_data["indexed"] = False
                 transcription_data["indexing_error"] = str(e)
@@ -700,6 +686,108 @@ async def process_audio_background(
             )
             return
         
+        # Step 6.5: Upload embedded file to Supabase and update records (with retry/backoff)
+        update_job_status(
+            job_id,
+            JobStatus.UPLOADING_TO_SUPABASE,
+            current_step="uploading_embedded_to_supabase",
+            progress=75
+        )
+        try:
+            embedded_filename = os.path.basename(embedded_file_path)
+            max_attempts = 3
+            delay = 1.0
+            embedded_upload_result = None
+            for attempt in range(1, max_attempts + 1):
+                try:
+                    embedded_upload_result = await asyncio.wait_for(
+                        asyncio.get_event_loop().run_in_executor(
+                            thread_pool,
+                            lambda: sync_upload_to_supabase(
+                                embedded_file_path,
+                                embedded_filename,
+                                user_id,
+                                bucket_name=os.getenv("SUPABASE_BUCKET_EMBEDDED")
+                            )
+                        ),
+                        timeout=90
+                    )
+                    if embedded_upload_result and "file_url" in embedded_upload_result:
+                        break
+                except asyncio.TimeoutError:
+                    print(f"[WARN] Embedded upload attempt {attempt} timed out after 90s")
+                except Exception as inner_e:
+                    print(f"[WARN] Embedded upload attempt {attempt} failed: {inner_e}")
+                if attempt < max_attempts:
+                    time.sleep(delay)
+                    delay *= 2
+
+            if not embedded_upload_result or "file_url" not in embedded_upload_result:
+                update_job_status(
+                    job_id,
+                    JobStatus.FAILED,
+                    error="Failed to upload embedded file to Supabase after retries"
+                )
+                return
+
+            embedded_supabase_url = embedded_upload_result["file_url"]
+
+            # Update upload record to point to embedded file
+            if upload_id:
+                await asyncio.get_event_loop().run_in_executor(
+                    thread_pool,
+                    lambda: sync_update_upload_status(
+                        upload_id=upload_id,
+                        status="processing",
+                        supabase_url=embedded_supabase_url
+                    )
+                )
+
+            # Update podcast record to use embedded file URL
+            if 'podcast_id' in locals() and podcast_id:
+                await asyncio.get_event_loop().run_in_executor(
+                    thread_pool,
+                    lambda: sync_update_podcast_url(podcast_id, embedded_supabase_url)
+                )
+
+            # Optional: delete original Supabase file if configured
+            try:
+                delete_flag = os.getenv("DELETE_ORIGINAL_SUPABASE_FILE", "false").lower() in ("1", "true", "yes")
+                if delete_flag and (original_supabase_file_path or original_supabase_file_name):
+                    name_or_path = original_supabase_file_path or original_supabase_file_name
+                    try:
+                        await asyncio.wait_for(
+                            asyncio.get_event_loop().run_in_executor(
+                                thread_pool,
+                                lambda: sync_delete_from_supabase(
+                                    name_or_path,
+                                    bucket_name=original_supabase_bucket or os.getenv("SUPABASE_BUCKET_ORIGINAL")
+                                )
+                            ),
+                            timeout=30
+                        )
+                    except asyncio.TimeoutError:
+                        print("[WARN] Deletion of original Supabase file timed out after 30s")
+            except Exception as del_e:
+                print(f"[WARN] Failed to delete original Supabase file: {del_e}")
+
+            # Update job result with embedded Supabase URL
+            current_result = get_job_status(job_id).get("result", {}) or {}
+            current_result["embedded_supabase_url"] = embedded_supabase_url
+            update_job_status(
+                job_id,
+                status=JobStatus.EMBEDDING,
+                result=current_result,
+                progress=80
+            )
+        except Exception as e:
+            update_job_status(
+                job_id,
+                JobStatus.FAILED,
+                error=f"Error uploading embedded file to Supabase: {str(e)}"
+            )
+            return
+
         # Step 7: Deduct credit - using direct database access
         update_job_status(
             job_id, 
@@ -942,9 +1030,9 @@ async def embed_metadata_in_file_async(src_file: str, dest_file: str, metadata_j
         print(f"Error embedding metadata: {str(e)}")
         return src_file
 
-async def upload_to_supabase_async(file_path: str, filename: str, user_id: str = None) -> Dict[str, Any]:
+async def upload_to_supabase_async(file_path: str, filename: str, user_id: str = None, bucket_name: str = None) -> Dict[str, Any]:
     """Upload file to Supabase"""
-    result = await upload_file_to_supabase(file_path, filename, user_id)
+    result = await upload_file_to_supabase(file_path, filename, user_id, bucket_name=bucket_name)
     return result
 
 # Add a synchronous wrapper for the credit check function
@@ -1085,7 +1173,7 @@ def sync_embed_metadata(src_file: str, dest_file: str, metadata_json: str) -> st
         return src_file  # Return original file on error
 
 # Add a synchronous wrapper for Supabase upload
-def sync_upload_to_supabase(file_path: str, filename: str, user_id: str = None) -> Dict[str, Any]:
+def sync_upload_to_supabase(file_path: str, filename: str, user_id: str = None, bucket_name: str = None) -> Dict[str, Any]:
     """Synchronous wrapper for uploading to Supabase"""
     import asyncio
     
@@ -1095,7 +1183,7 @@ def sync_upload_to_supabase(file_path: str, filename: str, user_id: str = None) 
         asyncio.set_event_loop(loop)
         
         # Run the async function in this loop
-        result = loop.run_until_complete(upload_to_supabase_async(file_path, filename, user_id))
+        result = loop.run_until_complete(upload_to_supabase_async(file_path, filename, user_id, bucket_name))
         
         # Clean up
         loop.close()
@@ -1104,6 +1192,21 @@ def sync_upload_to_supabase(file_path: str, filename: str, user_id: str = None) 
     except Exception as e:
         print(f"Error in sync_upload_to_supabase: {str(e)}")
         return {"error": str(e), "file_name": filename}
+
+# Add a synchronous wrapper for Supabase delete
+def sync_delete_from_supabase(name_or_path: str, bucket_name: str = None) -> Dict[str, Any]:
+    """Synchronous wrapper for deleting a file from Supabase storage"""
+    import asyncio
+    try:
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        from services.supabase_service import delete_file_from_supabase
+        result = loop.run_until_complete(delete_file_from_supabase(name_or_path, bucket_name=bucket_name))
+        loop.close()
+        return result
+    except Exception as e:
+        print(f"Error in sync_delete_from_supabase: {str(e)}")
+        return {"success": False, "error": str(e)}
 
 # Add a synchronous wrapper for tmpfiles upload
 def sync_upload_to_tmpfiles(file_path: str) -> Optional[str]:
@@ -1189,6 +1292,7 @@ def sync_update_podcast_url(podcast_id: str, supabase_url: str) -> bool:
                 {"_id": ObjectId(podcast_id)},
                 {"$set": {
                     "supabase_url": supabase_url,
+                    "audio_url": supabase_url,
                     "updated_at": datetime.utcnow()
                 }}
             )
