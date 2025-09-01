@@ -54,6 +54,7 @@ export interface SearchResponse {
 })
 export class SemanticSearchService {
   private baseUrl = environment.apiUrl;
+  private authToken = localStorage.getItem('vEra_auth_token');
 
   constructor(private http: HttpClient) {}
 

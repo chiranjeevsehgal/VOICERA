@@ -32,7 +32,8 @@ function handleTokenExpiration(router: Router, messageService: MessageService): 
   });
 
   // Remove from localStorage
-  localStorage.removeItem('auth_token');
+  localStorage.removeItem('vEra_auth_token');
+  localStorage.removeItem('vEra_user_profile');
 
   // Small delay to show toast before redirect
   setTimeout(() => {

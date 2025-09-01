@@ -28,7 +28,7 @@ export class LoginService {
     return this.http.post<LoginResponse>(apiUrl, formData).pipe(
       tap(resposne => {
         if (resposne.status == true) {
-          localStorage.setItem('auth_token', resposne.access_token);
+          localStorage.setItem('vEra_auth_token', resposne.access_token);
         }
       })
     );

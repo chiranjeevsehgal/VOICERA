@@ -285,7 +285,7 @@
           <button
             (click)="checkStatus()"
             [disabled]="loading"
-            class="px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-2xl font-semibold hover:from-blue-700 hover:to-indigo-700 disabled:opacity-50 transition-all duration-300 shadow-lg hover:shadow-xl hover:-translate-y-1"
+            class="px-6 py-3 bg-gradient-to-r cursor-pointer from-blue-600 to-indigo-600 text-white rounded-2xl font-semibold hover:from-blue-700 hover:to-indigo-700 disabled:opacity-50 transition-all duration-300 shadow-lg hover:shadow-xl hover:-translate-y-1"
           >
             <span *ngIf="!loading">Refresh Status</span>
             <span *ngIf="loading">Refreshing...</span>
@@ -293,7 +293,7 @@
 
           <button
             (click)="trackAnother()"
-            class="px-6 py-3 bg-gradient-to-r from-gray-600 to-slate-600 text-white rounded-2xl font-semibold hover:from-gray-700 hover:to-slate-700 transition-all duration-300 shadow-lg hover:shadow-xl hover:-translate-y-1"
+            class="px-6 py-3 bg-gradient-to-r cursor-pointer from-gray-600 to-slate-600 text-white rounded-2xl font-semibold hover:from-gray-700 hover:to-slate-700 transition-all duration-300 shadow-lg hover:shadow-xl hover:-translate-y-1"
           >
             Track Another
           </button>

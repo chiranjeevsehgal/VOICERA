@@ -28,7 +28,7 @@ export class UploadAudioService {
     const formData = new FormData();
     formData.append('file', file);
 
-    const token = localStorage.getItem('auth_token');
+    const token = localStorage.getItem('vEra_auth_token');
 
     const headers = new HttpHeaders({
       Authorization: `Bearer ${token}`,
@@ -46,7 +46,7 @@ export class UploadAudioService {
   }
 
   getJobStatus(jobId: string): Observable<JobStatus> {
-    const token = localStorage.getItem('auth_token');
+    const token = localStorage.getItem('vEra_auth_token');
     const headers = new HttpHeaders({
       Authorization: `Bearer ${token}`,
     });

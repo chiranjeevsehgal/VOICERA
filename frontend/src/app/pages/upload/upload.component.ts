@@ -7,6 +7,7 @@ import { FormsModule } from '@angular/forms';
 import { HeaderComponent } from '../../components/header/header.component';
 import { MessageService } from 'primeng/api';
 import { Router } from '@angular/router';
+import { ProfileService } from '../../services/auth/profile.service';
 
 @Component({
   selector: 'app-upload',
@@ -32,7 +33,8 @@ export class UploadComponent {
 
   constructor(
     private uploadService: UploadAudioService,
-    private router: Router
+    private router: Router,
+    private profileService: ProfileService
   ) {}
 
   onDragOver(event: DragEvent) {
@@ -96,6 +98,7 @@ export class UploadComponent {
           this.uploadProgress = 100;
           this.uploadStatus = 'Upload complete!';
           this.uploadResponse = event.body;
+          this.profileService.refreshCredits();
           setTimeout(() => {
             this.isUploading = false;
             this.uploadSuccess = true;
