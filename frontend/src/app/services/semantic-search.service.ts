@@ -72,7 +72,7 @@ export class SemanticSearchService {
     let params = new HttpParams()
       .set('query', effectiveQuery)
       .set('limit', '1')
-      .set('min_confidence', '0.2')
+      .set('min_confidence', '0.5')
       .set('use_llm_expansion', 'false')
       .set('natural_language', 'false')
       .set('validate_content', 'false')
