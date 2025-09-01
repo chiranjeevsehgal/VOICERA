@@ -76,8 +76,8 @@ export class SemanticSearchService {
       .set('use_llm_expansion', 'false')
       .set('natural_language', 'false')
       .set('validate_content', 'false')
-      // Frontend flag for clarity; backend ignores this but we include it to reflect requested defaults
-      .set('use_algorithmic_rank', 'true');
+      // Ensure backend skips heavy LLM reranking (keeps cross-encoder + algorithmic pipeline)
+      .set('use_llm_rerank', 'false');
 
     return this.http.get<SearchResponse>(url, { headers, params });
   }

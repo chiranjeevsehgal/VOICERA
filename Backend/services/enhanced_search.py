@@ -8,6 +8,42 @@ from concurrent.futures import ThreadPoolExecutor
 import asyncio
 from functools import partial
 import logging
+import math
+from typing import Any, Tuple
+import hashlib
+import time
+from services.database import transcripts_collection
+
+# Optional dependencies (graceful fallbacks)
+try:
+    from sentence_transformers import CrossEncoder  # type: ignore
+except Exception:  # pragma: no cover - optional
+    CrossEncoder = None  # type: ignore
+
+try:
+    from rank_bm25 import BM25Okapi  # type: ignore
+except Exception:  # pragma: no cover - optional
+    BM25Okapi = None  # type: ignore
+
+try:
+    from nltk.stem import SnowballStemmer  # type: ignore
+    from nltk.corpus import wordnet as wn  # type: ignore
+    NLTK_AVAILABLE = True
+except Exception:  # pragma: no cover - optional
+    NLTK_AVAILABLE = False
+
+# Optional NLTK sentence tokenizer (robust sentence segmentation)
+try:
+    from nltk.tokenize import sent_tokenize  # type: ignore
+    NLTK_SENT_TOKENIZE_AVAILABLE = True
+except Exception:  # pragma: no cover - optional
+    NLTK_SENT_TOKENIZE_AVAILABLE = False
+
+try:
+    from rapidfuzz import fuzz  # type: ignore
+    RAPIDFUZZ_AVAILABLE = True
+except Exception:  # pragma: no cover - optional
+    RAPIDFUZZ_AVAILABLE = False
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -26,12 +62,29 @@ class EnhancedSearch:
         # Only initialize once
         if not self._initialized:
             logger.info("Initializing EnhancedSearch instance...")
-            self.chunk_size = 100
-            self.chunk_overlap = 50
-            self.min_chunk_size = 30
+            # Chunking parameters are approximate token counts (not characters)
+            self.chunk_size = 100       # ~tokens per chunk
+            self.chunk_overlap = 50     # ~tokens of overlap between chunks
+            self.min_chunk_size = 30    # ~minimum tokens to keep a chunk
             self.max_parallel_tasks = 10
             self.batch_size = 50
             self.context_window = 2  # Number of chunks to consider for context
+            # Retrieval/Rerank settings
+            self.cross_encoder_model_name = "cross-encoder/ms-marco-MiniLM-L-6-v2"
+            self.cross_encoder = None
+            self.enable_mmr = True
+            self.mmr_lambda = 0.6  # 0..1, higher favors relevance over diversity
+            self.rrf_k = 60  # for rank fusion if/when used
+            # Sparse retrieval cache (BM25)
+            self.bm25 = None
+            self._bm25_tokens: List[List[str]] = []
+            self._bm25_docs: List[Dict[str, Any]] = []
+            self._bm25_ready: bool = False
+            self._bm25_last_built: float = 0.0
+            # Caches
+            self._embedding_cache: Dict[str, List[float]] = {}
+            # NLP helpers
+            self.stemmer = SnowballStemmer("english") if NLTK_AVAILABLE else None
             
             # Initialize Pinecone connection
             if not index:
@@ -45,44 +98,57 @@ class EnhancedSearch:
 
     def create_semantic_chunks(self, text: str) -> List[Dict]:
         """
-        Create chunks based on semantic boundaries (sentences, paragraphs)
-        with overlapping to maintain context
+        Create chunks based on sentence boundaries with token-based size and overlap.
+        Falls back to regex sentence splitting when NLTK is not available.
         """
-        # Split into sentences (basic implementation)
-        sentences = re.split(r'[.!?]+', text)
-        sentences = [s.strip() for s in sentences if s.strip()]
-        
-        chunks = []
-        current_chunk = []
-        current_length = 0
-        
+        # Robust sentence segmentation
+        sentences = self._split_sentences(text)
+
+        chunks: List[Dict] = []
+        current_sentences: List[str] = []
+        current_tokens = 0
+
         for sentence in sentences:
-            sentence_length = len(sentence.split())
-            
-            # If adding this sentence exceeds chunk size, create new chunk
-            if current_length + sentence_length > self.chunk_size and len(current_chunk) >= self.min_chunk_size:
-                # Create chunk
-                chunk_text = ' '.join(current_chunk)
-                chunks.append({
-                    "text": chunk_text,
-                    "length": current_length
-                })
-                
-                # Start new chunk with overlap
-                overlap_size = min(self.chunk_overlap, len(current_chunk))
-                current_chunk = current_chunk[-overlap_size:]
-                current_length = sum(len(s.split()) for s in current_chunk)
-            
-            current_chunk.append(sentence)
-            current_length += sentence_length
-        
-        # Add final chunk if it meets minimum size
-        if current_length >= self.min_chunk_size:
+            sent_tokens = self._estimate_token_count(sentence)
+
+            # If adding this sentence exceeds chunk size, flush as a chunk (if large enough)
+            if current_tokens + sent_tokens > self.chunk_size and current_tokens >= self.min_chunk_size:
+                chunk_text = ' '.join(current_sentences).strip()
+                if chunk_text:
+                    chunks.append({
+                        "text": chunk_text,
+                        "length": current_tokens  # ~token count
+                    })
+
+                # Start new chunk with token-based overlap
+                if self.chunk_overlap > 0 and current_sentences:
+                    overlap_sentences: List[str] = []
+                    overlap_tokens = 0
+                    # Walk backwards adding sentences until overlap target is met
+                    for s in reversed(current_sentences):
+                        t = self._estimate_token_count(s)
+                        if overlap_tokens + t > self.chunk_overlap and overlap_sentences:
+                            break
+                        overlap_sentences.append(s)
+                        overlap_tokens += t
+                    current_sentences = list(reversed(overlap_sentences))
+                    current_tokens = overlap_tokens
+                else:
+                    current_sentences = []
+                    current_tokens = 0
+
+            # Add sentence to the current working chunk
+            current_sentences.append(sentence)
+            current_tokens += sent_tokens
+
+        # Flush remainder if it meets minimum size (or if no chunks yet to avoid dropping small texts)
+        remainder_text = ' '.join(current_sentences).strip()
+        if remainder_text and (current_tokens >= self.min_chunk_size or not chunks):
             chunks.append({
-                "text": ' '.join(current_chunk),
-                "length": current_length
+                "text": remainder_text,
+                "length": current_tokens  # ~token count
             })
-            
+
         return chunks
 
     async def hybrid_search(
@@ -117,63 +183,110 @@ class EnhancedSearch:
             if filter_dict:
                 logger.info(f"Using filters: {filter_dict}")
 
-            # 1. Generate query embedding and extract key terms
-            query_embedding = get_embedding(query)
-            query_terms = self._extract_key_terms(query)
-            
-            # 2. Perform semantic search with larger initial pool
-            semantic_limit = min(limit * 5, 150)  # Increased pool for better filtering
-            semantic_results = await self._semantic_search(
-                query_embedding=query_embedding,
-                limit=semantic_limit,
-                filter_dict=filter_dict
-            )
-            
-            # Add original query to results for technical scoring
-            for result in semantic_results:
-                result["original_query"] = query_for_tech_scoring
-            
-            # Debug logging
-            logger.info(f"Found {len(semantic_results)} semantic results")
-            
+            # 1) Expand query (synonyms/phrases) and embed
+            expansions = self._expand_query_multi(query_for_tech_scoring)
+            # Ensure original query is first
+            if query_for_tech_scoring not in expansions:
+                expansions.insert(0, query_for_tech_scoring)
+
+            # 2) Semantic retrieval for each expansion, build candidate pool
+            total_target = min(max(limit * 10, 100), 200)
+            per_expansion_k = max(10, total_target // max(1, len(expansions)))
+
+            candidate_map: Dict[str, Dict[str, Any]] = {}
+            for q_exp in expansions:
+                try:
+                    q_emb = self._embed(q_exp)
+                except Exception:
+                    # Fallback to original query embedding
+                    q_emb = self._embed(query_for_tech_scoring)
+
+                sem_results = await self._semantic_search(
+                    query_embedding=q_emb,
+                    limit=per_expansion_k,
+                    filter_dict=filter_dict,
+                    include_values=self.enable_mmr
+                )
+                for r in sem_results:
+                    # Preserve raw and normalized later
+                    r["original_query"] = query_for_tech_scoring
+                    r["expansion"] = q_exp
+                    # Prefer Pinecone id if present; else derive from stable fields
+                    rid = r.get("id") or f"{r.get('file_name','')}|{r.get('start_time','')}|{hash(r.get('text',''))}"
+                    if rid not in candidate_map:
+                        candidate_map[rid] = r
+                    else:
+                        # Keep the best semantic score record
+                        if r.get("semantic_score", 0) > candidate_map[rid].get("semantic_score", 0):
+                            candidate_map[rid] = r
+
+            semantic_results = list(candidate_map.values())
+            logger.info(f"Candidate pool size after expansions: {len(semantic_results)}")
             if not semantic_results:
                 logger.warning("No semantic results found, check Pinecone connection and index content")
                 return []
 
-            # 3. Enhanced keyword matching with context
+            # 3) Sparse retrieval (BM25) and RRF fusion with dense results
+            fused_candidates = semantic_results
+            try:
+                if BM25Okapi is not None:
+                    await self._ensure_bm25_index()
+                    sparse_results = await self._bm25_search(query_for_tech_scoring, top_k=total_target)
+                    if sparse_results:
+                        fused_candidates = self._rrf_fuse(semantic_results, sparse_results, k=self.rrf_k)
+                        logger.info(f"Fused candidates (RRF): {len(fused_candidates)}")
+                else:
+                    logger.info("rank_bm25 not available; skipping sparse retrieval")
+            except Exception as e:
+                logger.error(f"Sparse retrieval fusion error: {str(e)}")
+                fused_candidates = semantic_results
+
+            # 4) Keyword/sparse scoring with improved token matching (over fused set)
+            query_terms = self._extract_key_terms(query)
             keyword_results = await self._context_aware_keyword_search(
                 query=query,
                 query_terms=query_terms,
-                texts=[r["text"] for r in semantic_results],
+                texts=[r.get("text", "") for r in fused_candidates],
                 metadata=[{
                     "file_name": r.get("file_name"),
                     "start_time": r.get("start_time"),
                     "end_time": r.get("end_time")
-                } for r in semantic_results]
+                } for r in fused_candidates]
             )
-            
-            # 4. Combine results with context-aware scoring
+
+            # 5) Combine scores
             combined_results = await self._combine_results_with_context(
-                semantic_results=semantic_results,
+                semantic_results=fused_candidates,
                 keyword_scores=keyword_results,
-                weights={
-                    "semantic": 0.6,
-                    "keyword": 0.4
-                }
+                weights={"semantic": 0.5, "keyword": 0.5}
             )
-            
-            # 5. Apply improved diversity filtering
+
+            # 6) Cross-encoder reranking on top-K
+            combined_results = await self._rerank_with_cross_encoder(query_for_tech_scoring, combined_results, top_k=min(100, len(combined_results)))
+
+            # 7) Diversify with MMR using embeddings; fallback to lexical diversity
             try:
-                diverse_results = await self._apply_context_aware_diversity_filter(
-                    results=combined_results,
-                    similarity_threshold=0.85,
-                    max_results=limit
-                )
+                if self.enable_mmr:
+                    diverse_results = self._apply_mmr_embeddings(
+                        results=combined_results,
+                        query_embedding=self._embed(query_for_tech_scoring),
+                        max_results=limit,
+                        lambda_mult=self.mmr_lambda
+                    )
+                else:
+                    raise ValueError("MMR disabled")
             except Exception as e:
-                logger.error(f"Error in diversity filtering: {str(e)}")
-                logger.info("Falling back to combined results without diversity filtering")
-                diverse_results = combined_results[:limit]
-            
+                logger.error(f"Error in MMR diversification: {str(e)}")
+                logger.info("Falling back to lexical diversity filter")
+                try:
+                    diverse_results = await self._apply_context_aware_diversity_filter(
+                        results=combined_results,
+                        similarity_threshold=0.85,
+                        max_results=limit
+                    )
+                except Exception:
+                    diverse_results = combined_results[:limit]
+
             return diverse_results[:limit]
             
         except Exception as e:
@@ -226,7 +339,7 @@ class EnhancedSearch:
         ]
 
         # Sort by file name and start time to establish contextual order within each file
-        entries.sort(key=lambda x: (x[2].get('file_name'), x[2].get('start_time', 0)))
+        entries.sort(key=lambda x: (str(x[2].get('file_name') or ''), x[2].get('start_time', 0)))
 
         # Iterate per file to compute context-aware scores
         current_file = None
@@ -236,10 +349,11 @@ class EnhancedSearch:
             # Compute scores within this group using local positional context
             for idx_in_group, (orig_idx, text, meta) in enumerate(g):
                 text_lower = (text or "").lower()
-                # Basic term matching score
+                text_tokens = self._tokenize(text_lower)
+                # Basic term matching score (token/phrase-aware)
                 term_score = 0.0
                 for term, weight in query_terms.items():
-                    if term in text_lower:
+                    if self._term_in_text(term, text_tokens, text_lower):
                         term_score += weight
 
                 # Context bonus from neighboring chunks in same file
@@ -250,9 +364,10 @@ class EnhancedSearch:
                     if j == idx_in_group:
                         continue
                     neighbor_text_lower = (g[j][1] or "").lower()
+                    neighbor_tokens = self._tokenize(neighbor_text_lower)
                     distance_factor = 1 / (abs(j - idx_in_group) + 1)
                     for term, weight in query_terms.items():
-                        if term in neighbor_text_lower:
+                        if self._term_in_text(term, neighbor_tokens, neighbor_text_lower):
                             context_bonus += weight * distance_factor * 0.5
 
                 aligned_scores[orig_idx] = term_score + context_bonus
@@ -348,7 +463,8 @@ class EnhancedSearch:
         self,
         query_embedding: List[float],
         limit: int,
-        filter_dict: Optional[Dict] = None
+        filter_dict: Optional[Dict] = None,
+        include_values: bool = False
     ) -> List[Dict]:
         """
         Perform semantic search using Pinecone with improved error handling
@@ -364,6 +480,7 @@ class EnhancedSearch:
                 vector=query_embedding,
                 top_k=limit,
                 include_metadata=True,
+                include_values=include_values,
                 filter=filter_dict
             )
             
@@ -373,9 +490,12 @@ class EnhancedSearch:
                 
             return [{
                 **match["metadata"],
-                "semantic_score": match["score"],
-                "text": match["metadata"].get("text", "")
-            } for match in results["matches"]]
+                "id": match.get("id"),
+                "semantic_score_raw": match.get("score", 0.0),
+                "semantic_score": match.get("score", 0.0),
+                "text": match.get("metadata", {}).get("text", ""),
+                "vector": match.get("values") if include_values else None
+            } for match in results.get("matches", [])]
             
         except Exception as e:
             print(f"Error in semantic search: {str(e)}")
@@ -585,7 +705,9 @@ class EnhancedSearch:
                     print(f"Warning: Missing text field in result: {result}")
                     continue
 
-                normalized_semantic = result.get("semantic_score", 0) / max_semantic if max_semantic else 0
+                # Preserve raw and normalized variants
+                raw_sem = result.get("semantic_score", 0)
+                normalized_semantic = raw_sem / max_semantic if max_semantic else 0
                 normalized_keyword = keyword_score / max_keyword if max_keyword else 0
 
                 # Calculate technical relevance score
@@ -629,6 +751,7 @@ class EnhancedSearch:
                     "combined_score": combined_score,
                     "keyword_score": normalized_keyword,
                     "semantic_score": normalized_semantic,
+                    "semantic_score_raw": raw_sem if "semantic_score_raw" not in result else result.get("semantic_score_raw"),
                     "technical_score": tech_score,
                     "weights_used": {
                         "semantic": dyn_weights["semantic"],
@@ -654,6 +777,354 @@ class EnhancedSearch:
             print(f"Error combining results: {str(e)}")
             # Return semantic results as fallback
             return semantic_results
+
+    # ---------------------------
+    # Helpers: embeddings, tokens, reranker, MMR, expansions
+    # ---------------------------
+
+    def _embed(self, text: str) -> List[float]:
+        if text in self._embedding_cache:
+            return self._embedding_cache[text]
+        vec = get_embedding(text)
+        self._embedding_cache[text] = vec
+        return vec
+
+    def _tokenize(self, text: str) -> List[str]:
+        # Simple regex tokenization, with optional stemming
+        tokens = re.findall(r"[a-z0-9]+", text.lower())
+        if self.stemmer:
+            try:
+                tokens = [self.stemmer.stem(t) for t in tokens]
+            except Exception:
+                pass
+        return tokens
+
+    def _split_sentences(self, text: str) -> List[str]:
+        """Robust sentence splitter with safe fallback.
+        Uses NLTK's sent_tokenize if available; otherwise falls back to regex.
+        """
+        try:
+            if NLTK_SENT_TOKENIZE_AVAILABLE:
+                # sent_tokenize handles many edge cases better than simple regex
+                sents = sent_tokenize(text)
+                # Trim whitespace and drop empties
+                return [s.strip() for s in sents if s and s.strip()]
+        except Exception:
+            # Fallback to regex below
+            pass
+
+        # Regex fallback: split on sentence-ending punctuation while preserving reasonable segmentation
+        sents = re.split(r"(?<=[.!?])\s+", text)
+        return [s.strip() for s in sents if s and s.strip()]
+
+    def _estimate_token_count(self, text: str) -> int:
+        """Estimate token count for chunk sizing without external dependencies.
+        Approximate tokens as word and punctuation groups.
+        """
+        if not text:
+            return 0
+        # Count word tokens and standalone punctuation as separate tokens
+        return len(re.findall(r"\w+|[^\w\s]", text, flags=re.UNICODE))
+
+    def _term_in_text(self, term: str, tokens: List[str], text_lower: str) -> bool:
+        # Check presence of (possibly multi-word) term using token-level matching, with fuzzy fallback
+        term_tokens = re.findall(r"[a-z0-9]+", term.lower())
+        if self.stemmer:
+            try:
+                term_tokens = [self.stemmer.stem(t) for t in term_tokens]
+            except Exception:
+                pass
+        if not term_tokens:
+            return False
+        # All tokens in term must appear (AND)
+        ok = all(t in tokens for t in term_tokens)
+        if ok:
+            return True
+        # Fuzzy fallback if substring is not reliable
+        if RAPIDFUZZ_AVAILABLE and len(term) >= 4:
+            try:
+                # quick fuzzy check on raw text
+                return fuzz.partial_ratio(term, text_lower) >= 90
+            except Exception:
+                return term in text_lower
+        return term in text_lower
+
+    async def _rerank_with_cross_encoder(self, query: str, results: List[Dict], top_k: int = 100) -> List[Dict]:
+        if not results:
+            return results
+        if CrossEncoder is None:
+            # Dependency missing; return as-is
+            return results
+        try:
+            if self.cross_encoder is None:
+                logger.info(f"Loading cross-encoder model: {self.cross_encoder_model_name}")
+                self.cross_encoder = CrossEncoder(self.cross_encoder_model_name)
+        except Exception as e:  # model load failure
+            logger.error(f"Failed to load cross-encoder: {str(e)}")
+            return results
+
+        # Take top_k by current combined_score (or semantic as fallback)
+        base_sorted = sorted(results, key=lambda r: r.get("combined_score", r.get("semantic_score", 0)), reverse=True)
+        rerank_subset = base_sorted[:top_k]
+
+        pairs = [(query, r.get("text", "")) for r in rerank_subset]
+        try:
+            scores = self.cross_encoder.predict(pairs)
+        except Exception as e:
+            logger.error(f"Cross-encoder inference failed: {str(e)}")
+            return results
+
+        # Normalize rerank scores to 0..1 and blend into combined_score
+        if isinstance(scores, list):
+            scores = np.array(scores, dtype=float)
+        min_s, max_s = float(np.min(scores)), float(np.max(scores))
+        denom = (max_s - min_s) if (max_s - min_s) > 1e-8 else 1.0
+        norm_scores = (scores - min_s) / denom
+
+        for r, s in zip(rerank_subset, norm_scores):
+            r["rerank_score"] = float(s)
+            # Blend: 60% CE, 40% existing combined
+            base = r.get("combined_score", r.get("semantic_score", 0.0))
+            r["combined_score"] = 0.6 * float(s) + 0.4 * float(base)
+
+        # Resort overall using possibly updated scores
+        return sorted(results, key=lambda r: r.get("combined_score", r.get("semantic_score", 0)), reverse=True)
+
+    def _apply_mmr_embeddings(self, results: List[Dict], query_embedding: List[float], max_results: int = 10, lambda_mult: float = 0.6) -> List[Dict]:
+        if not results:
+            return []
+        # Collect vectors; if missing, cannot do MMR
+        vectors = []
+        valid_results = []
+        for r in results:
+            v = r.get("vector")
+            if v is not None:
+                vectors.append(np.array(v, dtype=float))
+                valid_results.append(r)
+        if not vectors:
+            # No vectors available
+            return results[:max_results]
+
+        doc_matrix = np.vstack(vectors)
+        q = np.array(query_embedding, dtype=float)
+        # Cosine similarity to query
+        q_sim = cosine_similarity(doc_matrix, q.reshape(1, -1)).reshape(-1)
+
+        selected = []
+        selected_indices: List[int] = []
+        candidate_indices = list(range(len(valid_results)))
+
+        # Greedy MMR selection
+        while candidate_indices and len(selected) < max_results:
+            if not selected_indices:
+                # pick the most relevant
+                best_idx = int(np.argmax(q_sim[candidate_indices]))
+                chosen = candidate_indices[best_idx]
+            else:
+                mmr_scores = []
+                for idx in candidate_indices:
+                    # similarity to selected set
+                    sim_to_selected = 0.0
+                    for sidx in selected_indices:
+                        sim = float(cosine_similarity(doc_matrix[idx].reshape(1, -1), doc_matrix[sidx].reshape(1, -1))[0][0])
+                        sim_to_selected = max(sim_to_selected, sim)
+                    mmr = lambda_mult * q_sim[idx] - (1 - lambda_mult) * sim_to_selected
+                    mmr_scores.append(mmr)
+                best_local = int(np.argmax(mmr_scores))
+                chosen = candidate_indices[best_local]
+
+            selected.append(valid_results[chosen])
+            selected_indices.append(chosen)
+            candidate_indices.remove(chosen)
+
+        # Fill remaining slots with top non-selected items (keeping original order by combined_score)
+        if len(selected) < max_results:
+            selected_ids = {id(s) for s in selected}
+            for r in sorted(results, key=lambda x: x.get("combined_score", x.get("semantic_score", 0.0)), reverse=True):
+                if id(r) not in selected_ids:
+                    selected.append(r)
+                    selected_ids.add(id(r))
+                if len(selected) >= max_results:
+                    break
+
+        return selected
+
+    def _fusion_id(self, item: Dict) -> str:
+        """Create a stable fusion id across modalities for RRF merging."""
+        text = (item.get("text") or "").strip()
+        st = item.get("start_time")
+        fn = item.get("file_name") or ""
+        base = f"{fn}|{st}|{text}"
+        return hashlib.sha1(base.encode("utf-8", errors="ignore")).hexdigest()
+
+    async def _ensure_bm25_index(self, rebuild_interval_sec: int = 3600) -> None:
+        """Build or refresh BM25 index from transcripts_collection segments/content."""
+        if BM25Okapi is None:
+            return
+        # Rebuild periodically
+        now = time.time()
+        if self._bm25_ready and (now - self._bm25_last_built) < rebuild_interval_sec and self.bm25 is not None:
+            return
+        logger.info("Building BM25 sparse index from transcripts...")
+        try:
+            # Fetch a reasonable number of transcripts (cap to avoid huge memory)
+            cursor = transcripts_collection.find({}, projection={"segments": 1, "content": 1, "podcast_id": 1})
+            docs = await cursor.to_list(length=5000)
+        except Exception as e:
+            logger.error(f"Failed to read transcripts for BM25: {str(e)}")
+            return
+
+        tokens_list: List[List[str]] = []
+        docs_meta: List[Dict[str, Any]] = []
+        count = 0
+        for d in docs:
+            segs = d.get("segments") or []
+            if isinstance(segs, list) and segs:
+                for seg in segs:
+                    text = seg.get("text") or seg.get("transcript") or ""
+                    if not text:
+                        continue
+                    toks = self._tokenize(text)
+                    if not toks:
+                        continue
+                    meta = {
+                        "text": text,
+                        "start_time": seg.get("start_time") or seg.get("start") or seg.get("begin"),
+                        "end_time": seg.get("end_time") or seg.get("end") or seg.get("stop"),
+                        "file_name": seg.get("file_name") or d.get("file_name"),
+                        "podcast_id": d.get("podcast_id")
+                    }
+                    tokens_list.append(toks)
+                    docs_meta.append(meta)
+                    count += 1
+            else:
+                content = d.get("content") or ""
+                if not content:
+                    continue
+                # Fallback: chunk by semantic chunker to approximate segments
+                for ch in self.create_semantic_chunks(content):
+                    text = ch.get("text", "")
+                    if not text:
+                        continue
+                    toks = self._tokenize(text)
+                    if not toks:
+                        continue
+                    meta = {
+                        "text": text,
+                        "start_time": None,
+                        "end_time": None,
+                        "file_name": None,
+                        "podcast_id": d.get("podcast_id")
+                    }
+                    tokens_list.append(toks)
+                    docs_meta.append(meta)
+                    count += 1
+
+        if not tokens_list:
+            logger.warning("No documents available for BM25 index")
+            return
+        try:
+            self.bm25 = BM25Okapi(tokens_list)
+            self._bm25_tokens = tokens_list
+            self._bm25_docs = docs_meta
+            self._bm25_ready = True
+            self._bm25_last_built = time.time()
+            logger.info(f"BM25 index built over {len(tokens_list)} chunks")
+        except Exception as e:
+            logger.error(f"Failed to build BM25 index: {str(e)}")
+
+    async def _bm25_search(self, query: str, top_k: int = 100) -> List[Dict]:
+        """Search BM25 index and return top-k sparse results with metadata."""
+        if BM25Okapi is None or not self._bm25_ready or self.bm25 is None:
+            return []
+        q_tokens = self._tokenize(query)
+        if not q_tokens:
+            return []
+        try:
+            scores = self.bm25.get_scores(q_tokens)
+            # Get top_k indices
+            idxs = np.argsort(scores)[::-1][:top_k]
+            results: List[Dict] = []
+            for i in idxs:
+                meta = self._bm25_docs[int(i)]
+                r = {
+                    **meta,
+                    "bm25_score": float(scores[int(i)]),
+                    # Provide placeholders for downstream compatibility
+                    "semantic_score": meta.get("semantic_score", 0.0),
+                    "vector": None,
+                }
+                results.append(r)
+            return results
+        except Exception as e:
+            logger.error(f"BM25 search failed: {str(e)}")
+            return []
+
+    def _rrf_fuse(self, dense: List[Dict], sparse: List[Dict], k: int = 60) -> List[Dict]:
+        """Reciprocal Rank Fusion across dense and sparse results using stable fusion ids."""
+        # Rank lists
+        dense_sorted = sorted(dense, key=lambda x: x.get("semantic_score", 0.0), reverse=True)
+        sparse_sorted = sorted(sparse, key=lambda x: x.get("bm25_score", 0.0), reverse=True)
+
+        rrf_scores: Dict[str, float] = {}
+        fused: Dict[str, Dict] = {}
+
+        for rank, item in enumerate(dense_sorted, start=1):
+            fid = self._fusion_id(item)
+            rrf_scores[fid] = rrf_scores.get(fid, 0.0) + 1.0 / (k + rank)
+            if fid not in fused:
+                fused[fid] = item
+
+        for rank, item in enumerate(sparse_sorted, start=1):
+            fid = self._fusion_id(item)
+            rrf_scores[fid] = rrf_scores.get(fid, 0.0) + 1.0 / (k + rank)
+            if fid in fused:
+                # Merge bm25 score into existing item
+                fused[fid]["bm25_score"] = item.get("bm25_score", fused[fid].get("bm25_score", 0.0))
+            else:
+                fused[fid] = item
+
+        # Project to list sorted by RRF score
+        fused_list = list(fused.values())
+        fused_list.sort(key=lambda x: rrf_scores.get(self._fusion_id(x), 0.0), reverse=True)
+        # Attach rrf_score for debugging/analysis
+        for it in fused_list:
+            it["rrf_score"] = rrf_scores.get(self._fusion_id(it), 0.0)
+        return fused_list
+
+    def _expand_query_multi(self, query: str, max_synonyms: int = 3) -> List[str]:
+        # Basic expansion using WordNet synonyms if available
+        expansions = [query]
+        if not NLTK_AVAILABLE:
+            return expansions
+        try:
+            tokens = re.findall(r"[a-zA-Z0-9]+", query)
+            syns: List[str] = []
+            for t in tokens:
+                synsets = wn.synsets(t)
+                for ss in synsets[:2]:  # limit per token
+                    for lemma in ss.lemmas()[:2]:
+                        cand = lemma.name().replace('_', ' ')
+                        if cand.lower() != t.lower() and cand.lower() not in (s.lower() for s in syns):
+                            syns.append(cand)
+                            if len(syns) >= max_synonyms:
+                                break
+                    if len(syns) >= max_synonyms:
+                        break
+                if len(syns) >= max_synonyms:
+                    break
+            for s in syns:
+                expansions.append(query + " " + s)
+        except Exception:
+            pass
+        # Deduplicate while preserving order
+        seen = set()
+        unique_exp = []
+        for e in expansions:
+            if e not in seen:
+                unique_exp.append(e)
+                seen.add(e)
+        return unique_exp
 
 class TechnicalTermsScorer:
     def __init__(self):
