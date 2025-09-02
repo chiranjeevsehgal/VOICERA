@@ -131,7 +131,7 @@ async def list_audio_files(
     """
     try:
         user_id = current_user["id"] if user_files_only else None
-        response = await list_files_in_bucket(user_id=user_id, bucket_name=os.getenv("SUPABASE_BUCKET_ORIGINAL"))
+        response = await list_files_in_bucket(user_id=user_id, bucket_name=os.getenv("SUPABASE_BUCKET_EMBEDDED"))
         return {"files": response}
     except Exception as e:
         raise HTTPException(

@@ -1,6 +1,7 @@
-import { Component, Input, Output, EventEmitter, OnInit, OnDestroy, ElementRef, ViewChild } from '@angular/core';
+import { Component, Input, Output, EventEmitter, OnInit, OnDestroy, ElementRef, ViewChild, OnChanges, SimpleChanges } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Podcast } from '../../services/podcast.service';
+import { Podcast, PodcastService } from '../../services/podcast.service';
+import { take } from 'rxjs';
 
 @Component({
   selector: 'app-audio-modal',
@@ -8,7 +9,7 @@ import { Podcast } from '../../services/podcast.service';
   templateUrl: './audio-modal.component.html',
   styles: ``
 })
-export class AudioModalComponent implements OnInit, OnDestroy {
+export class AudioModalComponent implements OnInit, OnDestroy, OnChanges {
   @Input() podcast: Podcast | null = null;
   @Input() isVisible = false;
   @Output() close = new EventEmitter<void>();
@@ -18,6 +19,13 @@ export class AudioModalComponent implements OnInit, OnDestroy {
   currentTime = 0;
   isPlaying = false;
 
+  // Transcript state
+  transcript: string | null = null;
+  transcriptLoading = false;
+  transcriptError: string | null = null;
+
+  constructor(private podcastService: PodcastService) {}
+
   ngOnInit() {
     if (this.isVisible) {
       document.body.style.overflow = 'hidden';
@@ -26,6 +34,15 @@ export class AudioModalComponent implements OnInit, OnDestroy {
 
   ngOnDestroy() {
     document.body.style.overflow = 'auto';
+  }
+
+  ngOnChanges(changes: SimpleChanges): void {
+    const becameVisible = changes['isVisible']?.currentValue === true && changes['isVisible']?.previousValue !== true;
+    const podcastChanged = !!changes['podcast'];
+
+    if ((becameVisible || podcastChanged) && this.isVisible) {
+      this.fetchTranscript();
+    }
   }
 
   onBackdropClick(event: MouseEvent) {
@@ -55,6 +72,30 @@ export class AudioModalComponent implements OnInit, OnDestroy {
       
       this.duration = this.audioPlayer.nativeElement.duration;
     }
+  }
+
+  private fetchTranscript() {
+    // Reset state
+    this.transcript = null;
+    this.transcriptError = null;
+
+    const mp3Url = this.podcast?.audioFile?.user_data?.file_url;
+    if (!mp3Url) return;
+
+    this.transcriptLoading = true;
+    this.podcastService
+      .extractTranscript(mp3Url)
+      .pipe(take(1))
+      .subscribe({
+        next: (text) => {
+          this.transcript = text || '';
+          this.transcriptLoading = false;
+        },
+        error: (err) => {
+          this.transcriptError = err?.error?.detail || 'Failed to fetch transcript';
+          this.transcriptLoading = false;
+        }
+      });
   }
 
   formatTime(seconds: number): string {

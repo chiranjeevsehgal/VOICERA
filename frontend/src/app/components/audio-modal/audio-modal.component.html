@@ -83,7 +83,7 @@
       </div>
 
       <!-- Audio Details Grid (Including Owner) -->
-      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3 sm:gap-4 mb-4 sm:mb-6">
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4 mb-4 sm:mb-6">
         
         <div class="bg-gradient-to-br from-indigo-50 to-purple-50 p-3 sm:p-4 rounded-xl sm:rounded-2xl border border-indigo-100">
           <div class="flex items-center justify-center mb-1 sm:mb-2">
@@ -100,16 +100,6 @@
           </div>
           <p class="text-gray-600 font-medium text-xs sm:text-sm text-center">
             {{ formatFileSize(podcast.audioFile.metadata.size) }}
-          </p>
-        </div>
-
-        <div class="bg-gradient-to-br from-purple-50 to-pink-50 p-3 sm:p-4 rounded-xl sm:rounded-2xl border border-purple-100">
-          <div class="flex items-center justify-center mb-1 sm:mb-2">
-            <div class="w-1.5 sm:w-2 h-1.5 sm:h-2 bg-gradient-to-r from-purple-400 to-pink-400 rounded-full mr-2"></div>
-            <span class="font-semibold text-gray-700 text-xs sm:text-sm">Format</span>
-          </div>
-          <p class="text-gray-600 font-medium text-xs sm:text-sm text-center break-all">
-            {{ podcast.audioFile.metadata.mimetype }}
           </p>
         </div>
         
@@ -131,6 +121,42 @@
           <p class="text-gray-600 font-medium text-xs sm:text-sm text-center">
             {{ podcast.audioFile?.user_data?.user_details?.full_name }}
           </p>
+        </div>
+      </div>
+
+      <!-- Transcript Card -->
+      <div class="mb-4 sm:mb-6">
+        <div class="bg-gradient-to-br from-slate-50 to-blue-50 rounded-xl sm:rounded-2xl border border-slate-200 p-4 sm:p-5">
+          <div class="flex items-center justify-between mb-3">
+            <div class="flex items-center">
+              <div class="w-2 h-2 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full mr-2"></div>
+              <h4 class="text-sm sm:text-base font-semibold text-gray-800">Transcript</h4>
+            </div>
+          </div>
+
+          <!-- Loading state -->
+          <div *ngIf="transcriptLoading" class="flex items-center text-indigo-600 text-sm">
+            <svg class="animate-spin h-4 w-4 mr-2" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+            </svg>
+            Fetching transcript...
+          </div>
+
+          <!-- Error state -->
+          <div *ngIf="!transcriptLoading && transcriptError" class="text-red-600 text-sm">
+            {{ transcriptError }}
+          </div>
+
+          <!-- Empty state -->
+          <div *ngIf="!transcriptLoading && !transcriptError && (!transcript || transcript.trim() === '')" class="text-gray-500 text-sm">
+            No transcript available for this audio.
+          </div>
+
+          <!-- Content state -->
+          <div *ngIf="!transcriptLoading && !transcriptError && transcript && transcript.trim() !== ''" class="bg-white border border-slate-200 rounded-lg p-3 max-h-60 overflow-y-auto text-sm leading-relaxed text-gray-800">
+            {{ transcript }}
+          </div>
         </div>
       </div>
     </div>

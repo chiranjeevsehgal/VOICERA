@@ -67,6 +67,27 @@ export class PodcastService {
       );
   }
 
+  /**
+   * Calls the backend extract API to fetch transcript for an MP3 URL.
+   * Returns only the transcript text (empty string if not found).
+   */
+  extractTranscript(mp3Url: string): Observable<string> {
+    const token = localStorage.getItem('vEra_auth_token') || this.authToken || '';
+    const headers = new HttpHeaders({
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json'
+    });
+
+    return this.http
+      .post<any>(`${this.baseUrl}/api/extract`, { mp3_url: mp3Url }, { headers })
+      .pipe(
+        map((res) => {
+          const transcript = res?.results?.channels?.[0]?.alternatives?.[0]?.transcript;
+          return typeof transcript === 'string' ? transcript : '';
+        })
+      );
+  }
+
   private transformApiResponseToPodcasts(files: AudioFile[]): Podcast[] {
     if (!Array.isArray(files)) return [];
 
