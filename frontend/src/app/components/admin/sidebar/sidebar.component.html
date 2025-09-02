@@ -32,21 +32,15 @@
     <div class="flex items-center space-x-3 relative z-10">
       <!-- Logo Icon -->
       <div
-        class="w-8 h-8 sm:w-10 sm:h-10 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center shadow-lg border border-white/30"
+        class="flex items-center justify-center h-8 w-8 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg p-1.5"
       >
-        <svg
-          class="w-5 h-5 sm:w-6 sm:h-6 text-white"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="2"
-            d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M9 21H5a2 2 0 01-2-2V9a2 2 0 012-2h4l7 7-7 7z"
-          />
-        </svg>
+        <div class="flex items-end space-x-0.5">
+          <div class="w-0.5 h-2 bg-white rounded-full"></div>
+          <div class="w-0.5 h-4 bg-white rounded-full"></div>
+          <div class="w-0.5 h-3 bg-white rounded-full"></div>
+          <div class="w-0.5 h-5 bg-white rounded-full"></div>
+          <div class="w-0.5 h-2 bg-white rounded-full"></div>
+        </div>
       </div>
       <div class="text-white">
         <h1 class="text-lg sm:text-xl font-black tracking-tight">VOICERA</h1>
@@ -109,19 +103,10 @@
                 'text-gray-400 group-hover:text-indigo-500': !item.active
               }"
             >
-              <svg
+              <lucide-icon
+                [img]="item.icon"
                 class="w-full h-full"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  [attr.d]="item.icon"
-                />
-              </svg>
+              ></lucide-icon>
             </div>
           </div>
 
@@ -162,7 +147,7 @@
     </div>
   </div>
 
-  <!-- Sidebar Footer - Always at Bottom -->
+  <!-- Sidebar Footer -->
   <div
     class="border-t border-gray-100 p-4 sm:p-6 bg-gradient-to-br from-gray-50/50 to-indigo-50/50 flex-shrink-0 mt-auto"
   >
