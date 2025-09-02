@@ -16,6 +16,7 @@ class UserCreate(BaseModel):
     password: str
     full_name: Optional[str] = None
     role: str = "user"  # Default role
+    status: str = "active"  # Default status
 
 class UserResponse(BaseModel):
     status: bool

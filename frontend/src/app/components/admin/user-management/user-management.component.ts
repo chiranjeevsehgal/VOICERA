@@ -1,83 +1,62 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-
-interface User {
-  id: string;
-  name: string;
-  email: string;
-  role: 'admin' | 'user' | 'moderator';
-  status: 'active' | 'inactive' | 'pending';
-  lastLogin: Date;
-  audioUploads: number;
-  searches: number;
-}
+import { HttpClientModule } from '@angular/common/http';
+import { User, UserService } from '../../../services/admin/user.service';
 
 @Component({
   selector: 'app-user-management',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, HttpClientModule],
   templateUrl: './user-management.component.html',
   styles: ``,
+  providers: [UserService]
 })
 export class UserManagementComponent implements OnInit {
-  users: User[] = [
-    {
-      id: '1',
-      name: 'John Doe',
-      email: 'john.doe@example.com',
-      role: 'admin',
-      status: 'active',
-      lastLogin: new Date(Date.now() - 2 * 60 * 60 * 1000),
-      audioUploads: 45,
-      searches: 234,
-    },
-    {
-      id: '2',
-      name: 'Jane Smith',
-      email: 'jane.smith@company.com',
-      role: 'user',
-      status: 'active',
-      lastLogin: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000),
-      audioUploads: 12,
-      searches: 89,
-    },
-    {
-      id: '3',
-      name: 'Mike Johnson',
-      email: 'mike.j@domain.com',
-      role: 'moderator',
-      status: 'inactive',
-      lastLogin: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
-      audioUploads: 28,
-      searches: 156,
-    },
-    {
-      id: '4',
-      name: 'Sarah Wilson',
-      email: 'sarah.w@test.com',
-      role: 'user',
-      status: 'pending',
-      lastLogin: new Date(Date.now() - 30 * 60 * 1000),
-      audioUploads: 3,
-      searches: 15,
-    },
-  ];
-
+  users: User[] = [];
   filteredUsers: User[] = [];
   searchQuery: string = '';
   selectedRole: string = 'all';
   selectedStatus: string = 'all';
   showAddUserModal: boolean = false;
+  loading: boolean = false;
+  error: string = '';
+  totalCount: number = 0;
 
   newUser = {
     name: '',
     email: '',
-    role: 'user' as 'admin' | 'user' | 'moderator',
+    role: 'user' as 'admin' | 'user',
   };
 
+  constructor(private userService: UserService) {}
+
   ngOnInit() {
-    this.filteredUsers = [...this.users];
+    this.loadUsers();
+  }
+
+  loadUsers() {
+    this.loading = true;
+    this.error = '';
+    
+    this.userService.getUsers().subscribe({
+      next: (response) => {
+        this.totalCount = response.total_count;
+        this.users = response.users.map(apiUser => this.userService.transformApiUser(apiUser));
+        this.filteredUsers = [...this.users];
+        this.loading = false;
+      },
+      error: (error) => {
+        console.error('Error loading users:', error);
+        this.error = 'Failed to load users. Please try again.';
+        this.loading = false;
+        
+        // Fallback to empty array or show error message
+        this.users = [];
+        this.filteredUsers = [];
+      }
+    });
+    
   }
 
   filterUsers() {
@@ -97,7 +76,6 @@ export class UserManagementComponent implements OnInit {
   getRoleColor(role: string): string {
     const colors: Record<string, string> = {
       admin: 'bg-red-100 text-red-700',
-      moderator: 'bg-yellow-100 text-yellow-700',
       user: 'bg-blue-100 text-blue-700',
     };
     return colors[role] || colors['user'];
@@ -107,9 +85,8 @@ export class UserManagementComponent implements OnInit {
     const colors: Record<string, string> = {
       active: 'bg-green-100 text-green-700',
       inactive: 'bg-gray-100 text-gray-700',
-      pending: 'bg-orange-100 text-orange-700',
     };
-    return colors[status] || colors['pending'];
+    return colors[status];
   }
 
   formatLastLogin(date: Date): string {
@@ -128,20 +105,17 @@ export class UserManagementComponent implements OnInit {
     return `${diffInMonths}mo ago`;
   }
 
-  addUser() {
-    const user: User = {
-      id: (this.users.length + 1).toString(),
-      name: this.newUser.name,
-      email: this.newUser.email,
-      role: this.newUser.role,
-      status: 'pending',
-      lastLogin: new Date(),
-      audioUploads: 0,
-      searches: 0,
-    };
+  formatCreatedAt(date: Date): string {
+    return date.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    });
+  }
 
-    this.users.push(user);
-    this.filterUsers();
+  addUser() {
+    // This would need an API endpoint to create users
+    console.log('Add user functionality needs API endpoint');
     this.closeAddUserModal();
   }
 
@@ -156,21 +130,36 @@ export class UserManagementComponent implements OnInit {
 
   editUser(user: User) {
     console.log('Edit user:', user);
+    // Implement edit functionality
   }
 
   deleteUser(user: User) {
     if (confirm(`Are you sure you want to delete ${user.name}?`)) {
-      this.users = this.users.filter((u) => u.id !== user.id);
-      this.filterUsers();
+      // This would need an API endpoint to delete users
+      console.log('Delete user functionality needs API endpoint');
     }
   }
 
   toggleUserStatus(user: User) {
     user.status = user.status === 'active' ? 'inactive' : 'active';
-    this.filterUsers();
+    // This would need an API endpoint to update user status
+    console.log('Toggle status functionality needs API endpoint');
+  }
+
+  refreshUsers() {
+    this.loadUsers();
   }
 
   trackUserById(index: number, user: User): string {
     return user.id;
+  }
+
+  getUserInitials(name: string): string {
+    return name
+      .split(' ')
+      .map(word => word.charAt(0))
+      .join('')
+      .toUpperCase()
+      .substring(0, 2);
   }
 }
