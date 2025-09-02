@@ -36,6 +36,15 @@ export interface AudioFile {
 
 export interface ApiResponse {
   files: AudioFile[];
+  page?: number;
+  limit?: number;
+  has_next?: boolean;
+}
+
+export interface PagedPodcasts {
+  podcasts: Podcast[];
+  page: number;
+  hasNext: boolean;
 }
 
 export interface Podcast {
@@ -44,6 +53,13 @@ export interface Podcast {
   creator: string;
   imageUrl: string;
   audioFile: AudioFile;
+}
+
+export interface WordTiming {
+  word: string;
+  start: number;
+  end: number;
+  confidence?: number;
 }
 
 @Injectable({
@@ -56,14 +72,72 @@ export class PodcastService {
   constructor(private http: HttpClient) {}
 
   getPodcasts(): Observable<Podcast[]> {
+    // Backward-compatible: fetch first page and return only items
+    return this.getPodcastsPage(1).pipe(map(res => res.podcasts));
+  }
+
+  getPodcastsPage(page: number = 1): Observable<PagedPodcasts> {
     const headers = new HttpHeaders({
       'Authorization': `Bearer ${this.authToken}`,
       'Content-Type': 'application/json'
     });
 
-    return this.http.get<ApiResponse>(`${this.baseUrl}/api/listAudioFiles`, { headers })
+    return this.http
+      .get<ApiResponse>(`${this.baseUrl}/api/listAudioFiles`, {
+        headers,
+        params: { page: String(page) },
+      })
       .pipe(
-        map(response => this.transformApiResponseToPodcasts(response.files))
+        map((response) => ({
+          podcasts: this.transformApiResponseToPodcasts(response.files),
+          page: response.page ?? page,
+          hasNext: response.has_next === true,
+        }))
+      );
+  }
+
+  /**
+   * Calls the backend extract API and returns transcript text and word timings.
+   */
+  extractTranscriptData(mp3Url: string): Observable<{ transcript: string; words: WordTiming[] }> {
+    const token = localStorage.getItem('vEra_auth_token') || this.authToken || '';
+    const headers = new HttpHeaders({
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json'
+    });
+
+    return this.http
+      .post<any>(`${this.baseUrl}/api/extract`, { mp3_url: mp3Url }, { headers })
+      .pipe(
+        map((res) => {
+          const transcript = res?.results?.channels?.[0]?.alternatives?.[0]?.transcript ?? '';
+          const words: WordTiming[] = res?.results?.channels?.[0]?.alternatives?.[0]?.words ?? [];
+          return {
+            transcript: typeof transcript === 'string' ? transcript : '',
+            words: Array.isArray(words) ? words : []
+          };
+        })
+      );
+  }
+
+  /**
+   * Calls the backend extract API to fetch transcript for an MP3 URL.
+   * Returns only the transcript text (empty string if not found).
+   */
+  extractTranscript(mp3Url: string): Observable<string> {
+    const token = localStorage.getItem('vEra_auth_token') || this.authToken || '';
+    const headers = new HttpHeaders({
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json'
+    });
+
+    return this.http
+      .post<any>(`${this.baseUrl}/api/extract`, { mp3_url: mp3Url }, { headers })
+      .pipe(
+        map((res) => {
+          const transcript = res?.results?.channels?.[0]?.alternatives?.[0]?.transcript;
+          return typeof transcript === 'string' ? transcript : '';
+        })
       );
   }
 

@@ -1,6 +1,9 @@
 import os
 import json
 import time
+import hashlib
+import threading
+import random
 from typing import List, Dict, Any
 from together import Together
 from pinecone import Pinecone, ServerlessSpec, CloudProvider, AwsRegion
@@ -16,9 +19,22 @@ PINECONE_ENVIRONMENT = os.getenv("PINECONE_ENVIRONMENT", "gcp-starter")
 PINECONE_INDEX_NAME = os.getenv("PINECONE_INDEX_NAME", "voicera-audio-search")
 EMBEDDING_MODEL = os.getenv("TOGETHER_EMBEDDING_MODEL", "togethercomputer/m2-bert-80M-32k-retrieval")
 EMBEDDING_DIMENSION = int(os.getenv("EMBEDDING_DIMENSION", "768"))  # 768 for m2-bert-80M-32k-retrieval
+EMBED_MAX_CONCURRENCY = int(os.getenv("EMBED_MAX_CONCURRENCY", "3"))
+EMBED_MAX_RETRIES = int(os.getenv("EMBED_MAX_RETRIES", "5"))
+EMBED_RETRY_BASE_DELAY = float(os.getenv("EMBED_RETRY_BASE_DELAY", "0.5"))
+UPSERT_BATCH_SIZE = int(os.getenv("UPSERT_BATCH_SIZE", "100"))
+UPSERT_MAX_CONCURRENCY = int(os.getenv("UPSERT_MAX_CONCURRENCY", "2"))
+UPSERT_MAX_RETRIES = int(os.getenv("UPSERT_MAX_RETRIES", "5"))
+UPSERT_RETRY_BASE_DELAY = float(os.getenv("UPSERT_RETRY_BASE_DELAY", "0.5"))
 
 # Initialize the Together AI client
 together_client = Together(api_key=TOGETHER_API_KEY)
+
+# Global semaphore to limit concurrent embedding requests (helps prevent 429s in bulk)
+_embedding_sem = threading.Semaphore(EMBED_MAX_CONCURRENCY)
+
+# Global semaphore to limit concurrent Pinecone upserts
+_upsert_sem = threading.Semaphore(UPSERT_MAX_CONCURRENCY)
 
 # Initialize Pinecone client
 pc = None
@@ -80,30 +96,37 @@ def init_pinecone():
 def get_embedding(text: str) -> List[float]:
     """
     Generate an embedding vector for a text string using Together AI's API
+    with bounded concurrency and retries to handle rate limits in bulk mode.
     """
     if not TOGETHER_API_KEY:
         print("ERROR: TOGETHER_API_KEY is not set")
         raise ValueError("TOGETHER_API_KEY is not set")
-    
-    try:
-        print(f"\nGenerating embedding for text: {text[:100]}...")
-        print(f"Using model: {EMBEDDING_MODEL}")
-        
-        response = together_client.embeddings.create(
-            model=EMBEDDING_MODEL,
-            input=text
-        )
-        
-        # Extract the embedding vector from the response
-        embedding = response.data[0].embedding
-        print(f"Generated embedding of dimension: {len(embedding)}")
-        
-        return embedding
-    except Exception as e:
-        print(f"Error generating embedding: {str(e)}")
-        import traceback
-        traceback.print_exc()
-        raise
+
+    last_err = None
+    for attempt in range(1, EMBED_MAX_RETRIES + 1):
+        try:
+            # Bound concurrency across threads
+            with _embedding_sem:
+                print(f"\nGenerating embedding (attempt {attempt}) for text: {text[:100]}...")
+                print(f"Using model: {EMBEDDING_MODEL}")
+                response = together_client.embeddings.create(
+                    model=EMBEDDING_MODEL,
+                    input=text
+                )
+            embedding = response.data[0].embedding
+            print(f"Generated embedding of dimension: {len(embedding)}")
+            return embedding
+        except Exception as e:
+            last_err = e
+            # Exponential backoff with jitter
+            sleep_s = EMBED_RETRY_BASE_DELAY * (2 ** (attempt - 1)) + random.uniform(0, 0.3)
+            msg = str(e)
+            print(f"[WARN] Embedding attempt {attempt} failed: {msg}. Retrying in {sleep_s:.2f}s...")
+            time.sleep(sleep_s)
+
+    # Exhausted retries
+    print(f"[ERROR] Failed to generate embedding after {EMBED_MAX_RETRIES} attempts: {last_err}")
+    raise last_err
 
 def chunk_transcript(transcript_data: Dict) -> List[Dict]:
     """
@@ -211,9 +234,13 @@ async def index_transcript(transcript_data: Dict, file_url: str, file_name: str,
         print(f"Original File URL: {file_url}")
         print(f"Is permanent URL: {is_permanent_url}")
         
-        # Extract file_id from file_name
-        file_id = file_name.split("_")[-1].split(".")[0] if "_" in file_name else file_name.split(".")[0]
-        print(f"Extracted file_id: {file_id}")
+        # Build a stable, unique file_id using the (ideally permanent) URL to avoid collisions across same filenames
+        file_key_src = (file_url or "")
+        # Prefer Supabase URL if available later; we'll recompute after lookup below
+        file_id = hashlib.sha1(file_key_src.encode("utf-8")).hexdigest()[:12] if file_key_src else (
+            hashlib.sha1(file_name.encode("utf-8")).hexdigest()[:12]
+        )
+        print(f"Initial file_id (pre-supabase-lookup): {file_id}")
         
         # Look up the Supabase URL from the database if not already a permanent URL
         supabase_url = file_url  # Default to the provided URL
@@ -239,6 +266,11 @@ async def index_transcript(transcript_data: Dict, file_url: str, file_name: str,
             except Exception as e:
                 print(f"Error looking up Supabase URL: {str(e)}")
         
+        # If we resolved a permanent URL, recompute file_id for uniqueness
+        if supabase_url:
+            file_id = hashlib.sha1(supabase_url.encode("utf-8")).hexdigest()[:12]
+            print(f"Resolved file_id from Supabase URL: {file_id}")
+
         # Get the complete transcript text
         complete_text = ""
         if "results" in transcript_data and "channels" in transcript_data["results"]:
@@ -262,12 +294,16 @@ async def index_transcript(transcript_data: Dict, file_url: str, file_name: str,
             
             try:
                 # Get embedding for the chunk text
-                embedding = get_embedding(chunk["text"])
+                txt = (chunk.get("text") or "").strip()
+                if not txt:
+                    print(f"Skipping empty text chunk at index {i}")
+                    continue
+                embedding = get_embedding(txt)
                 
                 # Prepare metadata
                 metadata = {
                     "file_url": supabase_url,  # Use Supabase URL if available
-                    "text": chunk["text"],
+                    "text": txt,
                     "start_time": chunk["start_time"],
                     "end_time": chunk["end_time"],
                     "confidence": chunk.get("confidence", 0)
@@ -303,23 +339,42 @@ async def index_transcript(transcript_data: Dict, file_url: str, file_name: str,
             print("No vectors created, skipping Pinecone update")
             return False
             
-        # Upsert vectors in batches to avoid timeouts
-        batch_size = 100
-        for i in range(0, len(vectors), batch_size):
-            batch = vectors[i:i+batch_size]
-            print(f"Upserting batch {i//batch_size + 1}/{(len(vectors) + batch_size - 1) // batch_size}: {len(batch)} vectors")
-            response = index.upsert(vectors=batch)
-            print(f"Batch upsert response: {response}")
+        # Upsert vectors in batches with retries and bounded concurrency
+        failed_batches = 0
+        total_batches = (len(vectors) + UPSERT_BATCH_SIZE - 1) // UPSERT_BATCH_SIZE
+        for i in range(0, len(vectors), UPSERT_BATCH_SIZE):
+            batch = vectors[i:i+UPSERT_BATCH_SIZE]
+            batch_no = i // UPSERT_BATCH_SIZE + 1
+            attempts = 0
+            while attempts < UPSERT_MAX_RETRIES:
+                attempts += 1
+                try:
+                    with _upsert_sem:
+                        print(f"Upserting batch {batch_no}/{total_batches} (size={len(batch)}), attempt {attempts}")
+                        response = index.upsert(vectors=batch)
+                        print(f"Batch {batch_no} upsert response: {response}")
+                    break
+                except Exception as e:
+                    sleep_s = UPSERT_RETRY_BASE_DELAY * (2 ** (attempts - 1)) + random.uniform(0, 0.3)
+                    print(f"[WARN] Upsert batch {batch_no} failed on attempt {attempts}: {e}. Retrying in {sleep_s:.2f}s...")
+                    time.sleep(sleep_s)
+            else:
+                print(f"[ERROR] Upsert batch {batch_no} failed after {UPSERT_MAX_RETRIES} attempts.")
+                failed_batches += 1
             
-        print(f"Successfully indexed transcript with {len(vectors)} chunks")
-        return True
+        if failed_batches == 0:
+            print(f"Successfully indexed transcript with {len(vectors)} chunks across {total_batches} batches")
+            return True
+        else:
+            print(f"Indexed transcript with errors: {failed_batches}/{total_batches} batches failed")
+            return False
     except Exception as e:
         print(f"Error indexing transcript: {str(e)}")
         import traceback
         traceback.print_exc()
         return False
 
-async def search_transcripts(query: str, limit: int = 10, filter_dict: Dict = None) -> List[Dict]:
+async def search_transcripts(query: str, limit: int = None, filter_dict: Dict = None) -> List[Dict]:
     """
     Search for transcripts by vector similarity
     """

@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, OnDestroy, AfterViewInit, ElementRef, ViewChild, NgZone } from '@angular/core';
 import { Subscription } from 'rxjs';
 import { Podcast, PodcastService } from '../../services/podcast.service';
 import { HeaderComponent } from '../../components/header/header.component';
@@ -21,7 +21,7 @@ import { CommonModule } from '@angular/common';
   ],
   providers: [MessageService],
 })
-export class SearchComponent implements OnInit, OnDestroy {
+export class SearchComponent implements OnInit, OnDestroy, AfterViewInit {
   podcasts: any[] = [];
   filteredPodcasts: Podcast[] = [];
   searchQuery: string = '';
@@ -31,10 +31,16 @@ export class SearchComponent implements OnInit, OnDestroy {
   isSearching = false;
   isLoading = true;
   hasSearched = false;
+  page = 1;
+  hasNext = true;
+  loadingMore = false;
+  private io?: IntersectionObserver;
+  @ViewChild('infiniteAnchor') infiniteAnchor?: ElementRef;
 
   constructor(
     private podcastService: PodcastService,
-    private messageService: MessageService
+    private messageService: MessageService,
+    private ngZone: NgZone,
   ) {}
 
   ngOnInit(): void {
@@ -46,15 +52,62 @@ export class SearchComponent implements OnInit, OnDestroy {
     if (this.subscription) {
       this.subscription.unsubscribe();
     }
+    if (this.io) {
+      this.io.disconnect();
+    }
   }
 
   private loadPodcasts(): void {
-    this.isLoading = true;
-    this.subscription = this.podcastService.getPodcasts().subscribe({
-      next: (podcasts) => {
-        this.podcasts = this.sortPodcastsByDate(podcasts);
-        this.filteredPodcasts = podcasts;
-        this.isLoading = false
+    this.loadPage(1);
+  }
+
+  ngAfterViewInit(): void {
+    // Setup infinite scroll observer after view init
+    if (this.infiniteAnchor) {
+      this.setupInfiniteScroll();
+    }
+  }
+
+  private setupInfiniteScroll(): void {
+    if (this.io) this.io.disconnect();
+    this.io = new IntersectionObserver((entries) => {
+      const entry = entries[0];
+      if (!entry || !entry.isIntersecting) return;
+      if (this.isLoading || this.loadingMore || !this.hasNext) return;
+      // Ensure updates happen inside Angular zone
+      this.ngZone.run(() => this.loadNextPage());
+    }, {
+      root: null,
+      rootMargin: '200px',
+      threshold: 0.1,
+    });
+    if (this.infiniteAnchor?.nativeElement) {
+      this.io.observe(this.infiniteAnchor.nativeElement);
+    }
+  }
+
+  private loadPage(page: number): void {
+    if (this.subscription) this.subscription.unsubscribe();
+    if (page <= 1) {
+      this.isLoading = true;
+      this.page = 1;
+      this.hasNext = true;
+    } else {
+      this.loadingMore = true;
+    }
+
+    this.subscription = this.podcastService.getPodcastsPage(page).subscribe({
+      next: (res) => {
+        if (page <= 1) {
+          this.podcasts = res.podcasts;
+        } else {
+          this.podcasts = [...this.podcasts, ...res.podcasts];
+        }
+        this.page = res.page;
+        this.hasNext = res.hasNext;
+        this.filterPodcasts();
+        this.isLoading = false;
+        this.loadingMore = false;
       },
       error: (error) => {
         console.error('Error loading podcasts:', error);
@@ -64,8 +117,14 @@ export class SearchComponent implements OnInit, OnDestroy {
           detail: 'Failed to load podcasts',
         });
         this.isLoading = false;
+        this.loadingMore = false;
       },
     });
+  }
+
+  private loadNextPage(): void {
+    if (!this.hasNext || this.loadingMore) return;
+    this.loadPage(this.page + 1);
   }
 
   onSearchChange(query: string): void {
