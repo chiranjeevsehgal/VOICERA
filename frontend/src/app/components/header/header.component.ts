@@ -1,4 +1,11 @@
-import { Component, OnInit, OnDestroy, HostListener, ViewChild, ElementRef } from '@angular/core';
+import {
+  Component,
+  OnInit,
+  OnDestroy,
+  HostListener,
+  ViewChild,
+  ElementRef,
+} from '@angular/core';
 import { Router } from '@angular/router';
 import {
   ProfileService,
@@ -47,15 +54,23 @@ export class HeaderComponent implements OnInit, OnDestroy {
     const target = event.target as HTMLElement;
 
     // Handle profile dropdown clicks
-    if (this.profileDropdown && !this.profileDropdown.nativeElement.contains(target) &&
-        this.mobileProfileDropdown && !this.mobileProfileDropdown.nativeElement.contains(target)) {
+    if (
+      this.profileDropdown &&
+      !this.profileDropdown.nativeElement.contains(target) &&
+      this.mobileProfileDropdown &&
+      !this.mobileProfileDropdown.nativeElement.contains(target)
+    ) {
       this.showProfileDropdown = false;
     }
 
     // Handle mobile menu clicks
-    if (this.showMobileMenu && 
-        this.mobileMenuButton && !this.mobileMenuButton.nativeElement.contains(target) &&
-        this.mobileMenu && !this.mobileMenu.nativeElement.contains(target)) {
+    if (
+      this.showMobileMenu &&
+      this.mobileMenuButton &&
+      !this.mobileMenuButton.nativeElement.contains(target) &&
+      this.mobileMenu &&
+      !this.mobileMenu.nativeElement.contains(target)
+    ) {
       this.showMobileMenu = false;
     }
   }
@@ -81,7 +96,7 @@ export class HeaderComponent implements OnInit, OnDestroy {
 
   toggleMobileMenu(): void {
     this.showMobileMenu = !this.showMobileMenu;
-    
+
     if (this.showMobileMenu) {
       this.showProfileDropdown = false;
     }
@@ -118,7 +133,7 @@ export class HeaderComponent implements OnInit, OnDestroy {
 
   onProfileClick(): void {
     this.showProfileDropdown = !this.showProfileDropdown;
-    
+
     if (this.showProfileDropdown) {
       this.showMobileMenu = false;
     }
@@ -131,13 +146,17 @@ export class HeaderComponent implements OnInit, OnDestroy {
   onSignOut(): void {
     this.showProfileDropdown = false;
     this.showMobileMenu = false;
-    
+
     localStorage.removeItem('vEra_auth_token');
     localStorage.removeItem('vEra_user_profile');
-    this.router.navigate(['/login']);
+
+    this.router.navigate(['/login'], {
+      queryParams: { loggedOut: 'true' },
+    });
   }
 
   onLogoClick(): void {
     this.router.navigate(['/library']);
   }
+
 }

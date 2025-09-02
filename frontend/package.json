@@ -17,6 +17,8 @@
     "@angular/platform-browser": "^19.2.11",
     "@angular/platform-browser-dynamic": "^19.2.11",
     "@angular/router": "^19.2.11",
+    "@ngneat/overview": "^6.1.1",
+    "@ngxpert/hot-toast": "^5.1.1",
     "@primeng/themes": "^19.1.2",
     "@react-oauth/google": "^0.12.2",
     "@tailwindcss/postcss": "^4.1.6",
