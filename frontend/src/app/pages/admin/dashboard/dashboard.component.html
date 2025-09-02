@@ -4,6 +4,7 @@
   <app-sidebar 
     [isOpen]="isSidebarOpen"
     [isMobile]="isMobile"
+    [currentView]="currentView"
     (itemSelected)="onSidebarItemSelected($event)"
     (sidebarToggle)="toggleSidebar()"
   ></app-sidebar>
@@ -53,7 +54,6 @@
 
         <!-- Right Side: Actions & Profile -->
         <div class="flex items-center space-x-3 sm:space-x-4">
-
           <!-- Profile Menu -->
           <div class="relative">
             <button class="flex items-center space-x-2 sm:space-x-3 px-2 sm:px-3 py-2 rounded-xl hover:bg-gray-50 transition-all duration-200 border border-gray-200 hover:border-indigo-200 hover:shadow-sm group">
@@ -75,31 +75,30 @@
       <!-- Mobile Page Title -->
       <div class="sm:hidden px-4 pb-4">
         <h1 class="text-lg font-bold text-gray-900 flex items-center space-x-2">
-          
           <span>{{ getPageTitle() }}</span>
         </h1>
         <p class="text-sm text-gray-600 mt-1">{{ getPageDescription() }}</p>
       </div>
     </header>
 
-    <!-- Page Content -->
-    <main class="flex-1 overflow-auto">
-      <!-- Content Area -->
-      <div class="px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
-        <!-- Dynamic Content Based on Selected View -->
-        <div class="bg-white rounded-2xl sm:rounded-3xl shadow-sm border border-gray-100 p-6 sm:p-8">
-          <!-- Placeholder Content - This will be replaced with actual components -->
-          <div class="text-center py-12 sm:py-20">
-            <div class="w-16 h-16 sm:w-20 sm:h-20 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg">
-              <svg class="w-8 h-8 sm:w-10 sm:h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" [attr.d]="getPageIcon()"/>
-              </svg>
-            </div>
-            <h2 class="text-2xl sm:text-3xl font-bold text-gray-900 mb-4">{{ getPageTitle() }}</h2>
-            <p class="text-gray-600 text-lg mb-8 max-w-md mx-auto">{{ getPageDescription() }}</p>
-          </div>
-        </div>
-      </div>
-    </main>
+    <!-- Replace the placeholder content section with this -->
+<main class="flex-1 overflow-auto">
+  <!-- Content Area -->
+  <div class="px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+    <!-- Dynamic Content Based on Selected View -->
+    <div class="bg-white rounded-2xl sm:rounded-3xl shadow-sm border border-gray-100 p-6 sm:p-8">
+      
+      <!-- Dashboard Overview -->
+      <!-- <app-dashboard-overview *ngIf="currentView === 'dashboard'"></app-dashboard-overview> -->
+      
+      <!-- User Management -->
+      <app-user-management *ngIf="currentView === 'user-management'"></app-user-management>
+      
+      <!-- Audio Management -->
+      <!-- <app-audio-management *ngIf="currentView === 'audio-management'"></app-audio-management> -->
+
+    </div>
+  </div>
+</main>
   </div>
 </div>

@@ -1,10 +1,11 @@
 import { Component, HostListener, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { SidebarComponent } from '../../../components/admin/sidebar/sidebar.component';
+import { UserManagementComponent } from '../../../components/admin/user-management/user-management.component';
 
 @Component({
   selector: 'app-dashboard',
-  imports: [CommonModule, SidebarComponent],
+  imports: [CommonModule, SidebarComponent, UserManagementComponent],
   templateUrl: './dashboard.component.html',
   styles: ``
 })
