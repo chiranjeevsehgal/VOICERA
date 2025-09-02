@@ -36,6 +36,15 @@ export interface AudioFile {
 
 export interface ApiResponse {
   files: AudioFile[];
+  page?: number;
+  limit?: number;
+  has_next?: boolean;
+}
+
+export interface PagedPodcasts {
+  podcasts: Podcast[];
+  page: number;
+  hasNext: boolean;
 }
 
 export interface Podcast {
@@ -63,14 +72,27 @@ export class PodcastService {
   constructor(private http: HttpClient) {}
 
   getPodcasts(): Observable<Podcast[]> {
+    // Backward-compatible: fetch first page and return only items
+    return this.getPodcastsPage(1).pipe(map(res => res.podcasts));
+  }
+
+  getPodcastsPage(page: number = 1): Observable<PagedPodcasts> {
     const headers = new HttpHeaders({
       'Authorization': `Bearer ${this.authToken}`,
       'Content-Type': 'application/json'
     });
 
-    return this.http.get<ApiResponse>(`${this.baseUrl}/api/listAudioFiles`, { headers })
+    return this.http
+      .get<ApiResponse>(`${this.baseUrl}/api/listAudioFiles`, {
+        headers,
+        params: { page: String(page) },
+      })
       .pipe(
-        map(response => this.transformApiResponseToPodcasts(response.files))
+        map((response) => ({
+          podcasts: this.transformApiResponseToPodcasts(response.files),
+          page: response.page ?? page,
+          hasNext: response.has_next === true,
+        }))
       );
   }
 
