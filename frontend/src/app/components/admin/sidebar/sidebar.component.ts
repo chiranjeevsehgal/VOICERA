@@ -2,6 +2,9 @@ import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AudioLines, Home, LucideAngularModule, Users } from 'lucide-angular';
+import { Router } from '@angular/router';
+import { ProfileService } from '../../../services/auth/profile.service';
+import { AdminAuthService } from '../../../services/admin/admin.auth.service';
 
 export interface SidebarItem {
   id: string;
@@ -24,6 +27,8 @@ export class SidebarComponent {
   @Output() itemSelected = new EventEmitter<string>();
   @Output() sidebarToggle = new EventEmitter<void>();
 
+  constructor(private router: Router, private adminService: AdminAuthService) {}
+
   sidebarItems: SidebarItem[] = [
     {
       id: 'dashboard',
@@ -44,10 +49,15 @@ export class SidebarComponent {
 
   ngOnInit() {
     this.updateActiveStates();
+    this.loadUserData();
   }
 
   ngOnChanges() {
     this.updateActiveStates();
+  }
+
+  private loadUserData(): void {
+    this.adminService.loadUserData();
   }
 
   private updateActiveStates() {
@@ -74,5 +84,12 @@ export class SidebarComponent {
 
   trackByFn(index: number, item: SidebarItem): string {
     return item.id;
+  }
+
+  onSignOut(): void {
+    localStorage.removeItem('vEra_auth_token');
+    localStorage.removeItem('vEra_user_profile');
+    localStorage.removeItem('vEra_admin_current-view');
+    this.router.navigate(['/login']);
   }
 }
