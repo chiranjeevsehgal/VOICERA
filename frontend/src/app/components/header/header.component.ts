@@ -136,4 +136,8 @@ export class HeaderComponent implements OnInit, OnDestroy {
     localStorage.removeItem('vEra_user_profile');
     this.router.navigate(['/login']);
   }
+
+  onLogoClick(): void {
+    this.router.navigate(['/library']);
+  }
 }

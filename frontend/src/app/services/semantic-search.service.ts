@@ -58,7 +58,12 @@ export class SemanticSearchService {
 
   constructor(private http: HttpClient) {}
 
-  searchAudio(query: string, limit: number = 3): Observable<SearchResponse> {
+  searchAudio(
+    query: string,
+    limit: number = 5,
+    minConfidence: number = 0.7,
+    minRelevance: number = 0.65
+  ): Observable<SearchResponse> {
     // Fetch latest token at call time
     const token = localStorage.getItem('vEra_auth_token') || '';
     const headers = new HttpHeaders({
@@ -72,7 +77,8 @@ export class SemanticSearchService {
     let params = new HttpParams()
       .set('query', effectiveQuery)
       .set('limit', String(limit))
-      .set('min_confidence', '0.5')
+      .set('min_confidence', String(minConfidence))
+      .set('min_relevance', String(minRelevance))
       .set('use_llm_expansion', 'false')
       .set('natural_language', 'false')
       .set('validate_content', 'false')

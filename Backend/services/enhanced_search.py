@@ -156,7 +156,8 @@ class EnhancedSearch:
         query: str,
         limit: int = 10,
         filter_dict: Optional[Dict] = None,
-        original_query: Optional[str] = None
+        original_query: Optional[str] = None,
+        debug: bool = False
     ) -> List[Dict]:
         """
         Perform hybrid search with improved context awareness and relevance scoring
@@ -166,6 +167,7 @@ class EnhancedSearch:
             limit: Maximum number of results to return
             filter_dict: Optional filters to apply
             original_query: The original user query for technical term scoring
+            debug: Flag to return diagnostics
         """
         try:
             # Use original query if provided, otherwise use the processed query
@@ -176,7 +178,7 @@ class EnhancedSearch:
                 logger.info("Reinitializing Pinecone connection...")
                 if not init_pinecone():
                     logger.error("Could not initialize Pinecone connection")
-                    return []
+                    return {"results": [], "diagnostics": {"error": "Pinecone connection failed"}} if debug else []
 
             # Log search parameters
             logger.info(f"Performing hybrid search with query: {query}, original query: {query_for_tech_scoring}")
@@ -224,7 +226,7 @@ class EnhancedSearch:
             logger.info(f"Candidate pool size after expansions: {len(semantic_results)}")
             if not semantic_results:
                 logger.warning("No semantic results found, check Pinecone connection and index content")
-                return []
+                return {"results": [], "diagnostics": {"candidate_pool_size": 0}} if debug else []
 
             # 3) Sparse retrieval (BM25) and RRF fusion with dense results
             fused_candidates = semantic_results
@@ -255,11 +257,16 @@ class EnhancedSearch:
             )
 
             # 5) Combine scores
-            combined_results = await self._combine_results_with_context(
+            _combined = await self._combine_results_with_context(
                 semantic_results=fused_candidates,
                 keyword_scores=keyword_results,
-                weights={"semantic": 0.5, "keyword": 0.5}
+                weights={"semantic": 0.5, "keyword": 0.5},
+                debug=debug
             )
+            if debug:
+                combined_results, combine_diag = _combined
+            else:
+                combined_results = _combined
 
             # 6) Cross-encoder reranking on top-K
             combined_results = await self._rerank_with_cross_encoder(query_for_tech_scoring, combined_results, top_k=min(100, len(combined_results)))
@@ -287,11 +294,25 @@ class EnhancedSearch:
                 except Exception:
                     diverse_results = combined_results[:limit]
 
-            return diverse_results[:limit]
+            final_results = diverse_results[:limit]
+            if debug:
+                diag: Dict[str, Any] = {
+                    "candidate_pool_size": len(semantic_results),
+                    "fused_candidates": len(fused_candidates),
+                    "post_combine_count": len(combined_results),
+                    "final_count": len(final_results),
+                }
+                try:
+                    if combine_diag:
+                        diag["context_gate"] = combine_diag
+                except Exception:
+                    pass
+                return {"results": final_results, "diagnostics": diag}
+            return final_results
             
         except Exception as e:
             logger.error(f"Error in hybrid search: {str(e)}")
-            return []
+            return {"results": [], "diagnostics": {"error": str(e)}} if debug else []
 
     def _extract_key_terms(self, query: str) -> Dict[str, float]:
         """
@@ -663,7 +684,8 @@ class EnhancedSearch:
         self,
         semantic_results: List[Dict],
         keyword_scores: List[float],
-        weights: Dict[str, float]
+        weights: Dict[str, float],
+        debug: bool = False
     ) -> List[Dict]:
         """
         Combine semantic and keyword results with context awareness and technical term scoring
@@ -671,11 +693,11 @@ class EnhancedSearch:
         try:
             if not semantic_results:
                 print("Warning: No semantic results found")
-                return []
+                return ([], {"note": "no_semantic_results", "skip_count": 0}) if debug else []
 
             if not keyword_scores:
                 print("Warning: No keyword scores found")
-                return semantic_results
+                return (semantic_results, {"note": "no_keyword_scores", "skip_count": 0}) if debug else semantic_results
 
             # Initialize technical scorer
             tech_scorer = TechnicalTermsScorer()
@@ -685,13 +707,13 @@ class EnhancedSearch:
             max_keyword = max(keyword_scores) if keyword_scores else 1
 
             # Determine dynamic weighting based on query specificity (short queries rely more on keywords)
-            # We infer the query from the first result's original_query (present on all)
+            # We infer the base query from the first result's original_query (present on all)
             original_query = semantic_results[0].get("original_query", "") if semantic_results else ""
             cleaned_query = re.sub(r'[^\w\s]', ' ', original_query.lower()).strip()
-            query_terms = [w for w in cleaned_query.split() if w and w not in self._get_stopwords()]
+            base_query_terms = [w for w in cleaned_query.split() if w and w not in self._get_stopwords()]
             # Heuristic: if query is short (<=2 terms) or contains a rare/long token, boost keyword weight
-            short_query = len(query_terms) <= 2
-            has_specific_token = any(len(t) >= 7 for t in query_terms)
+            short_query = len(base_query_terms) <= 2
+            has_specific_token = any(len(t) >= 7 for t in base_query_terms)
 
             if short_query or has_specific_token:
                 dyn_weights = {"semantic": 0.3, "keyword": 0.5, "technical": 0.2}
@@ -699,6 +721,7 @@ class EnhancedSearch:
                 dyn_weights = {"semantic": 0.4, "keyword": 0.3, "technical": 0.3}
 
             combined_results = []
+            skip_count = 0
             for result, keyword_score in zip(semantic_results, keyword_scores):
                 # Ensure all required fields are present
                 if "text" not in result:
@@ -740,8 +763,20 @@ class EnhancedSearch:
                 if (short_query or has_specific_token):
                     raw_semantic = result.get("semantic_score", 0.0)
                     text_lower = result.get("text", "").lower()
-                    has_query_token_in_text = any(t in text_lower for t in query_terms)
-                    if normalized_keyword == 0 and tech_score <= 0.01 and (normalized_semantic < 0.2 or raw_semantic < 0.2) and not has_query_token_in_text:
+                    # Check for presence of tokens from either original query or the per-result expansion
+                    has_query_token_in_text = any(t in text_lower for t in base_query_terms)
+                    exp = result.get("expansion", "") or ""
+                    exp_clean = re.sub(r'[^\w\s]', ' ', exp.lower()).strip()
+                    exp_terms = [w for w in exp_clean.split() if w and w not in self._get_stopwords()]
+                    has_expansion_token_in_text = any(t in text_lower for t in exp_terms)
+                    # Relax: require both normalized and raw semantic to be low before gating; honor expansion matches
+                    if (
+                        normalized_keyword == 0 and
+                        tech_score <= 0.01 and
+                        (normalized_semantic < 0.15 and raw_semantic < 0.15) and
+                        not (has_query_token_in_text or has_expansion_token_in_text)
+                    ):
+                        skip_count += 1
                         # Skip this result entirely as likely irrelevant
                         continue
 
@@ -770,13 +805,26 @@ class EnhancedSearch:
             if combined_results:
                 print(f"Top score: {combined_results[0]['combined_score']}")
                 print(f"Technical score: {combined_results[0]['technical_score']}")
-            
+            try:
+                logger.info(f"Context gate skipped {skip_count} results (short_or_specific={(short_query or has_specific_token)}) out of {len(semantic_results)} candidates")
+            except Exception:
+                pass
+
+            if debug:
+                diag = {
+                    "skip_count": skip_count,
+                    "short_or_specific": bool(short_query or has_specific_token),
+                    "candidates": len(semantic_results),
+                    "kept": len(combined_results)
+                }
+                return combined_results, diag
+
             return combined_results
             
         except Exception as e:
             print(f"Error combining results: {str(e)}")
             # Return semantic results as fallback
-            return semantic_results
+            return (semantic_results, {"note": "combine_error", "error": str(e)}) if debug else semantic_results
 
     # ---------------------------
     # Helpers: embeddings, tokens, reranker, MMR, expansions
