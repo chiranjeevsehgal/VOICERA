@@ -5,6 +5,14 @@
 </div>
 
 <div class="flex flex-col space-y-4 lg:space-y-6">
+  <!-- Loading Overlay for Initial Load -->
+  <div *ngIf="loading && users.length === 0" class="fixed inset-0 z-50 flex items-center justify-center bg-white/80 backdrop-blur-sm">
+    <div class="flex flex-col items-center space-y-4">
+      <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+      <p class="text-gray-600 font-medium">Loading users...</p>
+    </div>
+  </div>
+
   <!-- Search and Filter Controls -->
   <div
     class="flex flex-col lg:flex-row gap-3 lg:gap-4 lg:items-center justify-between"
@@ -73,10 +81,12 @@
       <div class="w-full xs:w-32 sm:w-36 lg:w-40">
         <button
           (click)="refreshUsers()"
-          class="w-full px-3 py-2.5 cursor-pointer bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition-colors duration-200 flex items-center justify-center space-x-1 sm:space-x-2"
+          [disabled]="refreshing"
+          class="w-full px-3 py-2.5 cursor-pointer bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition-colors duration-200 flex items-center justify-center space-x-1 sm:space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
           title="Refresh users list"
         >
           <svg
+            *ngIf="!refreshing"
             class="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0"
             fill="none"
             stroke="currentColor"
@@ -89,15 +99,46 @@
               d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
             />
           </svg>
-          <span class="text-xs xs:text-sm sm:text-base truncate">Refresh</span>
+          <svg
+            *ngIf="refreshing"
+            class="animate-spin w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0"
+            fill="none"
+            viewBox="0 0 24 24"
+          >
+            <circle
+              class="opacity-25"
+              cx="12"
+              cy="12"
+              r="10"
+              stroke="currentColor"
+              stroke-width="4"
+            ></circle>
+            <path
+              class="opacity-75"
+              fill="currentColor"
+              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+            ></path>
+          </svg>
+          <span class="text-xs xs:text-sm sm:text-base truncate">
+            {{ refreshing ? 'Refreshing...' : 'Refresh' }}
+          </span>
         </button>
       </div>
     </div>
   </div>
+
   <!-- Users Table -->
   <div
-    class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden"
+    class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden relative"
   >
+    <!-- Refreshing Overlay -->
+    <div *ngIf="refreshing" class="absolute inset-0 z-10 flex items-center justify-center bg-white/80 backdrop-blur-sm rounded-2xl">
+      <div class="flex flex-col items-center space-y-3">
+        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+        <p class="text-sm text-gray-600 font-medium">Refreshing users...</p>
+      </div>
+    </div>
+
     <!-- Table Header -->
     <div class="px-4 sm:px-6 py-3 sm:py-4 bg-gray-50 border-b border-gray-100">
       <h3
@@ -164,15 +205,28 @@
         <div class="flex items-center space-x-2 mt-3">
           <button
             (click)="toggleUserStatus(user)"
-            class="flex-1 px-3 py-2 rounded-lg text-sm font-medium transition-colors duration-200 text-center"
+            [disabled]="isUserBeingUpdated(user.id)"
+            class="flex-1 px-3 py-2 rounded-lg text-sm font-medium transition-colors duration-200 text-center disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
             [ngClass]="{
               'bg-green-50 text-green-600 hover:bg-green-100':
-                user.status === 'inactive',
+                user.status === 'inactive' && !isUserBeingUpdated(user.id),
               'bg-yellow-50 text-yellow-600 hover:bg-yellow-100':
-                user.status === 'active'
+                user.status === 'active' && !isUserBeingUpdated(user.id),
+              'bg-gray-100 text-gray-500': isUserBeingUpdated(user.id)
             }"
           >
-            {{ user.status === "active" ? "Deactivate" : "Activate" }}
+            <svg
+              *ngIf="isUserBeingUpdated(user.id)"
+              class="animate-spin h-4 w-4"
+              fill="none"
+              viewBox="0 0 24 24"
+            >
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            <span>
+              {{ isUserBeingUpdated(user.id) ? 'Updating...' : (user.status === "active" ? "Deactivate" : "Activate") }}
+            </span>
           </button>
           <button
             (click)="openDeleteModal(user, 'delete')"
@@ -269,27 +323,39 @@
               <div class="flex items-center justify-end space-x-1 lg:space-x-2">
                 <button
                   (click)="toggleUserStatus(user)"
-                  class="p-1.5 lg:p-2 cursor-pointer rounded-lg transition-colors duration-200"
+                  [disabled]="isUserBeingUpdated(user.id)"
+                  class="p-1.5 lg:p-2 cursor-pointer rounded-lg transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
                   [ngClass]="{
                     'text-green-600 hover:text-green-900 hover:bg-green-50':
-                      user.status === 'inactive',
+                      user.status === 'inactive' && !isUserBeingUpdated(user.id),
                     'text-yellow-600 hover:text-yellow-900 hover:bg-yellow-50':
-                      user.status === 'active'
+                      user.status === 'active' && !isUserBeingUpdated(user.id),
+                    'text-gray-400': isUserBeingUpdated(user.id)
                   }"
                   [title]="
-                    user.status === 'active'
+                    isUserBeingUpdated(user.id) ? 'Updating...' : (user.status === 'active'
                       ? 'Deactivate user'
-                      : 'Activate user'
+                      : 'Activate user')
                   "
                 >
+                  <svg
+                    *ngIf="isUserBeingUpdated(user.id)"
+                    class="animate-spin w-3.5 h-3.5 lg:w-4 lg:h-4"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+
                   <lucide-icon
-                    *ngIf="user.status === 'active'"
+                    *ngIf="user.status === 'active' && !isUserBeingUpdated(user.id)"
                     [img]="X"
                     class="w-3.5 h-3.5 lg:w-4 lg:h-4 text-current"
                   ></lucide-icon>
 
                   <lucide-icon
-                    *ngIf="user.status === 'inactive'"
+                    *ngIf="user.status === 'inactive' && !isUserBeingUpdated(user.id)"
                     [img]="Check"
                     class="w-3.5 h-3.5 lg:w-4 lg:h-4 text-current"
                   ></lucide-icon>

@@ -25,6 +25,7 @@ export class UserManagementComponent implements OnInit {
   selectedStatus: string = 'all';
   showAddUserModal: boolean = false;
   loading: boolean = false;
+  refreshing: boolean = false;
   error: string = '';
   totalCount: number = 0;
   updatingUsers: Set<string> = new Set();
@@ -60,6 +61,7 @@ export class UserManagementComponent implements OnInit {
         );
         this.filteredUsers = [...this.users];
         this.loading = false;
+        this.refreshing = false;
       },
       error: (error) => {
         console.error('Error loading users:', error);
@@ -240,6 +242,7 @@ export class UserManagementComponent implements OnInit {
   }
 
   refreshUsers() {
+    this.refreshing = true; 
     this.loadUsers();
   }
 
