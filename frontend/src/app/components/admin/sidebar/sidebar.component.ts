@@ -5,6 +5,8 @@ import { AudioLines, Home, LucideAngularModule, Users } from 'lucide-angular';
 import { Router } from '@angular/router';
 import { ProfileService } from '../../../services/auth/profile.service';
 import { AdminAuthService } from '../../../services/admin/admin.auth.service';
+import { MessageService } from 'primeng/api';
+import { Toast } from 'primeng/toast';
 
 export interface SidebarItem {
   id: string;
@@ -16,7 +18,8 @@ export interface SidebarItem {
 
 @Component({
   selector: 'app-sidebar',
-  imports: [CommonModule, FormsModule, LucideAngularModule],
+  imports: [CommonModule, FormsModule, LucideAngularModule, Toast],
+  providers: [MessageService],
   templateUrl: './sidebar.component.html',
   styles: ``,
 })
@@ -27,7 +30,7 @@ export class SidebarComponent {
   @Output() itemSelected = new EventEmitter<string>();
   @Output() sidebarToggle = new EventEmitter<void>();
 
-  constructor(private router: Router) {}
+  constructor(private router: Router, private messageService: MessageService) {}
 
   sidebarItems: SidebarItem[] = [
     {
@@ -54,7 +57,6 @@ export class SidebarComponent {
   ngOnChanges() {
     this.updateActiveStates();
   }
-
 
   private updateActiveStates() {
     this.sidebarItems = this.sidebarItems.map((item) => ({
@@ -86,6 +88,9 @@ export class SidebarComponent {
     localStorage.removeItem('vEra_auth_token');
     localStorage.removeItem('vEra_user_profile');
     localStorage.removeItem('vEra_admin_current-view');
-    this.router.navigate(['/login']);
+
+    this.router.navigate(['/login'], {
+      queryParams: { loggedOut: 'true' },
+    });
   }
 }
