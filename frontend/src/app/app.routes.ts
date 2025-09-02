@@ -29,7 +29,9 @@ export const routes: Routes = [
     // Admin route
     {
         path: 'admin',
-        canActivate: [],
+        canActivate: [
+            authGuard
+        ],
         children: [
             //   { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
             { path: '', redirectTo: 'login', pathMatch: 'full' },
