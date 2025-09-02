@@ -1,7 +1,15 @@
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { environment } from '../../../environments/environment';
-import { BehaviorSubject, catchError, delay, Observable, of, tap, throwError } from 'rxjs';
+import {
+  BehaviorSubject,
+  catchError,
+  delay,
+  Observable,
+  of,
+  tap,
+  throwError,
+} from 'rxjs';
 import { UserProfile } from '../auth/profile.service';
 
 interface LoginResponse {
@@ -54,6 +62,10 @@ export class AdminAuthService {
     });
   }
 
+  get userProfile$(): Observable<UserProfile | null> {
+    return this.userProfileSubject.asObservable();
+  }
+
   getUserProfile(): Observable<UserProfile> {
     // First check localStorage
     const cachedProfile = localStorage.getItem('vEra_user_profile');
@@ -72,7 +84,9 @@ export class AdminAuthService {
     // If no cached data, fetching from api
     const headers = this.getHeaders();
     return this.http
-      .get<UserProfile>(`${environment.apiUrl}/api/auth/users/profile`, { headers })
+      .get<UserProfile>(`${environment.apiUrl}/api/auth/users/profile`, {
+        headers,
+      })
       .pipe(
         tap((profile) => {
           this.userProfileSubject.next(profile);
@@ -91,9 +105,7 @@ export class AdminAuthService {
     this.getUserProfile().subscribe();
   }
 
-  exchangeGoogleCode(
-    code: string
-  ): Observable<{
+  exchangeGoogleCode(code: string): Observable<{
     access_token: string;
     user: any;
     message?: string;

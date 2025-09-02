@@ -1,7 +1,10 @@
-import { Component, HostListener, OnInit } from '@angular/core';
+import { Component, HostListener, OnDestroy, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { SidebarComponent } from '../../../components/admin/sidebar/sidebar.component';
 import { UserManagementComponent } from '../../../components/admin/user-management/user-management.component';
+import { AdminAuthService } from '../../../services/admin/admin.auth.service';
+import { Subject, takeUntil } from 'rxjs';
+import { UserProfile } from '../../../services/auth/profile.service';
 
 @Component({
   selector: 'app-dashboard',
@@ -9,12 +12,16 @@ import { UserManagementComponent } from '../../../components/admin/user-manageme
   templateUrl: './dashboard.component.html',
   styles: ``
 })
-export class AdminDashboardComponent implements OnInit {
+export class AdminDashboardComponent implements OnInit, OnDestroy  {
   
   // Sidebar state management
   isSidebarOpen: boolean = false;
   isMobile: boolean = false;
   currentView: string = 'dashboard';
+  userProfile: UserProfile | null = null;
+  userInitials: string = 'A';
+  isLoadingProfile: boolean = true;
+  private destroy$ = new Subject<void>();
 
   private readonly CURRENT_VIEW_KEY = 'vEra_admin_current-view';
   
@@ -24,9 +31,39 @@ export class AdminDashboardComponent implements OnInit {
     this.checkScreenSize();
   }
 
+  constructor(private adminService: AdminAuthService) {}
+
   ngOnInit() {
     this.checkScreenSize();
     this.loadCurrentView();
+    this.loadUserData();
+    this.subscribeToProfileData(); 
+  }
+
+   ngOnDestroy() {
+    this.destroy$.next();
+    this.destroy$.complete();
+  }
+
+   private subscribeToProfileData(): void {
+    this.adminService.userProfile$
+      .pipe(takeUntil(this.destroy$))
+      .subscribe((profile) => {
+        this.userProfile = profile;
+        if (profile) {
+          this.userInitials = this.getUserInitials(profile.full_name);
+          this.isLoadingProfile = false;
+        }
+      });
+  }
+
+    private getUserInitials(fullName: string): string {
+    if (!fullName) return 'A';
+    const names = fullName.trim().split(' ');
+    if (names.length === 1) {
+      return names[0].charAt(0).toUpperCase();
+    }
+    return (names[0].charAt(0) + names[names.length - 1].charAt(0)).toUpperCase();
   }
 
   private loadCurrentView(): void {
@@ -40,6 +77,10 @@ export class AdminDashboardComponent implements OnInit {
 
   private saveCurrentView(): void {
     localStorage.setItem(this.CURRENT_VIEW_KEY, this.currentView);
+  }
+  
+  private loadUserData(): void {
+    this.adminService.loadUserData();
   }
 
   private isValidView(view: string): boolean {

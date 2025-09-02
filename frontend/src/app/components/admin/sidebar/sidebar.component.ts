@@ -27,7 +27,7 @@ export class SidebarComponent {
   @Output() itemSelected = new EventEmitter<string>();
   @Output() sidebarToggle = new EventEmitter<void>();
 
-  constructor(private router: Router, private adminService: AdminAuthService) {}
+  constructor(private router: Router) {}
 
   sidebarItems: SidebarItem[] = [
     {
@@ -49,16 +49,12 @@ export class SidebarComponent {
 
   ngOnInit() {
     this.updateActiveStates();
-    this.loadUserData();
   }
 
   ngOnChanges() {
     this.updateActiveStates();
   }
 
-  private loadUserData(): void {
-    this.adminService.loadUserData();
-  }
 
   private updateActiveStates() {
     this.sidebarItems = this.sidebarItems.map((item) => ({
