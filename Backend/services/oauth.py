@@ -59,6 +59,7 @@ async def get_or_create_user_from_google(google_user_info):
             "full_name": google_user_info.get('name'),
             "profile_picture": google_user_info.get('picture'),
             "role": "user",  # Default role
+            "status": "active",  # Default status
             "created_at": datetime.utcnow(),
             "auth_provider": "google"
         }
