@@ -180,7 +180,7 @@ async def process_audio_bulk(
     if not files or len(files) == 0:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="No files provided")
 
-    MAX_FILES = 20
+    MAX_FILES = 50
     if len(files) > MAX_FILES:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Too many files. Max {MAX_FILES} allowed")
 
