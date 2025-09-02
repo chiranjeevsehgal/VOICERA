@@ -14,6 +14,10 @@ export interface ApiUser {
   auth_provider?: string;
 }
 
+export interface UpdateUserStatusRequest {
+  status: 'active' | 'inactive';
+}
+
 export interface ApiUsersResponse {
   total_count: number;
   users: ApiUser[];
@@ -31,7 +35,7 @@ export interface User {
 }
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class UserService {
   private baseUrl = environment.apiUrl;
@@ -41,14 +45,25 @@ export class UserService {
   private getHeaders(): HttpHeaders {
     const token = localStorage.getItem('vEra_auth_token');
     return new HttpHeaders({
-      'Authorization': `Bearer ${token}`,
-      'Content-Type': 'application/json'
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json',
     });
   }
 
   getUsers(): Observable<ApiUsersResponse> {
-    return this.http.get<ApiUsersResponse>(
-      `${this.baseUrl}/api/admin/users`,
+    return this.http.get<ApiUsersResponse>(`${this.baseUrl}/api/admin/users`, {
+      headers: this.getHeaders(),
+    });
+  }
+
+  updateUserStatus(
+    userId: string,
+    status: 'active' | 'inactive'
+  ): Observable<ApiUser> {
+    const body: UpdateUserStatusRequest = { status };
+    return this.http.put<ApiUser>(
+      `${this.baseUrl}/api/admin/users/${userId}`,
+      body,
       { headers: this.getHeaders() }
     );
   }
@@ -63,7 +78,7 @@ export class UserService {
       status: apiUser.status,
       profilePicture: apiUser.profile_picture,
       authProvider: apiUser.auth_provider,
-      createdAt: new Date(apiUser.created_at)
+      createdAt: new Date(apiUser.created_at),
     };
   }
 }

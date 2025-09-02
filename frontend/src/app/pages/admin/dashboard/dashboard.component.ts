@@ -15,6 +15,8 @@ export class AdminDashboardComponent implements OnInit {
   isSidebarOpen: boolean = false;
   isMobile: boolean = false;
   currentView: string = 'dashboard';
+
+  private readonly CURRENT_VIEW_KEY = 'vEra_admin_current-view';
   
   // Responsive breakpoint detection
   @HostListener('window:resize', ['$event'])
@@ -24,6 +26,29 @@ export class AdminDashboardComponent implements OnInit {
 
   ngOnInit() {
     this.checkScreenSize();
+    this.loadCurrentView();
+  }
+
+  private loadCurrentView(): void {
+    // Try to get the last viewed page from localStorage
+    const savedView = localStorage.getItem(this.CURRENT_VIEW_KEY);
+    if (savedView && this.isValidView(savedView)) {
+      this.currentView = savedView;
+    }
+    // If no saved view or invalid view, it will remain 'dashboard'
+  }
+
+  private saveCurrentView(): void {
+    localStorage.setItem(this.CURRENT_VIEW_KEY, this.currentView);
+  }
+
+  private isValidView(view: string): boolean {
+    const validViews = [
+      'dashboard',
+      'user-management', 
+      'audio-management',
+    ];
+    return validViews.includes(view);
   }
 
   private checkScreenSize(): void {
@@ -43,7 +68,7 @@ export class AdminDashboardComponent implements OnInit {
 
   onSidebarItemSelected(itemId: string): void {
     this.currentView = itemId;
-    console.log('Selected view:', itemId);
+    this.saveCurrentView(); // Save the view whenever it changes
   }
 
   // Helper method to get page title

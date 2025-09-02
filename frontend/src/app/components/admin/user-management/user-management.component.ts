@@ -10,7 +10,7 @@ import { User, UserService } from '../../../services/admin/user.service';
   imports: [CommonModule, FormsModule, HttpClientModule],
   templateUrl: './user-management.component.html',
   styles: ``,
-  providers: [UserService]
+  providers: [UserService],
 })
 export class UserManagementComponent implements OnInit {
   users: User[] = [];
@@ -22,7 +22,8 @@ export class UserManagementComponent implements OnInit {
   loading: boolean = false;
   error: string = '';
   totalCount: number = 0;
-
+  updatingUsers: Set<string> = new Set(); 
+  
   newUser = {
     name: '',
     email: '',
@@ -38,11 +39,13 @@ export class UserManagementComponent implements OnInit {
   loadUsers() {
     this.loading = true;
     this.error = '';
-    
+
     this.userService.getUsers().subscribe({
       next: (response) => {
         this.totalCount = response.total_count;
-        this.users = response.users.map(apiUser => this.userService.transformApiUser(apiUser));
+        this.users = response.users.map((apiUser) =>
+          this.userService.transformApiUser(apiUser)
+        );
         this.filteredUsers = [...this.users];
         this.loading = false;
       },
@@ -50,13 +53,12 @@ export class UserManagementComponent implements OnInit {
         console.error('Error loading users:', error);
         this.error = 'Failed to load users. Please try again.';
         this.loading = false;
-        
+
         // Fallback to empty array or show error message
         this.users = [];
         this.filteredUsers = [];
-      }
+      },
     });
-    
   }
 
   filterUsers() {
@@ -109,7 +111,7 @@ export class UserManagementComponent implements OnInit {
     return date.toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'short',
-      day: 'numeric'
+      day: 'numeric',
     });
   }
 
@@ -141,9 +143,70 @@ export class UserManagementComponent implements OnInit {
   }
 
   toggleUserStatus(user: User) {
-    user.status = user.status === 'active' ? 'inactive' : 'active';
-    // This would need an API endpoint to update user status
-    console.log('Toggle status functionality needs API endpoint');
+    // Prevent multiple simultaneous updates for the same user
+    if (this.updatingUsers.has(user.id)) {
+      return;
+    }
+
+    const newStatus: 'active' | 'inactive' =
+      user.status === 'active' ? 'inactive' : 'active';
+    const originalStatus = user.status;
+
+    // Add user to updating set
+    this.updatingUsers.add(user.id);
+
+    // Optimistically update the UI
+    user.status = newStatus;
+
+    this.userService.updateUserStatus(user.id, newStatus).subscribe({
+      next: (updatedApiUser) => {
+        // Update the user with the response from the API
+        const updatedUser = this.userService.transformApiUser(updatedApiUser);
+        const userIndex = this.users.findIndex((u) => u.id === user.id);
+
+        if (userIndex !== -1) {
+          this.users[userIndex] = updatedUser;
+          // Update filtered users as well
+          const filteredIndex = this.filteredUsers.findIndex(
+            (u) => u.id === user.id
+          );
+          if (filteredIndex !== -1) {
+            this.filteredUsers[filteredIndex] = updatedUser;
+          }
+        }
+
+        this.updatingUsers.delete(user.id);
+        console.log(`User ${user.name} status updated to ${newStatus}`);
+      },
+      error: (error) => {
+        console.error('Error updating user status:', error);
+
+        // Revert the optimistic update on error
+        user.status = originalStatus;
+
+        // Update filtered users to reflect the revert
+        const filteredIndex = this.filteredUsers.findIndex(
+          (u) => u.id === user.id
+        );
+        if (filteredIndex !== -1) {
+          this.filteredUsers[filteredIndex].status = originalStatus;
+        }
+
+        this.updatingUsers.delete(user.id);
+
+        // Show error message to user
+        this.error = `Failed to update ${user.name}'s status. Please try again.`;
+
+        // Clear error message after 5 seconds
+        setTimeout(() => {
+          this.error = '';
+        }, 5000);
+      },
+    });
+  }
+
+  isUserBeingUpdated(userId: string): boolean {
+    return this.updatingUsers.has(userId);
   }
 
   refreshUsers() {
@@ -157,7 +220,7 @@ export class UserManagementComponent implements OnInit {
   getUserInitials(name: string): string {
     return name
       .split(' ')
-      .map(word => word.charAt(0))
+      .map((word) => word.charAt(0))
       .join('')
       .toUpperCase()
       .substring(0, 2);
