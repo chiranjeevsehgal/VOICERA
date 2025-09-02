@@ -48,7 +48,7 @@
         <select
           [(ngModel)]="selectedRole"
           (change)="filterUsers()"
-          class="w-full px-3 py-2.5 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors duration-200 text-sm sm:text-base"
+          class="w-full px-3 py-2.5 border-2 cursor-pointer border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors duration-200 text-sm sm:text-base"
         >
           <option value="all">All Roles</option>
           <option value="admin">Admin</option>
@@ -61,7 +61,7 @@
         <select
           [(ngModel)]="selectedStatus"
           (change)="filterUsers()"
-          class="w-full px-3 py-2.5 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors duration-200 text-sm sm:text-base"
+          class="w-full px-3 cursor-pointer py-2.5 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors duration-200 text-sm sm:text-base"
         >
           <option value="all">All Status</option>
           <option value="active">Active</option>
@@ -73,7 +73,7 @@
       <div class="w-full xs:w-32 sm:w-36 lg:w-40">
         <button
           (click)="refreshUsers()"
-          class="w-full px-3 py-2.5 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition-colors duration-200 flex items-center justify-center space-x-1 sm:space-x-2"
+          class="w-full px-3 py-2.5 cursor-pointer bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition-colors duration-200 flex items-center justify-center space-x-1 sm:space-x-2"
           title="Refresh users list"
         >
           <svg
@@ -269,7 +269,7 @@
               <div class="flex items-center justify-end space-x-1 lg:space-x-2">
                 <button
                   (click)="toggleUserStatus(user)"
-                  class="p-1.5 lg:p-2 rounded-lg transition-colors duration-200"
+                  class="p-1.5 lg:p-2 cursor-pointer rounded-lg transition-colors duration-200"
                   [ngClass]="{
                     'text-green-600 hover:text-green-900 hover:bg-green-50':
                       user.status === 'inactive',
@@ -282,38 +282,21 @@
                       : 'Activate user'
                   "
                 >
-                  <svg
-                    *ngIf="user.status === 'inactive'"
-                    class="w-3.5 h-3.5 lg:w-4 lg:h-4"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      stroke-width="2"
-                      d="M5 13l4 4L19 7"
-                    />
-                  </svg>
-                  <svg
+                  <lucide-icon
                     *ngIf="user.status === 'active'"
-                    class="w-3.5 h-3.5 lg:w-4 lg:h-4"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      stroke-width="2"
-                      d="M10 14H5.236a2 2 0 01-1.789-2.894l3.5-7A2 2 0 018.736 4h4.018a2 2 0 01.485.06l3.76.94m-7 10v5a2 2 0 002 2h.096c.5 0 .905-.405.905-.904 0-.715.211-1.413.608-2.008L17.5 14.5"
-                    />
-                  </svg>
+                    [img]="X"
+                    class="w-3.5 h-3.5 lg:w-4 lg:h-4 text-current"
+                  ></lucide-icon>
+
+                  <lucide-icon
+                    *ngIf="user.status === 'inactive'"
+                    [img]="Check"
+                    class="w-3.5 h-3.5 lg:w-4 lg:h-4 text-current"
+                  ></lucide-icon>
                 </button>
                 <button
                   (click)="openDeleteModal(user, 'delete')"
-                  class="text-red-600 hover:text-red-900 p-1.5 lg:p-2 rounded-lg hover:bg-red-50 transition-colors duration-200"
+                  class="text-red-600 cursor-pointer hover:text-red-900 p-1.5 lg:p-2 rounded-lg hover:bg-red-50 transition-colors duration-200"
                   title="Delete user"
                 >
                   <svg

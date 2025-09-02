@@ -5,17 +5,20 @@ import { HttpClientModule } from '@angular/common/http';
 import { User, UserService } from '../../../services/admin/user.service';
 import { Toast } from 'primeng/toast';
 import { MessageService } from 'primeng/api';
+import { LucideAngularModule, Check, X } from 'lucide-angular';
 
 @Component({
   selector: 'app-user-management',
   standalone: true,
-  imports: [Toast, CommonModule, FormsModule, HttpClientModule],
+  imports: [Toast, CommonModule, FormsModule, HttpClientModule, LucideAngularModule],
   providers: [MessageService, UserService],
   templateUrl: './user-management.component.html',
   styles: ``,
 })
 export class UserManagementComponent implements OnInit {
   users: User[] = [];
+  readonly Check = Check;
+  readonly X = X;
   filteredUsers: User[] = [];
   searchQuery: string = '';
   selectedRole: string = 'all';
