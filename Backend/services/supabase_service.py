@@ -139,20 +139,45 @@ async def upload_file_to_supabase(file_path, file_name=None, user_id=None, bucke
         print(f"[DEBUG] Upload failed with error: {str(e)}")
         raise ValueError(f"Failed to upload file: {str(e)}")
 
-async def list_files_in_bucket(user_id=None, bucket_name: str = None, folder: str = "public"):
+async def list_files_in_bucket(
+    user_id=None,
+    bucket_name: str = None,
+    folder: str = "public",
+    page: int = 1,
+    limit: int = 10,
+    sort_column: str = "updated_at",
+    sort_order: str = "desc",
+):
     """
-    List files in the storage bucket with user information
+    List files in the storage bucket with user information, with pagination.
     
     Args:
         user_id (str, optional): If provided, only list files uploaded by this user
+        bucket_name (str, optional): Supabase bucket name
+        folder (str): Folder path to list (default: "public")
+        page (int): 1-based page number (default: 1)
+        limit (int): Max items per page (default: 10)
+        sort_column (str): Column to sort by in storage (default: "updated_at")
+        sort_order (str): Sort order, "asc" or "desc" (default: "desc")
     """
     if not supabase:
         raise ValueError("Supabase client not initialized. Check your environment variables.")
     
     try:
         selected_bucket = bucket_name or supabase_bucket
-        # Get storage files
-        storage_files = supabase.storage.from_(selected_bucket).list(folder)
+        # Pagination math and storage list options
+        safe_page = max(1, int(page) if isinstance(page, int) else 1)
+        safe_limit = max(1, int(limit) if isinstance(limit, int) else 10)
+        offset = (safe_page - 1) * safe_limit
+        # Get storage files with pagination and sorting
+        storage_files = supabase.storage.from_(selected_bucket).list(
+            folder,
+            {
+                "limit": safe_limit,
+                "offset": offset,
+                "sortBy": {"column": sort_column, "order": sort_order},
+            },
+        )
         
         # Get user upload records
         query = supabase.table("user_uploads").select("*")

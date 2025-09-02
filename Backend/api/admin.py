@@ -4,6 +4,9 @@ from typing import List, Optional, Dict, Any
 from bson import ObjectId
 from datetime import datetime, timedelta
 from pydantic import BaseModel, EmailStr, Field
+import os
+import shutil
+import asyncio
 
 from services.auth import get_current_user, requires_role, get_password_hash, get_user_by_email
 from services.database import (
@@ -696,3 +699,80 @@ async def get_application_logs(
     )
     
     return response 
+
+@router.delete("/cleanup/audio-uploads", status_code=status.HTTP_200_OK)
+async def cleanup_audio_uploads(
+    current_user: Dict[str, Any] = Depends(requires_role("admin"))
+):
+    """
+    Delete all files and subdirectories inside the audio uploads folder.
+    Folder path: Backend/audio_uploads
+    Only accessible to administrators.
+    """
+    # Resolve path to Backend/audio_uploads relative to this file (Backend/api/admin.py)
+    base_dir = os.path.dirname(os.path.dirname(__file__))  # -> Backend
+    upload_dir = os.path.join(base_dir, "audio_uploads")
+
+    if not os.path.isdir(upload_dir):
+        return {
+            "status": "success",
+            "detail": "audio_uploads directory does not exist",
+            "deleted_files": 0,
+            "deleted_dirs": 0,
+            "deleted_bytes": 0,
+            "errors": []
+        }
+
+    def _cleanup_sync():
+        deleted_files = 0
+        deleted_dirs = 0
+        deleted_bytes = 0
+        errors: List[Dict[str, Any]] = []
+
+        try:
+            with os.scandir(upload_dir) as it:
+                for entry in it:
+                    path = entry.path
+                    try:
+                        if entry.is_file() or entry.is_symlink():
+                            try:
+                                deleted_bytes += os.path.getsize(path)
+                            except Exception:
+                                pass
+                            os.remove(path)
+                            deleted_files += 1
+                        elif entry.is_dir():
+                            # Pre-calculate size of directory contents
+                            for root, _, files in os.walk(path):
+                                for fname in files:
+                                    fpath = os.path.join(root, fname)
+                                    try:
+                                        deleted_bytes += os.path.getsize(fpath)
+                                    except Exception:
+                                        pass
+                            shutil.rmtree(path)
+                            deleted_dirs += 1
+                    except Exception as e:
+                        errors.append({"path": path, "error": str(e)})
+        except Exception as e:
+            # Scandir failure (permissions, etc.)
+            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Failed to scan directory: {str(e)}")
+
+        return deleted_files, deleted_dirs, deleted_bytes, errors
+
+    # Run potentially blocking file operations off the event loop
+    loop = asyncio.get_event_loop()
+    deleted_files, deleted_dirs, deleted_bytes, errors = await loop.run_in_executor(None, _cleanup_sync)
+
+    detail_msg = "Cleanup completed"
+    if errors:
+        detail_msg += f" with {len(errors)} errors (likely locked files)"
+
+    return {
+        "status": "success",
+        "detail": detail_msg,
+        "deleted_files": deleted_files,
+        "deleted_dirs": deleted_dirs,
+        "deleted_bytes": deleted_bytes,
+        "errors": errors,
+    }

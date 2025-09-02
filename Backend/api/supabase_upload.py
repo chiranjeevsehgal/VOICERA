@@ -120,7 +120,8 @@ async def upload_to_supabase(
 @router.get("/listAudioFiles")
 async def list_audio_files(
     current_user: dict = Depends(get_current_user),
-    user_files_only: bool = False
+    user_files_only: bool = False,
+    page: int = 1,
 ):
     """
     List files stored in the Supabase bucket
@@ -130,9 +131,27 @@ async def list_audio_files(
         user_files_only (bool): If True, only return files uploaded by the current user
     """
     try:
-        user_id = current_user["id"] if user_files_only else None
-        response = await list_files_in_bucket(user_id=user_id, bucket_name=os.getenv("SUPABASE_BUCKET_ORIGINAL"))
-        return {"files": response}
+        # Determine user scope
+        user_id = None
+        if user_files_only:
+            # Support multiple possible shapes for current_user
+            user_id = (
+                current_user.get("id")
+                or current_user.get("_id")
+                or (current_user.get("_id", {}).get("$oid") if isinstance(current_user.get("_id"), dict) else None)
+            )
+
+        per_page = 10
+        # Fetch one extra item to determine if there's a next page
+        files_page = await list_files_in_bucket(
+            user_id=user_id,
+            bucket_name=os.getenv("SUPABASE_BUCKET_EMBEDDED"),
+            page=page,
+            limit=per_page + 1,
+        )
+        has_next = len(files_page) > per_page
+        files = files_page[:per_page]
+        return {"files": files, "page": page, "limit": per_page, "has_next": has_next}
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
