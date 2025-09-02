@@ -54,7 +54,7 @@
     <button
       *ngIf="isMobile"
       (click)="closeSidebar()"
-      class="w-8 h-8 bg-white/20 backdrop-blur-sm rounded-lg flex items-center justify-center text-white hover:bg-white/30 transition-all duration-200 border border-white/30 hover:scale-105 relative z-10"
+      class="w-8 h-8 bg-white/20 backdrop-blur-sm rounded-lg cursor-pointer flex items-center justify-center text-white hover:bg-white/30 transition-all duration-200 border border-white/30 hover:scale-105 relative z-10"
     >
       <svg
         class="w-5 h-5"
@@ -80,7 +80,7 @@
       <ng-container *ngFor="let item of sidebarItems; trackBy: trackByFn">
         <button
           (click)="selectItem(item.id)"
-          class="w-full group flex items-center px-3 sm:px-4 py-2.5 sm:py-3 text-sm sm:text-base font-medium rounded-xl transition-all duration-200 text-left relative overflow-hidden hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:ring-offset-2"
+          class="w-full group flex cursor-pointer items-center px-3 sm:px-4 py-2.5 sm:py-3 text-sm sm:text-base font-medium rounded-xl transition-all duration-200 text-left relative overflow-hidden hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:ring-offset-2"
           [ngClass]="{
             'bg-gradient-to-r from-indigo-500 to-purple-500 text-white shadow-lg transform scale-[1.02] shadow-indigo-500/25':
               item.active,
