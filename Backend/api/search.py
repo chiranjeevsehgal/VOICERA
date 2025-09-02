@@ -184,26 +184,185 @@ async def process_natural_language_query(query: str) -> Dict:
     
     # Common English stopwords to filter out
     stopwords = {
-        "a", "an", "the", "and", "or", "but", "if", "then", "else", "when",
-        "at", "by", "for", "with", "about", "against", "between", "into",
-        "through", "during", "before", "after", "above", "below", "to", "from",
-        "up", "down", "in", "out", "on", "off", "over", "under", "again",
-        "further", "then", "once", "here", "there", "when", "where", "why",
-        "how", "all", "any", "both", "each", "few", "more", "most", "other",
-        "some", "such", "no", "nor", "not", "only", "own", "same", "so",
-        "than", "too", "very", "s", "t", "can", "will", "just", "don", "don't",
-        "should", "now", "d", "ll", "m", "o", "re", "ve", "y", "ain", "aren",
-        "aren't", "couldn", "couldn't", "didn", "didn't", "doesn", "doesn't",
-        "hadn", "hadn't", "hasn", "hasn't", "haven", "haven't", "isn", "isn't",
-        "ma", "mightn", "mightn't", "mustn", "mustn't", "needn", "needn't",
-        "shan", "shan't", "shouldn", "shouldn't", "wasn", "wasn't", "weren",
-        "weren't", "won", "won't", "wouldn", "wouldn't", "what", "which", "who",
-        "whom", "this", "that", "these", "those", "am", "is", "are", "was",
-        "were", "be", "been", "being", "have", "has", "had", "having", "do",
-        "does", "did", "doing", "i", "me", "my", "myself", "we", "our", "ours",
-        "ourselves", "you", "your", "yours", "yourself", "yourselves", "he",
-        "him", "his", "himself", "she", "her", "hers", "herself", "it", "its",
-        "itself", "they", "them", "their", "theirs", "themselves",
+        "a", "about", "above", "across", "after", "again", "against", "all", "almost", "alone", 
+    "along", "already", "also", "although", "always", "am", "among", "amongst", "an", "and", 
+    "announce", "another", "any", "anybody", "anyhow", "anymore", "anyone", "anything", "anyway", 
+    "anyways", "anywhere", "apparently", "approximately", "are", "aren", "arent", "aren't", 
+    "arise", "around", "as", "aside", "ask", "asking", "at", "auth", "available", "away", 
+    "awfully", "b", "back", "be", "became", "because", "become", "becomes", "becoming", 
+    "been", "before", "beforehand", "begin", "beginning", "beginnings", "begins", "behind", 
+    "being", "believe", "below", "beside", "besides", "between", "beyond", "biol", "both", 
+    "brief", "briefly", "but", "by", "c", "ca", "came", "can", "cannot", "can't", "cause", 
+    "causes", "certain", "certainly", "co", "com", "come", "comes", "contain", "containing", 
+    "contains", "could", "couldnt", "couldn't", "d", "date", "did", "didn't", "different", 
+    "do", "does", "doesn't", "doing", "don", "don't", "done", "down", "downwards", "due", 
+    "during", "e", "each", "ed", "edu", "effect", "eg", "eight", "eighty", "either", "else", 
+    "elsewhere", "end", "ending", "enough", "especially", "et", "et-al", "etc", "even", 
+    "ever", "every", "everybody", "everyone", "everything", "everywhere", "ex", "except", 
+    "f", "far", "few", "ff", "fifth", "first", "five", "fix", "followed", "following", 
+    "follows", "for", "former", "formerly", "forth", "found", "four", "from", "further", 
+    "furthermore", "g", "gave", "get", "gets", "getting", "give", "given", "gives", "giving", 
+    "go", "goes", "gone", "got", "gotten", "h", "had", "hadn't", "has", "hasn't", "have", 
+    "haven't", "having", "he", "he'd", "he'll", "he's", "her", "here", "here's", "hers", 
+    "herself", "him", "himself", "his", "how", "how's", "however", "hundred", "i", "i'd", 
+    "i'll", "i'm", "i've", "ie", "if", "in", "inc", "indeed", "index", "information", 
+    "instead", "into", "invention", "is", "isn't", "it", "it's", "its", "itself", "j", 
+    "just", "k", "keep", "keeps", "kept", "kg", "km", "know", "known", "knows", "l", 
+    "largely", "last", "lately", "later", "latter", "latterly", "least", "less", "lest", 
+    "let", "let's", "lets", "like", "liked", "likely", "line", "little", "look", "looking", 
+    "looks", "ltd", "m", "made", "mainly", "make", "makes", "many", "may", "maybe", 
+    "me", "mean", "means", "meantime", "meanwhile", "merely", "mg", "might", "million", 
+    "miss", "ml", "more", "moreover", "most", "mostly", "mr", "mrs", "much", "mug", 
+    "must", "my", "myself", "n", "na", "name", "namely", "nay", "nd", "near", "nearly", 
+    "necessarily", "necessary", "need", "needs", "neither", "never", "nevertheless", 
+    "new", "next", "nine", "ninety", "no", "nobody", "non", "none", "nonetheless", 
+    "noone", "nor", "normally", "nos", "not", "noted", "nothing", "now", "nowhere", 
+    "o", "obtain", "obtained", "obviously", "of", "off", "often", "oh", "ok", "okay", 
+    "old", "omitted", "on", "once", "one", "ones", "only", "onto", "or", "ord", "other", 
+    "others", "otherwise", "ought", "our", "ours", "ourselves", "out", "outside", "over", 
+    "overall", "owing", "own", "p", "page", "pages", "part", "particular", "particularly", 
+    "past", "per", "perhaps", "placed", "please", "plus", "poorly", "possible", "possibly", 
+    "potentially", "pp", "predominantly", "present", "previously", "primarily", "probably", 
+    "promptly", "proud", "provides", "put", "q", "que", "quickly", "quite", "qv", "r", 
+    "ran", "rather", "rd", "re", "readily", "really", "recent", "recently", "ref", "refs", 
+    "regarding", "regardless", "regards", "related", "relatively", "research", "respectively", 
+    "resulted", "resulting", "results", "right", "run", "s", "said", "same", "saw", "say", 
+    "saying", "says", "sec", "section", "see", "seeing", "seem", "seemed", "seeming", 
+    "seems", "seen", "self", "selves", "sent", "seven", "several", "shall", "shan't", 
+    "she", "she'd", "she'll", "she's", "should", "shouldn't", "show", "showed", "shown", 
+    "shows", "significant", "significantly", "similar", "similarly", "since", "six", 
+    "slightly", "so", "some", "somebody", "somehow", "someone", "somethan", "something", 
+    "sometime", "sometimes", "somewhat", "somewhere", "soon", "sorry", "specifically", 
+    "specified", "specify", "specifying", "still", "stop", "strongly", "sub", "substantially", 
+    "successfully", "such", "sufficiently", "suggest", "sup", "sure", "t", "take", "taken", 
+    "taking", "tell", "tends", "th", "than", "thank", "thanks", "thanx", "that", "that's", 
+    "that'll", "thats", "that've", "the", "their", "theirs", "them", "themselves", "then", 
+    "thence", "there", "thereafter", "thereby", "thered", "therefore", "therein", "there'll", 
+    "thereof", "therere", "theres", "thereto", "thereupon", "there've", "these", "they", 
+    "they'd", "they'll", "they're", "they've", "think", "this", "those", "though", "thousand", 
+    "three", "throug", "through", "throughout", "thru", "thus", "til", "till", "tip", 
+    "to", "together", "too", "took", "toward", "towards", "tried", "tries", "truly", 
+    "try", "trying", "ts", "twice", "two", "u", "un", "under", "unfortunately", "unless", 
+    "unlike", "unlikely", "until", "unto", "up", "upon", "ups", "us", "use", "used", 
+    "useful", "usefully", "usefulness", "uses", "using", "usually", "v", "value", "various", 
+    "very", "via", "viz", "vol", "vols", "vs", "w", "want", "wants", "was", "wasn't", 
+    "way", "we", "we'd", "we'll", "we're", "we've", "welcome", "went", "were", "weren't", 
+    "what", "what's", "what'll", "whatve", "when", "when's", "whence", "whenever", "where", 
+    "where's", "whereafter", "whereas", "whereby", "wherein", "whereupon", "wherever", 
+    "whether", "which", "while", "whim", "whither", "who", "who's", "who'd", "whoever", 
+    "whole", "whom", "whomever", "whose", "why", "why's", "widely", "will", "willing", 
+    "wish", "with", "within", "without", "won't", "words", "world", "would", "wouldn't", 
+    "www", "x", "y", "yes", "yet", "you", "you'd", "you'll", "you're", "you've", "your", 
+    "yours", "yourself", "yourselves", "z", "zero", "'tis", "'twas", "10", "39", "a's", 
+    "able", "abst", "accordance", "according", "accordingly", "act", "actually", "added", 
+    "adj", "affected", "affecting", "affects", "afterwards", "ah", "ai", "ain't", "aint", 
+    "al", "allow", "allows", "alongside", "amid", "amidst", "amoungst", "amount", "ao", 
+    "apart", "appear", "appreciate", "appropriate", "aq", "ar", "area", "areas", "arpa", 
+    "asked", "asks", "associated", "au", "aw聆听aw", "az", "ba", "backed", "backing", 
+    "backs", "backward", "backwards", "bb", "bd", "began", "beings", "best", "better", 
+    "bf", "bg", "bh", "bi", "big", "bill", "billion", "bj", "bm", "bn", "bo", "bottom", 
+    "br", "bs", "bt", "buy", "bv", "bw", "bz", "c'mon", "c's", "call", "cant", "caption", 
+    "case", "cases", "cc", "cd", "cf", "cg", "ch", "changes", "ci", "ck", "cl", "clear", 
+    "clearly", "click", "cm", "cmon", "cn", "co.", "computer", "con", "concerning", 
+    "consequently", "consider", "considering", "copy", "corresponding", "could've", 
+    "couldn", "course", "cr", "cry", "cs", "cu", "currently", "cv", "cx", "cy", "cz", 
+    "dare", "daren't", "darent", "de", "dear", "definitely", "describe", "described", 
+    "despite", "detail", "didn", "differ", "differently", "directly", "dj", "dk", "dm", 
+    "doesn", "doner", "dones", "donest", "dont", "dos", "dost", "doubtful", "downed", 
+    "downing", "downs", "dz", "early", "ec", "ee", "eh", "eleven", "empty", "ended", 
+    "ends", "entirely", "er", "es", "evenly", "evermore", "exactly", "example", "face", 
+    "faces", "fact", "facts", "fairly", "farther", "felt", "fewer", "fi", "fifteen", 
+    "fifty", "fify", "fill", "find", "finds", "fire", "fj", "fk", "fm", "fo", "forever", 
+    "forty", "forward", "fr", "free", "front", "full", "fully", "furthered", "furthering", 
+    "furthers", "fx", "ga", "gb", "gd", "ge", "general", "generally", "gf", "gg", "gh", 
+    "gi", "gl", "gm", "gmt", "gn", "going", "good", "goods", "gov", "gp", "gq", "gr", 
+    "great", "greater", "greatest", "greetings", "group", "grouped", "grouping", "groups", 
+    "gs", "gt", "gu", "gw", "gy", "hadst", "half", "hasn", "hast", "hath", "haven", 
+    "hell", "hello", "help", "herse", "herse”", "high", "higher", "highest", "himse", 
+    "himse”", "hk", "hm", "hn", "homepage", "hopefully", "how'd", "how'll", "hr", "ht", 
+    "htm", "html", "http", "hu", "i.e.", "ignored", "ii", "il", "ill", "inasmuch", "inc.", 
+    "indicate", "indicated", "indicates", "inner", "inside", "insofar", "int", "interest", 
+    "interested", "interesting", "interests", "io", "iq", "ir", "isn", "it'd", "itll", 
+    "itse”", "ive", "je", "jm", "jo", "join", "jp", "ke", "keys", "kh", "ki", "kind", 
+    "kn", "knew", "kp", "kr", "kw", "ky", "kz", "la", "large", "latest", "lb", "lc", 
+    "length", "li", "likewise", "lk", "ll", "long", "longer", "longest", "low", "lower", 
+    "lr", "ls", "lt", "lu", "lv", "ly", "ma", "making", "man", "mayn't", "maynt", "mc", 
+    "md", "member", "members", "men", "mh", "microsoft", "might've", "mightn", "mightnt", 
+    "mil", "mill", "mine", "minus", "mk", "mm", "mn", "mo", "move", "mp", "mq", "ms", 
+    "msie", "mt", "mu", "must've", "mustn", "mustnt", "mv", "mw", "mx", "myse”", "mz", 
+    "nc", "ne", "needed", "needing", "needn't", "neednt", "net", "netscape", "neverf", 
+    "neverless", "newer", "newest", "nf", "ng", "ni", "nl", "no-one", "notwithstanding", 
+    "novel", "np", "nr", "nu", "null", "number", "numbers", "nz", "older", "oldest", 
+    "om", "one's", "open", "opened", "opening", "opens", "opposite", "order", "ordered", 
+    "ordering", "orders", "org", "oughtn't", "oughtnt", "pa", "parted", "parting", "parts", 
+    "pe", "pf", "pg", "ph", "pk", "pl", "place", "places", "pm", "pmid", "pn", "point", 
+    "pointed", "pointing", "points", "pr", "presented", "presenting", "presents", 
+    "presumably", "problem", "problems", "provided", "pt", "puts", "pw", "py", "qa", 
+    "reasonably", "reserved", "ring", "ro", "room", "rooms", "round", "ru", "rw", "sa", 
+    "sb", "sc", "sd", "se", "second", "secondly", "seconds", "sees", "sensible", "serious", 
+    "seriously", "seventy", "sg", "sh", "shant", "shell", "should've", "shouldn", "shouldnt", 
+    "showing", "si", "side", "sides", "sincere", "site", "sixty", "sj", "sk", "sl", "sm", 
+    "small", "smaller", "smallest", "sn", "someday", "sr", "st", "state", "states", "su", 
+    "sv", "sy", "system", "sz", "t's", "tc", "td", "ten", "test", "text", "tf", "tg", 
+    "thatll", "thatve", "there'd", "there're", "therell", "thereve", "theyll", "theyve", 
+    "thick", "thin", "thing", "things", "thinks", "third", "thirty", "thorough", "thoroughly", 
+    "thought", "thoughts", "three", "till", "tis", "tj", "tk", "tm", "tn", "today", "top", 
+    "tp", "tr", "trillion", "tt", "turn", "turned", "turning", "turns", "tv", "tw", "twas", 
+    "twelve", "twenty", "tz", "ua", "ug", "uk", "um", "underneath", "undoing", "upwards", 
+    "uucp", "uy", "uz", "va", "vc", "ve", "versus", "vg", "vi", "vn", "vu", "wanted", 
+    "wanting", "wasn", "ways", "web", "webpage", "website", "well", "wells", "weren", 
+    "weve", "wf", "what'd", "what've", "when'd", "when'll", "where'd", "where'll", 
+    "whichever", "whilst", "who'd", "wholl", "why'd", "why'll", "width", "won", "wonder", 
+    "work", "worked", "working", "works", "would've", "wouldn", "ws", "ye", "year", 
+    "years", "youll", "young", "younger", "youngest", "youve", "yt", "yu", "za", "zm", 
+    "zr", "I", "yond", "yonder", "yon", "zillion", "umpteen", "username", "uponed", 
+    "upons", "uponing", "upping", "upped", "unliker", "unlikest", "usedest", "rath", 
+    "rathest", "rathe", "relate", "res", "respecting", "qua", "neaths", "neath", "nethe", 
+    "nethermost", "necessariest", "necessarier", "nigh", "nighest", "nigher", "nobodies", 
+    "nowheres", "noes", "nothings", "nathless", "natheless", "tills", "tilled", "tilling", 
+    "towardest", "towarder", "thy", "thyself", "thous", "thouses", "thoroughest", 
+    "thorougher", "thruer", "thruest", "thro", "throughest", "througher", "thine", 
+    "thises", "thee", "thenest", "thener", "therer", "therest", "owt", "owning", "owned", 
+    "owns", "otherwisest", "otherwiser", "oftener", "oftenest", "offs", "offest", "oughts", 
+    "ourself", "outest", "outed", "outwith", "outs", "overallest", "overaller", "overalls", 
+    "overs", "orer", "orest", "oneself", "onest", "ons", "atween", "athwart", "atop", 
+    "afore", "afterward", "afterest", "afterer", "ain", "anent", "anear", "andor", "ares", 
+    "aest", "aer", "abaft", "abafter", "abaftest", "abovest", "abover", "abouter", 
+    "aboutest", "aid", "apartest", "aparter", "appeared", "appears", "appearing", 
+    "appropriating", "appropriatest", "appropriates", "appropriater", "appropriated", 
+    "allest", "aller", "allyou", "alls", "albeit", "asides", "aslant", "ases", "astrider", 
+    "astride", "astridest", "astraddlest", "astraddler", "astraddle", "availablest", 
+    "availabler", "aughts", "aught", "variousest", "variouser", "vis-a-vis", "vis-a-viser", 
+    "vis-a-visest", "veriest", "verier", "gotta", "byandby", "by-and-by", "bist", "buts", 
+    "becomings", "becominger", "becomingest", "behinds", "beforehandest", "beforehander", 
+    "bettered", "betters", "bettering", "betwixt", "beneath", "mucher", "muchest", 
+    "musts", "musths", "musth", "main", "mayest", "mauger", "maugre", "meanwhiles", 
+    "mights", "midst", "midsts", "huh", "humph", "hereafters", "hadst", "haves", "hae", 
+    "hath", "hitherest", "hitherer", "how-do-you-do", "howdoyoudo", "hoos", "hoo", 
+    "woulded", "woulding", "woulds", "wast", "wert", "withal", "whateverer", "whateverest", 
+    "whatsoeverer", "whatsoeverest", "whatsoever", "whencesoever", "whensoever", "whenas", 
+    "wheen", "whereto", "whereon", "whereof", "wherewithal", "wherewith", "whereinto", 
+    "wheresoever", "wherefrom", "whichsoever", "whiles", "whithersoever", "whosoever", 
+    "whoso", "syne", "syn", "shalling", "shalled", "shalls", "shoulding", "shoulded", 
+    "shoulds", "sayyid", "sayid", "saider", "saidest", "samest", "sames", "samer", 
+    "saved", "sans", "sanses", "sanserifs", "sanserif", "soer", "soest", "sobeit", 
+    "sometimest", "sometimer", "severaler", "severalest", "seriousest", "seriouser", 
+    "senza", "send", "seemingest", "seeminger", "seemings", "summat", "sups", "supping", 
+    "supped", "sine", "sines", "sith", "stopped", "plaintiff", "plenty", "plenties", 
+    "pleased", "pleases", "particulars", "particularest", "particularer", "pro", 
+    "providing", "provide", "layabout", "layabouts", "latterest", "latterer", "latters", 
+    "lots", "lotting", "lotted", "lot", "ifs", "info", "idem", "idemer", "idemest", 
+    "immediatest", "immediater", "inwards", "inwardest", "inwarder", "indicating", 
+    "fs", "figupon", "figupons", "figuponing", "figuponed", "fewest", "frae", "failing", 
+    "failings", "furtherer", "furtherest", "fourscore", "followthrough", "forwhy", 
+    "fornenst", "formerer", "formerest", "formers", "forbye", "forby", "fore", "forer", 
+    "fores", "ddays", "dday", "doings", "doe", "doth", "downwarder", "downwardest", 
+    "downward", "doner", "dones", "donest", "dos", "dost", "differentest", "differenter", 
+    "describing", "describes", "despiting", "despites", "despited", "cum", "circa", 
+    "chez", "cer", "certainest", "certainer", "cest", "canst", "cants", "canting", 
+    "cantest", "canted", "couldst", "comeon", "comeons", "come-ons", "come-on", 
+    "concerninger", "concerningest", "evens", "evenser", "evensest", "evened", "evenest", 
+    "ere", "excepted", "excepts", "excepting", "exes",
     }
     
     if not config.api_key:
@@ -741,6 +900,7 @@ async def search(
     query: str = Query(..., description="Search query"),
     limit: Optional[int] = Query(5, description="Maximum number of results to return"),
     min_confidence: Optional[float] = Query(0.7, description="Minimum confidence threshold (0-1)"),
+    min_relevance: Optional[float] = Query(0.5, description="Minimum relevance (combined score) threshold (0-1)"),
     speaker: Optional[int] = Query(None, description="Filter by speaker ID"),
     use_llm_expansion: Optional[bool] = Query(True, description="Use LLM to expand search query"),
     natural_language: Optional[bool] = Query(True, description="Process as natural language query"),
@@ -825,6 +985,7 @@ async def search(
         all_results = []
         seen_ids = set()
         search_errors = []
+        pre_filter_count = 0
         
         for expanded_query in expanded_queries:
             try:
@@ -846,8 +1007,6 @@ async def search(
                         # Track which expanded query matched this result
                         result["matched_query"] = expanded_query
                         result["original_query"] = original_query  # Add original query for reference
-                        # Add combined score from hybrid search
-                        result["score"] = result.get("combined_score", 0)
                         # Add exact match flag based on keyword score
                         result["has_exact_match"] = result.get("keyword_score", 0) > 0.5
                         all_results.append(result)
@@ -858,6 +1017,31 @@ async def search(
                 search_errors.append(error_msg)
                 continue
         
+        # Apply relevance threshold to combined scores before any expensive validation/reranking
+        if all_results:
+            pre_filter_count = len(all_results)
+            all_results = [r for r in all_results if r.get("combined_score", 0) >= (min_relevance or 0.0)]
+            logger.info(f"Applied min_relevance={min_relevance}: kept {len(all_results)} of {pre_filter_count} candidates")
+
+        if not all_results:
+            return {
+                "query": original_query,
+                "total": 0,
+                "results": [],
+                "message": "No results met the relevance threshold",
+                "search_stats": {
+                    "total_candidates": pre_filter_count,
+                    "unique_results": len(seen_ids),
+                    "queries_attempted": len(expanded_queries),
+                    "queries_failed": len(search_errors),
+                    "llm_reranking_applied": use_llm_rerank,
+                    "content_validation_applied": validate_content,
+                    "min_relevance": min_relevance,
+                    "min_confidence": min_confidence,
+                    "candidates_post_relevance": 0
+                }
+            }
+
         # After getting initial results but before final reranking, validate content if enabled
         if validate_content and config.api_key:
             logger.info("Validating result content relevance in parallel...")
@@ -937,14 +1121,20 @@ async def search(
                     # No tmp_url field, search for permanent URL
                     await find_permanent_url(result)
             
-            # Calculate technical score
-            technical_score = tech_scorer.calculate_technical_score(
-                result.get("text", ""), 
-                result.get("original_query", query)
-            )
-            
-            # Calculate keyword score based on exact matches
-            keyword_score = 1.0 if result.get("has_exact_match", False) else 0.5
+            # Use existing technical and keyword scores if present; otherwise compute minimal fallback
+            technical_score = result.get("technical_score")
+            if technical_score is None:
+                technical_score = tech_scorer.calculate_technical_score(
+                    result.get("text", ""), 
+                    result.get("original_query", query)
+                )
+                # Map to 0..1 consistent with EnhancedSearch
+                technical_score = max(0.0, min(1.0, technical_score - 1.0))
+
+            keyword_score = result.get("keyword_score")
+            if keyword_score is None:
+                # Fallback heuristic if keyword_score unavailable
+                keyword_score = 1.0 if result.get("has_exact_match", False) else 0.0
             
             # Format result with additional scores
             processed_result = {
@@ -954,9 +1144,11 @@ async def search(
                 "start_time": result.get("start_time", 0),
                 "end_time": result.get("end_time", 0),
                 "confidence": result.get("confidence", 0),
-                "semantic_score": result.get("score", 0),
+                # Provide both normalized and raw semantic scores when available
+                "semantic_score": result.get("semantic_score", result.get("semantic_score_raw", 0)),
+                "semantic_score_raw": result.get("semantic_score_raw", None),
                 "original_query": original_query,
-                "combined_score": result.get("combined_score", result.get("score", 0)),
+                "combined_score": result.get("combined_score", 0),
                 "keyword_score": keyword_score,
                 "technical_score": technical_score
             }
@@ -982,12 +1174,15 @@ async def search(
             "results": processed_results,
             "search_errors": search_errors if search_errors else None,
             "search_stats": {
-                "total_candidates": len(all_results),
+                "total_candidates": pre_filter_count or len(all_results),
                 "unique_results": len(seen_ids),
                 "queries_attempted": len(expanded_queries),
                 "queries_failed": len(search_errors),
                 "llm_reranking_applied": use_llm_rerank,
-                "content_validation_applied": validate_content
+                "content_validation_applied": validate_content,
+                "min_relevance": min_relevance,
+                "min_confidence": min_confidence,
+                "candidates_post_relevance": len(all_results)
             }
         }
         

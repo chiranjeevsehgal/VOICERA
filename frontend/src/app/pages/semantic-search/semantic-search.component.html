@@ -131,28 +131,62 @@
           <button
             (click)="onSearchSubmit()"
             [disabled]="!searchQuery.trim() || loading"
-            class="w-full px-6 py-3 sm:px-7 sm:py-3.5 md:px-8 md:py-4 bg-gradient-to-r from-indigo-600 cursor-pointer to-purple-600 text-white rounded-xl sm:rounded-2xl font-semibold hover:from-indigo-700 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 shadow-lg hover:shadow-xl hover:-translate-y-1 text-sm sm:text-base">
+            class="w-full px-6 py-3 sm:px-7 sm:py-3.5 md:px-8 md:py-4 bg-gradient-to-r from-indigo-600 cursor-pointer to-purple-600 text-white rounded-xl sm:rounded-2xl font-semibold hover:from-indigo-700 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 shadow-lg hover:shadow-xl hover:-translate-y-1 text-sm sm:text-base"
+          >
             <span *ngIf="!loading">Search</span>
             <span *ngIf="loading">Searching...</span>
           </button>
         </div>
 
-        <!-- Row 2: Helper text + compact limit control -->
+        <!-- Row 2: Helper text + compact controls (limit, min confidence, min relevance) -->
         <div class="flex flex-col sm:flex-row sm:items-center gap-3 sm:justify-between">
           <p class="text-xs sm:text-sm text-gray-500 order-2 sm:order-1 text-center sm:text-left">
             Use natural language to find relevant audio content based on meaning, not just keywords
           </p>
-          <div class="order-1 sm:order-2 flex items-center justify-center sm:justify-end gap-2 sm:w-44">
-            <label for="resultLimit" class="text-xs text-gray-600 whitespace-nowrap">Limit</label>
-            <select
-              id="resultLimit"
-              [(ngModel)]="limit"
-              [disabled]="loading"
-              class="w-20 sm:w-full px-2 py-1.5 sm:px-3 sm:py-2 border-2 border-gray-200 rounded-lg sm:rounded-xl text-xs sm:text-sm bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 disabled:opacity-50"
-              aria-label="Results limit"
-            >
-              <option *ngFor="let n of limits" [ngValue]="n">{{ n }}</option>
-            </select>
+          <div class="order-1 sm:order-2 w-full sm:w-auto">
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-3 items-end">
+              <!-- Limit control -->
+              <div class="flex flex-col">
+                <label for="resultLimit" class="text-xs text-gray-600 mb-1">Limit</label>
+                <select
+                  id="resultLimit"
+                  [(ngModel)]="limit"
+                  [disabled]="loading"
+                  class="w-full sm:w-24 md:w-28 px-2 py-1.5 sm:px-3 sm:py-2 border-2 border-gray-200 rounded-lg sm:rounded-xl text-xs sm:text-sm bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 disabled:opacity-50"
+                  aria-label="Results limit"
+                >
+                  <option *ngFor="let n of limits" [ngValue]="n">{{ n }}</option>
+                </select>
+              </div>
+
+              <!-- Min Confidence control -->
+              <div class="flex flex-col">
+                <label for="minConfidence" class="text-xs text-gray-600 mb-1">Min Confidence</label>
+                <select
+                  id="minConfidence"
+                  [(ngModel)]="minConfidence"
+                  [disabled]="loading"
+                  class="w-full sm:w-28 md:w-32 px-2 py-1.5 sm:px-3 sm:py-2 border-2 border-gray-200 rounded-lg sm:rounded-xl text-xs sm:text-sm bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 disabled:opacity-50"
+                  aria-label="Minimum confidence threshold"
+                >
+                  <option *ngFor="let c of confidenceOptions" [ngValue]="c">{{ c }}</option>
+                </select>
+              </div>
+
+              <!-- Min Relevance control -->
+              <div class="flex flex-col">
+                <label for="minRelevance" class="text-xs text-gray-600 mb-1">Min Relevance</label>
+                <select
+                  id="minRelevance"
+                  [(ngModel)]="minRelevance"
+                  [disabled]="loading"
+                  class="w-full sm:w-28 md:w-32 px-2 py-1.5 sm:px-3 sm:py-2 border-2 border-gray-200 rounded-lg sm:rounded-xl text-xs sm:text-sm bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 disabled:opacity-50"
+                  aria-label="Minimum relevance threshold"
+                >
+                  <option *ngFor="let r of relevanceOptions" [ngValue]="r">{{ r }}</option>
+                </select>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -285,10 +319,10 @@
             </div>
 
             <div class="flex-1 min-w-0 text-center sm:text-left">
-              <h3 class="font-bold text-lg sm:text-xl text-gray-900 mb-1 sm:mb-2">
+              <h3 class="font-bold text-lg sm:text-xl text-gray-900 mb-1 sm:mb-2 pl-4">
                 {{ group.title }}
               </h3>
-              <p class="text-indigo-600 font-medium mb-3 sm:mb-4 text-sm sm:text-base">
+              <p class="text-indigo-600 font-medium mb-3 sm:mb-4 text-sm pl-4 sm:text-base">
                 {{ group.creator }}
               </p>
 

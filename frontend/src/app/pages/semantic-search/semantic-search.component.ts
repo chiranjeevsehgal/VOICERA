@@ -27,6 +27,10 @@ export class SemanticSearchComponent implements OnInit, OnDestroy {
   searchQuery: string = '';
   limit: number = 3;
   limits: number[] = Array.from({ length: 10 }, (_, i) => i + 1);
+  minConfidence: number = 0.7;
+  minRelevance: number = 0.65;
+  confidenceOptions: number[] = [0.4, 0.5, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9];
+  relevanceOptions: number[] = [0.4, 0.5, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9];
   // Flattened results for counts/stats
   searchResults: SearchResult[] = [];
   // Grouped by audio file
@@ -71,7 +75,9 @@ export class SemanticSearchComponent implements OnInit, OnDestroy {
     this.loading = true;
     this.hasSearched = false;
     
-    this.subscription = this.semanticSearchService.searchAudio(query, this.limit).subscribe({
+    this.subscription = this.semanticSearchService
+      .searchAudio(query, this.limit, this.minConfidence, this.minRelevance)
+      .subscribe({
       next: (response) => {
         // Keep flattened for counts
         this.searchResults = response.results;

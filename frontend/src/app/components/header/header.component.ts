@@ -154,4 +154,9 @@ export class HeaderComponent implements OnInit, OnDestroy {
       queryParams: { loggedOut: 'true' },
     });
   }
+
+  onLogoClick(): void {
+    this.router.navigate(['/library']);
+  }
+
 }
