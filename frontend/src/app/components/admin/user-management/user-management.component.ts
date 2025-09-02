@@ -3,14 +3,16 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClientModule } from '@angular/common/http';
 import { User, UserService } from '../../../services/admin/user.service';
+import { Toast } from 'primeng/toast';
+import { MessageService } from 'primeng/api';
 
 @Component({
   selector: 'app-user-management',
   standalone: true,
-  imports: [CommonModule, FormsModule, HttpClientModule],
+  imports: [Toast, CommonModule, FormsModule, HttpClientModule],
+  providers: [MessageService, UserService],
   templateUrl: './user-management.component.html',
   styles: ``,
-  providers: [UserService],
 })
 export class UserManagementComponent implements OnInit {
   users: User[] = [];
@@ -34,7 +36,10 @@ export class UserManagementComponent implements OnInit {
     role: 'user' as 'admin' | 'user',
   };
 
-  constructor(private userService: UserService) {}
+  constructor(
+    private userService: UserService,
+    private messageService: MessageService
+  ) {}
 
   ngOnInit() {
     this.loadUsers();
@@ -57,6 +62,13 @@ export class UserManagementComponent implements OnInit {
         console.error('Error loading users:', error);
         this.error = 'Failed to load users. Please try again.';
         this.loading = false;
+
+        this.messageService.add({
+          severity: 'error',
+          summary: 'Error',
+          detail: 'Failed to load users. Please try again.',
+          life: 5000,
+        });
 
         // Fallback to empty array or show error message
         this.users = [];
@@ -180,7 +192,14 @@ export class UserManagementComponent implements OnInit {
         }
 
         this.updatingUsers.delete(user.id);
-        console.log(`User ${user.name} status updated to ${newStatus}`);
+        this.messageService.add({
+          severity: 'success',
+          summary: 'Success',
+          detail: `User ${user.name} has been ${
+            newStatus === 'active' ? 'activated' : 'deactivated'
+          } successfully.`,
+          life: 4000,
+        });
       },
       error: (error) => {
         console.error('Error updating user status:', error);
@@ -198,8 +217,12 @@ export class UserManagementComponent implements OnInit {
 
         this.updatingUsers.delete(user.id);
 
-        // Show error message to user
-        this.error = `Failed to update ${user.name}'s status. Please try again.`;
+        this.messageService.add({
+          severity: 'error',
+          summary: 'Error',
+          detail: `Failed to update ${user.name}'s status. Please try again.`,
+          life: 5000,
+        });
 
         // Clear error message after 5 seconds
         setTimeout(() => {
@@ -246,44 +269,45 @@ export class UserManagementComponent implements OnInit {
     if (!this.userToDelete) return;
 
     this.deletingUserId = this.userToDelete.id;
-    const deactivateOnly = this.deleteMode === 'deactivate';
 
-    this.userService
-      .deleteUser(this.userToDelete.id, deactivateOnly)
-      .subscribe({
-        next: () => {
-          // Remove user from local arrays
-          this.users = this.users.filter((u) => u.id !== this.userToDelete!.id);
-          this.filteredUsers = this.filteredUsers.filter(
-            (u) => u.id !== this.userToDelete!.id
-          );
-          this.totalCount = Math.max(0, this.totalCount - 1);
+    this.userService.deleteUser(this.userToDelete.id).subscribe({
+      next: () => {
+        // Remove user from local arrays
+        this.users = this.users.filter((u) => u.id !== this.userToDelete!.id);
+        this.filteredUsers = this.filteredUsers.filter(
+          (u) => u.id !== this.userToDelete!.id
+        );
+        this.totalCount = Math.max(0, this.totalCount - 1);
 
-          // Show success message
-          this.showSuccessMessage(
-            deactivateOnly
-              ? `User ${
-                  this.userToDelete!.name
-                } has been deactivated successfully.`
-              : `User ${this.userToDelete!.name} has been deleted successfully.`
-          );
+        // Show success message
+        this.messageService.add({
+          severity: 'success',
+          summary: 'Success',
+          detail: `User ${
+            this.userToDelete!.name
+          } has been deleted successfully.`,
+          life: 4000,
+        });
 
-          this.closeDeleteModal();
-          this.deletingUserId = '';
-        },
-        error: (error) => {
-          console.error('Error deleting user:', error);
-          this.error = `Failed to ${
-            deactivateOnly ? 'deactivate' : 'delete'
-          } user. Please try again.`;
-          this.deletingUserId = '';
+        this.closeDeleteModal();
+        this.deletingUserId = '';
+      },
+      error: (error) => {
+        console.error('Error deleting user:', error);
+        this.messageService.add({
+          severity: 'error',
+          summary: 'Error',
+          detail: `Failed to delete user. Please try again.`,
+          life: 5000,
+        });
+        this.deletingUserId = '';
 
-          // Clear error after 5 seconds
-          setTimeout(() => {
-            this.error = '';
-          }, 5000);
-        },
-      });
+        // Clear error after 5 seconds
+        setTimeout(() => {
+          this.error = '';
+        }, 5000);
+      },
+    });
   }
 
   private showSuccessMessage(message: string) {
