@@ -149,12 +149,28 @@
           </div>
 
           <!-- Empty state -->
-          <div *ngIf="!transcriptLoading && !transcriptError && (!transcript || transcript.trim() === '')" class="text-gray-500 text-sm">
+          <div *ngIf="!transcriptLoading && !transcriptError && (!transcript || transcript.trim() === '') && (!words || words.length === 0)" class="text-gray-500 text-sm">
             No transcript available for this audio.
           </div>
 
-          <!-- Content state -->
-          <div *ngIf="!transcriptLoading && !transcriptError && transcript && transcript.trim() !== ''" class="bg-white border border-slate-200 rounded-lg p-3 max-h-60 overflow-y-auto text-sm leading-relaxed text-gray-800">
+          <!-- Content state: word-level highlighting -->
+          <div *ngIf="!transcriptLoading && !transcriptError && words && words.length > 0" #transcriptScroll class="bg-white border border-slate-200 rounded-lg p-3 max-h-60 overflow-y-auto text-sm leading-relaxed text-gray-800">
+            <span
+              *ngFor="let w of words; let i = index"
+              (click)="onWordClick(w)"
+              #wordEl
+              class="word-chip rounded px-0.5 mr-1 cursor-pointer transition-colors"
+              [ngClass]="{
+                'active bg-indigo-100 text-indigo-800 font-semibold': isWordActive(w),
+                'hover:bg-slate-100': !isWordActive(w)
+              }"
+            >
+              {{ w.word }}
+            </span>
+          </div>
+
+          <!-- Content state: fallback plain transcript text -->
+          <div *ngIf="!transcriptLoading && !transcriptError && (!words || words.length === 0) && transcript && transcript.trim() !== ''" class="bg-white border border-slate-200 rounded-lg p-3 max-h-60 overflow-y-auto text-sm leading-relaxed text-gray-800">
             {{ transcript }}
           </div>
         </div>

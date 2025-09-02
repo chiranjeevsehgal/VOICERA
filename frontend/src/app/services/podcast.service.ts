@@ -46,6 +46,13 @@ export interface Podcast {
   audioFile: AudioFile;
 }
 
+export interface WordTiming {
+  word: string;
+  start: number;
+  end: number;
+  confidence?: number;
+}
+
 @Injectable({
   providedIn: "root",
 })
@@ -64,6 +71,30 @@ export class PodcastService {
     return this.http.get<ApiResponse>(`${this.baseUrl}/api/listAudioFiles`, { headers })
       .pipe(
         map(response => this.transformApiResponseToPodcasts(response.files))
+      );
+  }
+
+  /**
+   * Calls the backend extract API and returns transcript text and word timings.
+   */
+  extractTranscriptData(mp3Url: string): Observable<{ transcript: string; words: WordTiming[] }> {
+    const token = localStorage.getItem('vEra_auth_token') || this.authToken || '';
+    const headers = new HttpHeaders({
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json'
+    });
+
+    return this.http
+      .post<any>(`${this.baseUrl}/api/extract`, { mp3_url: mp3Url }, { headers })
+      .pipe(
+        map((res) => {
+          const transcript = res?.results?.channels?.[0]?.alternatives?.[0]?.transcript ?? '';
+          const words: WordTiming[] = res?.results?.channels?.[0]?.alternatives?.[0]?.words ?? [];
+          return {
+            transcript: typeof transcript === 'string' ? transcript : '',
+            words: Array.isArray(words) ? words : []
+          };
+        })
       );
   }
 
