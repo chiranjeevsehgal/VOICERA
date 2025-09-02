@@ -89,7 +89,7 @@ export class AdminDashboardComponent implements OnInit {
   getPageDescription(): string {
     const descriptions: { [key: string]: string } = {
       'dashboard': 'Welcome to your audio search admin dashboard',
-      'user-management': 'Manage user accounts, roles and permissions',
+      'user-management': 'Manage user accounts',
       'audio-management': 'Upload, organize and manage audio content',
       'search-analytics': 'View search performance and user behavior',
       'ai-configuration': 'Configure AI models and search parameters',

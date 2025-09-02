@@ -309,8 +309,4 @@ export class UserManagementComponent implements OnInit {
       },
     });
   }
-
-  private showSuccessMessage(message: string) {
-    console.log('Success:', message);
-  }
 }
