@@ -22,8 +22,12 @@ export class UserManagementComponent implements OnInit {
   loading: boolean = false;
   error: string = '';
   totalCount: number = 0;
-  updatingUsers: Set<string> = new Set(); 
-  
+  updatingUsers: Set<string> = new Set();
+  userToDelete: User | null = null;
+  deleteMode: 'deactivate' | 'delete' = 'delete';
+  showDeleteModal: boolean = false;
+  deletingUserId: string = '';
+
   newUser = {
     name: '',
     email: '',
@@ -224,5 +228,65 @@ export class UserManagementComponent implements OnInit {
       .join('')
       .toUpperCase()
       .substring(0, 2);
+  }
+
+  openDeleteModal(user: User, mode: 'deactivate' | 'delete' = 'delete') {
+    this.userToDelete = user;
+    this.deleteMode = mode;
+    this.showDeleteModal = true;
+  }
+
+  closeDeleteModal() {
+    this.showDeleteModal = false;
+    this.userToDelete = null;
+    this.deleteMode = 'delete';
+  }
+
+  confirmDeleteUser() {
+    if (!this.userToDelete) return;
+
+    this.deletingUserId = this.userToDelete.id;
+    const deactivateOnly = this.deleteMode === 'deactivate';
+
+    this.userService
+      .deleteUser(this.userToDelete.id, deactivateOnly)
+      .subscribe({
+        next: () => {
+          // Remove user from local arrays
+          this.users = this.users.filter((u) => u.id !== this.userToDelete!.id);
+          this.filteredUsers = this.filteredUsers.filter(
+            (u) => u.id !== this.userToDelete!.id
+          );
+          this.totalCount = Math.max(0, this.totalCount - 1);
+
+          // Show success message
+          this.showSuccessMessage(
+            deactivateOnly
+              ? `User ${
+                  this.userToDelete!.name
+                } has been deactivated successfully.`
+              : `User ${this.userToDelete!.name} has been deleted successfully.`
+          );
+
+          this.closeDeleteModal();
+          this.deletingUserId = '';
+        },
+        error: (error) => {
+          console.error('Error deleting user:', error);
+          this.error = `Failed to ${
+            deactivateOnly ? 'deactivate' : 'delete'
+          } user. Please try again.`;
+          this.deletingUserId = '';
+
+          // Clear error after 5 seconds
+          setTimeout(() => {
+            this.error = '';
+          }, 5000);
+        },
+      });
+  }
+
+  private showSuccessMessage(message: string) {
+    console.log('Success:', message);
   }
 }

@@ -68,6 +68,11 @@ export class UserService {
     );
   }
 
+  deleteUser(userId: string, deactivateOnly: boolean = false): Observable<any> {
+    const url = `${this.baseUrl}/api/admin/users/${userId}`;
+    return this.http.delete(url, { headers: this.getHeaders() });
+  }
+
   // Transform API user to component user format
   transformApiUser(apiUser: ApiUser): User {
     return {
