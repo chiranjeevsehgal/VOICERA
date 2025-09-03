@@ -89,6 +89,7 @@ export class AdminDashboardComponent implements OnInit, OnDestroy  {
       'dashboard',
       'user-management', 
       'audio-management',
+      'credit-management',
     ];
     return validViews.includes(view);
   }

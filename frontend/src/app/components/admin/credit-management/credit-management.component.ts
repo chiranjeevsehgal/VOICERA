@@ -3,14 +3,13 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClientModule } from '@angular/common/http';
 import { IPCredit, CreditService } from '../../../services/admin/credit.service';
-import { Toast } from 'primeng/toast';
-import { MessageService } from 'primeng/api';
+import { HotToastService } from '@ngxpert/hot-toast';
 
 @Component({
   selector: 'app-credit-management',
   standalone: true,
-  imports: [Toast, CommonModule, FormsModule, HttpClientModule],
-  providers: [MessageService, CreditService],
+  imports: [CommonModule, FormsModule, HttpClientModule],
+  providers: [CreditService],
   templateUrl: './credit-management.component.html',
   styles: ``,
 })
@@ -26,7 +25,7 @@ export class CreditManagementComponent implements OnInit {
 
   constructor(
     private creditService: CreditService,
-    private messageService: MessageService
+    private toast:HotToastService
   ) {}
 
   ngOnInit() {
@@ -52,12 +51,7 @@ export class CreditManagementComponent implements OnInit {
         this.error = 'Failed to load IP credits. Please try again.';
         this.loading = false;
 
-        this.messageService.add({
-          severity: 'error',
-          summary: 'Error',
-          detail: 'Failed to load IP credits. Please try again.',
-          life: 5000,
-        });
+        this.toast.error('Failed to load IP credits. Please try again.');
 
         this.credits = [];
         this.filteredCredits = [];
