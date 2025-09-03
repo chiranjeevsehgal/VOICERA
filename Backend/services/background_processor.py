@@ -105,8 +105,11 @@ async def process_audio_background(
         )
 
         try:
-            credit_response = await asyncio.get_event_loop().run_in_executor(
-                thread_pool, lambda: sync_check_credits(detected_ip, current_user)
+            credit_response = await asyncio.wait_for(
+                asyncio.get_event_loop().run_in_executor(
+                    thread_pool, lambda: sync_check_credits(detected_ip, current_user)
+                ),
+                timeout=15,
             )
 
             if not isinstance(credit_response, dict):
@@ -130,6 +133,13 @@ async def process_audio_background(
                 progress=10,
                 result={"credit_check": credit_response},
             )
+        except asyncio.TimeoutError:
+            update_job_status(
+                job_id,
+                JobStatus.FAILED,
+                error="Credit check timed out after 15s",
+            )
+            return
         except Exception as e:
             update_job_status(
                 job_id,
@@ -259,8 +269,11 @@ async def process_audio_background(
             except json.JSONDecodeError:
                 transcribe_options = {}
 
-            transcription_data = await asyncio.get_event_loop().run_in_executor(
-                thread_pool, lambda: sync_transcribe_audio(supabase_url, transcribe_options)
+            transcription_data = await asyncio.wait_for(
+                asyncio.get_event_loop().run_in_executor(
+                    thread_pool, lambda: sync_transcribe_audio(supabase_url, transcribe_options)
+                ),
+                timeout=300,
             )
 
             if not transcription_data:
@@ -301,26 +314,15 @@ async def process_audio_background(
             if current_user.get("full_name"):
                 author = current_user.get("full_name")
 
-            podcast_id = await asyncio.get_event_loop().run_in_executor(
-                thread_pool,
-                lambda: sync_create_podcast(
-                    title=title,
-                    description=f"Uploaded on {datetime.utcnow().strftime('%Y-%m-%d %H:%M')}",
-                    audio_url=supabase_url,
-                    duration_seconds=duration,
-                    author=author,
-                    language=detected_language,
-                    upload_id=upload_id,
-                    supabase_url=supabase_url,
-                ),
-            )
-
-            await asyncio.get_event_loop().run_in_executor(
-                thread_pool,
-                lambda: sync_update_podcast_transcription_status(
-                    podcast_id=podcast_id, status="in_progress"
-                ),
-            )
+            # Store podcast creation data for later use after embedded upload
+            podcast_creation_data = {
+                "title": title,
+                "description": f"Uploaded on {datetime.utcnow().strftime('%Y-%m-%d %H:%M')}",
+                "duration_seconds": duration,
+                "author": author,
+                "language": detected_language,
+                "upload_id": upload_id,
+            }
 
             segments = []
             if words:
@@ -334,35 +336,26 @@ async def process_audio_background(
                         }
                     )
 
-            transcript_id = await asyncio.get_event_loop().run_in_executor(
-                thread_pool,
-                lambda: sync_create_transcript(
-                    podcast_id=podcast_id,
-                    content=transcript_text,
-                    language=detected_language,
-                    segments=segments,
-                    confidence_score=confidence,
-                ),
-            )
-
-            await asyncio.get_event_loop().run_in_executor(
-                thread_pool,
-                lambda: sync_update_podcast_transcription_status(
-                    podcast_id=podcast_id,
-                    status="completed",
-                    transcript_id=transcript_id,
-                ),
-            )
+            # Store transcript data for later creation after podcast is created
+            transcript_creation_data = {
+                "content": transcript_text,
+                "language": detected_language,
+                "segments": segments,
+                "confidence_score": confidence,
+            }
 
             try:
-                indexed = await asyncio.get_event_loop().run_in_executor(
-                    thread_pool,
-                    lambda: sync_index_transcript(
-                        transcript_data=transcription_data,
-                        file_url=supabase_url,
-                        file_name=file_basename,
-                        is_permanent_url=True,
+                indexed = await asyncio.wait_for(
+                    asyncio.get_event_loop().run_in_executor(
+                        thread_pool,
+                        lambda: sync_index_transcript(
+                            transcript_data=transcription_data,
+                            file_url=supabase_url,
+                            file_name=file_basename,
+                            is_permanent_url=True,
+                        ),
                     ),
+                    timeout=120,
                 )
                 transcription_data["indexed"] = bool(indexed)
             except Exception as e:
@@ -385,6 +378,7 @@ async def process_audio_background(
             detected_language = transcription_data.get("results", {}).get("channels", [{}])[0].get("detected_language", "en")
             confidence = transcription_data.get("results", {}).get("channels", [{}])[0].get("alternatives", [{}])[0].get("confidence", 0)
 
+            # Note: podcast_id and transcript_id will be set after embedded upload
             stats_data = {
                 "timestamp": datetime.utcnow(),
                 "status": status_val,
@@ -394,11 +388,14 @@ async def process_audio_background(
                 "user_id": str(current_user.get("_id", "")),
                 "confidence": confidence,
                 "model": transcribe_options.get("model", "default"),
-                "podcast_id": podcast_id,
-                "transcript_id": transcript_id,
             }
 
-            await _insert_transcription_stats(stats_data)
+            try:
+                await asyncio.wait_for(_insert_transcription_stats(stats_data), timeout=5)
+            except asyncio.TimeoutError:
+                print("[WARN] _insert_transcription_stats timed out after 5s (success case)")
+            except Exception as e:
+                print(f"[WARN] _insert_transcription_stats error: {e}")
 
         except Exception as e:
             processing_time = time.time() - start_time
@@ -413,7 +410,12 @@ async def process_audio_background(
                 "url": supabase_url,
             }
 
-            await _insert_transcription_stats(error_stats_data)
+            try:
+                await asyncio.wait_for(_insert_transcription_stats(error_stats_data), timeout=5)
+            except asyncio.TimeoutError:
+                print("[WARN] _insert_transcription_stats timed out after 5s (error case)")
+            except Exception as e:
+                print(f"[WARN] _insert_transcription_stats error (error case): {e}")
 
             update_job_status(
                 job_id, JobStatus.FAILED, error=f"Error transcribing audio: {str(e)}"
@@ -508,6 +510,55 @@ async def process_audio_background(
 
             embedded_supabase_url = embedded_upload_result["file_url"]
 
+            # Now create the podcast with the embedded URL
+            podcast_id = await asyncio.get_event_loop().run_in_executor(
+                thread_pool,
+                lambda: sync_create_podcast(
+                    title=podcast_creation_data["title"],
+                    description=podcast_creation_data["description"],
+                    audio_url=embedded_supabase_url,  # Use embedded URL
+                    duration_seconds=podcast_creation_data["duration_seconds"],
+                    author=podcast_creation_data["author"],
+                    language=podcast_creation_data["language"],
+                    upload_id=podcast_creation_data["upload_id"],
+                    supabase_url=embedded_supabase_url,  # Use embedded URL
+                ),
+            )
+
+            # Set transcription status to in_progress
+            await asyncio.get_event_loop().run_in_executor(
+                thread_pool,
+                lambda: sync_update_podcast_transcription_status(
+                    podcast_id=podcast_id, status="in_progress"
+                ),
+            )
+
+            # Create the transcript
+            transcript_id = await asyncio.get_event_loop().run_in_executor(
+                thread_pool,
+                lambda: sync_create_transcript(
+                    podcast_id=podcast_id,
+                    content=transcript_creation_data["content"],
+                    language=transcript_creation_data["language"],
+                    segments=transcript_creation_data["segments"],
+                    confidence_score=transcript_creation_data["confidence_score"],
+                ),
+            )
+
+            # Update transcription status to completed
+            await asyncio.get_event_loop().run_in_executor(
+                thread_pool,
+                lambda: sync_update_podcast_transcription_status(
+                    podcast_id=podcast_id,
+                    status="completed",
+                    transcript_id=transcript_id,
+                ),
+            )
+
+            # Update analytics stats with podcast_id and transcript_id
+            stats_data["podcast_id"] = podcast_id
+            stats_data["transcript_id"] = transcript_id
+
             if upload_id:
                 await asyncio.get_event_loop().run_in_executor(
                     thread_pool,
@@ -516,12 +567,6 @@ async def process_audio_background(
                         status="processing",
                         supabase_url=embedded_supabase_url,
                     ),
-                )
-
-            if "podcast_id" in locals() and podcast_id:
-                await asyncio.get_event_loop().run_in_executor(
-                    thread_pool,
-                    lambda: sync_update_podcast_url(podcast_id, embedded_supabase_url),
                 )
 
             try:
@@ -578,8 +623,11 @@ async def process_audio_background(
         )
 
         try:
-            deduct_response = await asyncio.get_event_loop().run_in_executor(
-                thread_pool, lambda: direct_deduct_credit(detected_ip, current_user)
+            deduct_response = await asyncio.wait_for(
+                asyncio.get_event_loop().run_in_executor(
+                    thread_pool, lambda: direct_deduct_credit(detected_ip, current_user)
+                ),
+                timeout=20,
             )
 
             if not deduct_response.get("status", False):
@@ -599,6 +647,11 @@ async def process_audio_background(
                 result=current_result,
                 progress=95,
             )
+        except asyncio.TimeoutError:
+            update_job_status(
+                job_id, JobStatus.FAILED, error="Credit deduction timed out after 20s"
+            )
+            return
         except Exception as e:
             update_job_status(
                 job_id, JobStatus.FAILED, error=f"Error deducting credits: {str(e)}"
@@ -614,6 +667,14 @@ async def process_audio_background(
         )
     finally:
         if os.path.exists(temp_dir):
-            await asyncio.get_event_loop().run_in_executor(
-                thread_pool, lambda: shutil.rmtree(temp_dir)
-            )
+            try:
+                await asyncio.wait_for(
+                    asyncio.get_event_loop().run_in_executor(
+                        thread_pool, lambda: shutil.rmtree(temp_dir)
+                    ),
+                    timeout=10,
+                )
+            except asyncio.TimeoutError:
+                print("[WARN] Temp dir cleanup timed out after 10s")
+            except Exception as e:
+                print(f"[WARN] Temp dir cleanup error: {e}")

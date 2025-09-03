@@ -179,7 +179,12 @@ def sync_check_credits(ip: str, current_user: dict) -> Dict[str, Any]:
                 }
                 login_headers = {"Content-Type": "application/x-www-form-urlencoded"}
 
-                login_response = requests.post(login_url, data=login_data, headers=login_headers)
+                login_response = requests.post(
+                    login_url,
+                    data=login_data,
+                    headers=login_headers,
+                    timeout=10,
+                )
                 if login_response.status_code == 200:
                     token_data = login_response.json()
                     access_token = token_data.get("access_token")
@@ -208,7 +213,7 @@ def sync_check_credits(ip: str, current_user: dict) -> Dict[str, Any]:
 
         # Make the synchronous GET request to check credit
         print(f"Making direct HTTP request to {credit_api_url} for IP {ip}")
-        response = requests.get(credit_api_url, headers=headers)
+        response = requests.get(credit_api_url, headers=headers, timeout=10)
 
         # Parse and return the response
         if response.status_code == 200:
@@ -223,6 +228,13 @@ def sync_check_credits(ip: str, current_user: dict) -> Dict[str, Any]:
                 "status": "error_response",
             }
 
+    except requests.exceptions.Timeout:
+        print("Credit API request timed out after 10s")
+        return {
+            "credits_remaining": 100,
+            "ip_address": ip,
+            "status": "timeout_default",
+        }
     except Exception as e:
         print(f"Error calling credit API: {str(e)}")
 
@@ -342,11 +354,12 @@ def sync_index_transcript(transcript_data: Dict[str, Any], file_url: str, file_n
 
 def sync_update_podcast_url(podcast_id: str, supabase_url: str) -> bool:
     """
-    Update a podcast record with the permanent Supabase URL
+    Update a podcast record's audio_url to the permanent embedded Supabase URL.
+    Also remove any legacy supabase_url field.
 
     Args:
         podcast_id: ID of the podcast to update
-        supabase_url: Permanent Supabase URL to set
+        supabase_url: Permanent embedded Supabase URL to set on audio_url
     """
     try:
         # Create a new event loop for this function
@@ -359,11 +372,13 @@ def sync_update_podcast_url(podcast_id: str, supabase_url: str) -> bool:
         async def update_podcast():
             result = await podcasts_collection.update_one(
                 {"_id": ObjectId(podcast_id)},
-                {"$set": {
-                    "supabase_url": supabase_url,
-                    "audio_url": supabase_url,
-                    "updated_at": datetime.utcnow(),
-                }}
+                {
+                    "$set": {
+                        "audio_url": supabase_url,
+                        "updated_at": datetime.utcnow(),
+                    },
+                    "$unset": {"supabase_url": ""}
+                }
             )
             return result.modified_count > 0
 
@@ -416,13 +431,20 @@ def direct_deduct_credit(ip_address: str, current_user: dict) -> Dict[str, Any]:
                 }
                 login_headers = {"Content-Type": "application/x-www-form-urlencoded"}
 
-                login_response = requests.post(login_url, data=login_data, headers=login_headers)
+                login_response = requests.post(
+                    login_url,
+                    data=login_data,
+                    headers=login_headers,
+                    timeout=10,
+                )
                 if login_response.status_code == 200:
                     token_data = login_response.json()
                     access_token = token_data.get("access_token")
                     print(f"Successfully got access token via admin login")
                 else:
                     print(f"Admin login failed: {login_response.status_code} - {login_response.text}")
+            except requests.exceptions.Timeout:
+                print("Admin login request timed out after 10s")
             except Exception as e:
                 print(f"Error during admin login: {str(e)}")
 
@@ -450,7 +472,7 @@ def direct_deduct_credit(ip_address: str, current_user: dict) -> Dict[str, Any]:
 
         # Make the synchronous POST request to deduct credit
         print(f"Making direct HTTP request to {credit_api_url} for IP {ip_address}")
-        response = requests.post(credit_api_url, json=data, headers=headers)
+        response = requests.post(credit_api_url, json=data, headers=headers, timeout=10)
 
         # Parse and return the response
         if response.status_code == 200:
@@ -466,6 +488,13 @@ def direct_deduct_credit(ip_address: str, current_user: dict) -> Dict[str, Any]:
                 "response_text": response.text,
             }
 
+    except requests.exceptions.Timeout:
+        print("Credit API deduction request timed out after 10s")
+        return {
+            "status": False,
+            "detail": "Credit API timeout",
+            "credits_remaining": 0,
+        }
     except Exception as e:
         print(f"Error calling credit API: {str(e)}")
 

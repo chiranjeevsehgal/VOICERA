@@ -210,26 +210,20 @@ async def create_podcast(
     
     podcast_data = {
         "title": title,
-        "description": description,
         "audio_url": audio_url,
-        "image_url": image_url,
         "duration_seconds": duration_seconds,
         "author": author,
         "published_date": now,
-        "tags": tags,
         "language": language,
         "created_at": now,
         "updated_at": now,
-        "average_rating": None,
-        "is_featured": is_featured,
         "is_published": is_published
     }
     
     if upload_id:
         podcast_data["upload_id"] = upload_id
         
-    if supabase_url:
-        podcast_data["supabase_url"] = supabase_url
+    # Do not persist supabase_url separately; audio_url will always point to the final embedded URL
     
     try:
         result = await podcasts_collection.insert_one(podcast_data)
