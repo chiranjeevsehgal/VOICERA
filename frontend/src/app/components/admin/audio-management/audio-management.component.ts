@@ -27,6 +27,13 @@ export class AudioManagementComponent implements OnInit {
   showDeleteModal: boolean = false;
   podcastToDelete: Podcast | null = null;
   deleting: boolean = false;
+  showEditModal: boolean = false;
+  podcastToEdit: Podcast | null = null;
+  updating: boolean = false;
+  editForm = {
+    title: '',
+    description: '',
+  };
 
   // Pagination
   totalCount: number = 0;
@@ -207,13 +214,17 @@ export class AudioManagementComponent implements OnInit {
     this.audioService.deleteAudio(this.podcastToDelete.id).subscribe({
       next: (response) => {
         // Remove the deleted podcast from local arrays
-        this.podcasts = this.podcasts.filter(p => p.id !== this.podcastToDelete!.id);
-        this.filteredPodcasts = this.filteredPodcasts.filter(p => p.id !== this.podcastToDelete!.id);
-        
+        this.podcasts = this.podcasts.filter(
+          (p) => p.id !== this.podcastToDelete!.id
+        );
+        this.filteredPodcasts = this.filteredPodcasts.filter(
+          (p) => p.id !== this.podcastToDelete!.id
+        );
+
         // Update total count
         this.totalCount--;
         this.totalPages = Math.ceil(this.totalCount / this.limit);
-        
+
         // Stop playing if this was the currently playing audio
         if (this.currentlyPlaying === this.podcastToDelete!.id) {
           if (this.audioElement) {
@@ -222,7 +233,9 @@ export class AudioManagementComponent implements OnInit {
           this.currentlyPlaying = null;
         }
 
-        this.toast.success(`Audio "${this.podcastToDelete!.title}" deleted successfully`);
+        this.toast.success(
+          `Audio "${this.podcastToDelete!.title}" deleted successfully`
+        );
         this.closeDeleteModal();
 
         // If current page is empty and not the first page, go to previous page
@@ -235,8 +248,79 @@ export class AudioManagementComponent implements OnInit {
         console.error('Error deleting audio:', error);
         this.toast.error('Failed to delete audio. Please try again.');
         this.deleting = false;
-      }
+      },
     });
   }
 
+  openEditModal(podcast: Podcast) {
+    this.podcastToEdit = podcast;
+    this.editForm = {
+      title: podcast.title,
+      description: podcast.description,
+    };
+    this.showEditModal = true;
+  }
+
+  closeEditModal() {
+    this.showEditModal = false;
+    this.podcastToEdit = null;
+    this.updating = false;
+    this.editForm = {
+      title: '',
+      description: '',
+    };
+  }
+
+  isFormValid(): boolean {
+    return (
+      this.editForm.title.trim().length > 0 &&
+      this.editForm.description.trim().length > 0
+    );
+  }
+
+  confirmUpdate() {
+    if (!this.podcastToEdit || !this.isFormValid()) return;
+
+    this.updating = true;
+
+    const updateData = {
+      title: this.editForm.title.trim(),
+      description: this.editForm.description.trim(),
+    };
+
+    this.audioService.updateAudio(this.podcastToEdit.id, updateData).subscribe({
+      next: (updatedPodcast) => {
+        // Update the podcast in local arrays
+        const podcastIndex = this.podcasts.findIndex(
+          (p) => p.id === this.podcastToEdit!.id
+        );
+        if (podcastIndex !== -1) {
+          this.podcasts[podcastIndex] = {
+            ...this.podcasts[podcastIndex],
+            ...updatedPodcast,
+          };
+        }
+
+        const filteredIndex = this.filteredPodcasts.findIndex(
+          (p) => p.id === this.podcastToEdit!.id
+        );
+        if (filteredIndex !== -1) {
+          this.filteredPodcasts[filteredIndex] = {
+            ...this.filteredPodcasts[filteredIndex],
+            ...updatedPodcast,
+          };
+        }
+
+        this.toast.success(
+          `Audio "${updatedPodcast.title}" updated successfully`
+        );
+        this.closeEditModal();
+      },
+      error: (error) => {
+        console.error('Error updating audio:', error);
+        this.toast.error('Failed to update audio. Please try again.');
+        this.updating = false;
+      },
+    });
+  }
 }

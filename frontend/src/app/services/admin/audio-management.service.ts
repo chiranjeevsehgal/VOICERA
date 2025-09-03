@@ -40,6 +40,10 @@ export interface DeleteAudioResponse {
   detail: string;
 }
 
+export interface UpdateAudioRequest {
+  title: string;
+  description: string;
+}
 
 @Injectable({
   providedIn: 'root',
@@ -82,6 +86,14 @@ export class AudioService {
   deleteAudio(audioId: string): Observable<DeleteAudioResponse> {
     return this.http.delete<DeleteAudioResponse>(
       `${this.baseUrl}/api/audios/${audioId}`,
+      { headers: this.getHeaders() }
+    );
+  }
+
+    updateAudio(audioId: string, updateData: UpdateAudioRequest): Observable<Podcast> {
+    return this.http.put<Podcast>(
+      `${this.baseUrl}/api/audios/${audioId}`,
+      updateData,
       { headers: this.getHeaders() }
     );
   }
