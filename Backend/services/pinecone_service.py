@@ -5,7 +5,8 @@ import hashlib
 import threading
 import random
 import math
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
+from collections import deque
 from together import Together
 from pinecone import Pinecone, ServerlessSpec, CloudProvider, AwsRegion
 from dotenv import load_dotenv
@@ -33,6 +34,22 @@ UPSERT_RETRY_BASE_DELAY = float(os.getenv("UPSERT_RETRY_BASE_DELAY", "0.5"))
 EMBED_PROVIDER = int(os.getenv("EMBED_PROVIDER", "1"))
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 GEMINI_EMBED_MODEL = os.getenv("GEMINI_EMBED_MODEL", "gemini-embedding-001")
+GEMINI_EMBED_RPM = int(os.getenv("GEMINI_EMBED_RPM", "100"))       # requests per minute
+GEMINI_EMBED_TPM = int(os.getenv("GEMINI_EMBED_TPM", "30000"))      # tokens per minute
+GEMINI_EMBED_RPD = int(os.getenv("GEMINI_EMBED_RPD", "1000"))       # requests per day
+GEMINI_BATCH_SIZE = int(os.getenv("GEMINI_BATCH_SIZE", "16"))       # max texts per batch request
+GEMINI_EMBED_RPS = int(os.getenv("GEMINI_EMBED_RPS", "2"))          # requests per second (soft throttle)
+GEMINI_TPM_SAFETY = float(os.getenv("GEMINI_TPM_SAFETY", "0.9"))    # use 90% of TPM to be safe
+GEMINI_TOKEN_OVERHEAD = int(os.getenv("GEMINI_TOKEN_OVERHEAD", "32")) # overhead tokens per request
+GEMINI_MAX_BATCH_TOKENS = int(os.getenv("GEMINI_MAX_BATCH_TOKENS", "20000"))
+
+SEMANTIC_SIMILARITY = "SEMANTIC_SIMILARITY"
+CLASSIFICATION = "CLASSIFICATION"
+CLUSTERING = "CLUSTERING"
+RETRIEVAL_DOCUMENT = "RETRIEVAL_DOCUMENT"
+RETRIEVAL_QUERY = "RETRIEVAL_QUERY"
+CODE_RETRIEVAL_QUERY = "CODE_RETRIEVAL_QUERY"
+FACT_VERIFICATION = "FACT_VERIFICATION"
 
 # Initialize the Together AI client lazily to avoid requiring the key when using Google
 together_client = None  # type: ignore
@@ -42,6 +59,93 @@ _embedding_sem = threading.Semaphore(EMBED_MAX_CONCURRENCY)
 
 # Global semaphore to limit concurrent Pinecone upserts
 _upsert_sem = threading.Semaphore(UPSERT_MAX_CONCURRENCY)
+
+# --- Google Gemini embedding rate limiter (RPM/TPM/RPD) ---
+_rate_lock = threading.Lock()
+_rpm_timestamps: deque = deque()           # timestamps of requests in last 60s
+_tpm_entries: deque = deque()              # (timestamp, token_count) in last 60s
+_rps_timestamps: deque = deque()           # timestamps of requests in last 1s
+_daily_date: Optional[str] = None
+_daily_count: int = 0
+
+def _estimate_tokens_for_gemini(text: str) -> int:
+    """Rough token estimate for Gemini embeddings. ~4 chars per token heuristic.
+    Avoids external deps while being conservative for TPM budgeting.
+    """
+    if not text:
+        return 1
+    # Use max of words and char/3 to be more conservative
+    words = len([w for w in text.split() if w])
+    approx_chars = max(1, len(text))
+    return max(1, max(words, approx_chars // 3))
+
+def _enforce_gemini_rate_limits(token_count: int) -> None:
+    """Block until Gemini RPM/TPM budgets allow another request.
+    Enforces per-minute request and token limits and a per-day request cap.
+    Thread-safe; uses a rolling window.
+    """
+    global _daily_date, _daily_count
+    while True:
+        now = time.time()
+        with _rate_lock:
+            # Reset daily counters if day changed
+            today = time.strftime("%Y-%m-%d", time.localtime(now))
+            if _daily_date != today:
+                _daily_date = today
+                _daily_count = 0
+                _rpm_timestamps.clear()
+                _tpm_entries.clear()
+
+            # Enforce per-day limit
+            if GEMINI_EMBED_RPD > 0 and _daily_count >= GEMINI_EMBED_RPD:
+                raise RuntimeError("Gemini embedding daily request limit reached (RPD)")
+
+            # Prune entries older than 60s / 1s
+            one_min_ago = now - 60.0
+            one_sec_ago = now - 1.0
+            while _rpm_timestamps and _rpm_timestamps[0] <= one_min_ago:
+                _rpm_timestamps.popleft()
+            while _tpm_entries and _tpm_entries[0][0] <= one_min_ago:
+                _tpm_entries.popleft()
+            while _rps_timestamps and _rps_timestamps[0] <= one_sec_ago:
+                _rps_timestamps.popleft()
+
+            reqs_last_min = len(_rpm_timestamps)
+            tokens_last_min = sum(t for (_, t) in _tpm_entries)
+            reqs_last_sec = len(_rps_timestamps)
+
+            rpm_ok = reqs_last_min < GEMINI_EMBED_RPM
+            rps_ok = reqs_last_sec < GEMINI_EMBED_RPS
+            tpm_limit_eff = int(GEMINI_EMBED_TPM * GEMINI_TPM_SAFETY)
+            tpm_ok = (tokens_last_min + token_count) <= tpm_limit_eff
+
+            if rpm_ok and rps_ok and tpm_ok:
+                # Reserve budget and proceed
+                _rpm_timestamps.append(now)
+                _tpm_entries.append((now, token_count))
+                _rps_timestamps.append(now)
+                _daily_count += 1
+                return
+
+            # Compute wait time until budget frees
+            waits: List[float] = []
+            if not rpm_ok and _rpm_timestamps:
+                waits.append(_rpm_timestamps[0] + 60.0 - now)
+            if not rps_ok and _rps_timestamps:
+                waits.append(_rps_timestamps[0] + 1.0 - now)
+            if not tpm_ok and _tpm_entries:
+                # Find time when enough tokens expire
+                need = tokens_last_min + token_count - tpm_limit_eff
+                acc = 0
+                for ts, t in _tpm_entries:
+                    acc += t
+                    if acc >= need:
+                        waits.append(ts + 60.0 - now)
+                        break
+
+        # Sleep outside lock for the minimum required time
+        sleep_s = max(0.05, min(max(waits) if waits else 0.5, 60.0))
+        time.sleep(sleep_s)
 
 # Initialize Pinecone client
 pc = None
@@ -109,7 +213,7 @@ def init_pinecone():
         print(f"Error initializing Pinecone: {str(e)}")
         return False
 
-def get_embedding(text: str) -> List[float]:
+def get_embedding(text: str, task_type: Optional[str] = None) -> List[float]:
     """
     Generate an embedding vector for a text string using the selected provider.
     Provider switch: 0=Together, 1=Google Gemini.
@@ -166,17 +270,30 @@ def get_embedding(text: str) -> List[float]:
 
         for attempt in range(1, EMBED_MAX_RETRIES + 1):
             try:
+                # Rate limit before acquiring concurrency semaphore to avoid long-held locks
+                token_count = _estimate_tokens_for_gemini(text) + GEMINI_TOKEN_OVERHEAD
+                _enforce_gemini_rate_limits(token_count)
                 with _embedding_sem:
                     print(f"\nGenerating Google embedding (attempt {attempt}) for text: {text[:100]}...")
                     print(f"Using Google model: {GEMINI_EMBED_MODEL} with target dim {EMBEDDING_DIMENSION}")
                     payload: Dict[str, Any] = {
                         "content": {"parts": [{"text": text}]}
                     }
-                    # Request reduced dimensionality if different from default (3072)
                     if EMBEDDING_DIMENSION and EMBEDDING_DIMENSION != 3072:
                         payload["outputDimensionality"] = EMBEDDING_DIMENSION
+                    # Respect caller-provided task_type; default to document embeddings
+                    if task_type:
+                        payload["taskType"] = task_type
+                    else:
+                        payload["taskType"] = RETRIEVAL_DOCUMENT
 
                     resp = requests.post(url, headers=headers, data=json.dumps(payload), timeout=30)
+                if resp.status_code == 429:
+                    retry_after = resp.headers.get("Retry-After")
+                    sleep_s = float(retry_after) if retry_after and retry_after.isdigit() else EMBED_RETRY_BASE_DELAY * (2 ** (attempt - 1))
+                    print(f"[WARN] Google embedding 429. Respecting Retry-After: sleeping {sleep_s:.2f}s")
+                    time.sleep(sleep_s)
+                    continue
                 if resp.status_code >= 400:
                     raise RuntimeError(f"Google Embedding HTTP {resp.status_code}: {resp.text}")
 
@@ -210,6 +327,77 @@ def get_embedding(text: str) -> List[float]:
 
     else:
         raise ValueError(f"Unsupported EMBED_PROVIDER value: {EMBED_PROVIDER}")
+
+def _gemini_embed_batch(texts: List[str], task_type: Optional[str] = None) -> List[List[float]]:
+    """
+    Batch embed multiple texts with Google Gemini to reduce API calls.
+    Respects RPM/TPM/RPD using the same limiter with summed token estimate.
+    Returns list of embeddings aligned to input order.
+    """
+    if not GEMINI_API_KEY:
+        raise ValueError("GEMINI_API_KEY is not set")
+
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/{GEMINI_EMBED_MODEL}:batchEmbedContents"
+    headers = {"Content-Type": "application/json", "x-goog-api-key": GEMINI_API_KEY}
+
+    # Build requests array
+    reqs: List[Dict[str, Any]] = []
+    for t in texts:
+        item: Dict[str, Any] = {
+            "content": {"parts": [{"text": t}]}
+        }
+        # Batch endpoint requires model per request item
+        item["model"] = f"models/{GEMINI_EMBED_MODEL}"
+        if EMBEDDING_DIMENSION and EMBEDDING_DIMENSION != 3072:
+            item["outputDimensionality"] = EMBEDDING_DIMENSION
+        if task_type:
+            item["taskType"] = task_type
+        reqs.append(item)
+
+    # Rate limit based on sum tokens of the batch
+    batch_tokens = sum(_estimate_tokens_for_gemini(t) + GEMINI_TOKEN_OVERHEAD for t in texts)
+    _enforce_gemini_rate_limits(batch_tokens)
+
+    last_err: Optional[Exception] = None
+    for attempt in range(1, EMBED_MAX_RETRIES + 1):
+        try:
+            with _embedding_sem:
+                payload = {"requests": reqs}
+                print(f"\nBatch embedding {len(texts)} items (attempt {attempt}) with model {GEMINI_EMBED_MODEL}, dim {EMBEDDING_DIMENSION}")
+                resp = requests.post(url, headers=headers, data=json.dumps(payload), timeout=60)
+            if resp.status_code == 429:
+                retry_after = resp.headers.get("Retry-After")
+                sleep_s = float(retry_after) if retry_after and retry_after.isdigit() else EMBED_RETRY_BASE_DELAY * (2 ** (attempt - 1))
+                print(f"[WARN] Google batch embedding 429. Respecting Retry-After: sleeping {sleep_s:.2f}s")
+                time.sleep(sleep_s)
+                continue
+            if resp.status_code >= 400:
+                raise RuntimeError(f"Google Batch Embedding HTTP {resp.status_code}: {resp.text}")
+
+            data = resp.json()
+            if not isinstance(data, dict) or "embeddings" not in data or not isinstance(data["embeddings"], list):
+                raise RuntimeError(f"Google Batch Embedding: invalid response: {data}")
+            embeddings_out: List[List[float]] = []
+            for e in data["embeddings"]:
+                vals = e.get("values") if isinstance(e, dict) else None
+                if not vals or not isinstance(vals, list):
+                    raise RuntimeError("Google Batch Embedding: missing values in one item")
+                if EMBEDDING_DIMENSION != 3072:
+                    vals = _l2_normalize([float(x) for x in vals])
+                embeddings_out.append(vals)  # type: ignore
+
+            if len(embeddings_out) != len(texts):
+                raise RuntimeError("Google Batch Embedding: response count mismatch")
+
+            return embeddings_out
+        except Exception as e:
+            last_err = e
+            sleep_s = EMBED_RETRY_BASE_DELAY * (2 ** (attempt - 1)) + random.uniform(0, 0.3)
+            print(f"[WARN] Google batch embedding attempt {attempt} failed: {e}. Retrying in {sleep_s:.2f}s...")
+            time.sleep(sleep_s)
+
+    print(f"[ERROR] Failed Google batch embedding after {EMBED_MAX_RETRIES} attempts: {last_err}")
+    raise last_err  # type: ignore
 
 def chunk_transcript(transcript_data: Dict) -> List[Dict]:
     """
@@ -369,53 +557,81 @@ async def index_transcript(transcript_data: Dict, file_url: str, file_name: str,
         chunks = chunk_transcript(transcript_data)
         print(f"Created {len(chunks)} chunks")
         
-        # Create vectors for each chunk
-        vectors = []
+        # Prepare items (id, text, metadata) for embedding
+        items: List[Dict[str, Any]] = []
         for i, chunk in enumerate(chunks):
-            # Generate a unique ID for each chunk
-            vector_id = f"{file_id}_{i}"
-            
-            try:
-                # Get embedding for the chunk text
-                txt = (chunk.get("text") or "").strip()
-                if not txt:
-                    print(f"Skipping empty text chunk at index {i}")
-                    continue
-                embedding = get_embedding(txt)
-                
-                # Prepare metadata
-                metadata = {
-                    "file_url": supabase_url,  # Use Supabase URL if available
-                    "text": txt,
-                    "start_time": chunk["start_time"],
-                    "end_time": chunk["end_time"],
-                    "confidence": chunk.get("confidence", 0)
-                }
-                
-                # Add temporary URL only if we're using a temporary URL
-                if not is_permanent_url and "tmpfiles.org" in file_url:
-                    metadata["tmp_url"] = file_url  # Store tmpfiles URL as backup
-                
-                # Add file_name
-                metadata["file_name"] = file_name
-                
-                # Add speaker only if it's not None/null
-                if chunk.get("speaker") is not None:
-                    metadata["speaker"] = chunk.get("speaker")
-                
-                # Create vector object
-                vector = {
-                    "id": vector_id,
-                    "values": embedding,
-                    "metadata": metadata
-                }
-                
-                vectors.append(vector)
-                print(f"Created vector {i+1}/{len(chunks)}: {vector_id}")
-            except Exception as e:
-                print(f"Error creating vector for chunk {i}: {str(e)}")
-                # Continue with the next chunk instead of failing completely
+            txt = (chunk.get("text") or "").strip()
+            if not txt:
+                print(f"Skipping empty text chunk at index {i}")
                 continue
+            vector_id = f"{file_id}_{i}"
+            meta = {
+                "file_url": supabase_url,
+                "text": txt,
+                "start_time": chunk["start_time"],
+                "end_time": chunk["end_time"],
+                "confidence": chunk.get("confidence", 0),
+                "file_name": file_name,
+            }
+            if chunk.get("speaker") is not None:
+                meta["speaker"] = chunk.get("speaker")
+            if not is_permanent_url and "tmpfiles.org" in file_url:
+                meta["tmp_url"] = file_url
+            items.append({"id": vector_id, "text": txt, "metadata": meta})
+
+        # Create vectors for each chunk (batched for Gemini)
+        vectors = []
+        if not items:
+            print("No non-empty chunks available, skipping Pinecone update")
+            return False
+
+        if EMBED_PROVIDER == 1:
+            # Gemini: token-aware batch embed
+            # Precompute token estimates (including overhead)
+            token_counts = [_estimate_tokens_for_gemini(it["text"]) + GEMINI_TOKEN_OVERHEAD for it in items]
+            i = 0
+            while i < len(items):
+                cur_batch = []
+                cur_tokens = 0
+                while i < len(items) and len(cur_batch) < GEMINI_BATCH_SIZE:
+                    tkns = token_counts[i]
+                    if cur_tokens + tkns > GEMINI_MAX_BATCH_TOKENS and cur_batch:
+                        break
+                    cur_batch.append(items[i])
+                    cur_tokens += tkns
+                    i += 1
+                texts = [b["text"] for b in cur_batch]
+                try:
+                    embeddings = _gemini_embed_batch(texts, task_type="RETRIEVAL_DOCUMENT")
+                except Exception as e:
+                    start_idx = i - len(cur_batch)
+                    end_idx = i - 1
+                    print(f"[WARN] Batch embedding failed for items {start_idx}-{end_idx}: {e}. Falling back to single calls for this batch.")
+                    embeddings = []
+                    for j, b in enumerate(cur_batch):
+                        try:
+                            emb = get_embedding(b["text"], task_type="RETRIEVAL_DOCUMENT")
+                            embeddings.append(emb)
+                        except Exception as e2:
+                            print(f"[ERROR] Single embedding failed for item {start_idx + j}: {e2}. Skipping.")
+                            embeddings.append([])  # placeholder
+
+                for b, emb in zip(cur_batch, embeddings):
+                    if not emb:
+                        continue
+                    vector = {"id": b["id"], "values": emb, "metadata": b["metadata"]}
+                    vectors.append(vector)
+                    print(f"Created vector {len(vectors)}/{len(items)}: {b['id']}")
+        else:
+            # Together or other: single calls
+            for idx, it in enumerate(items):
+                try:
+                    emb = get_embedding(it["text"], task_type="RETRIEVAL_DOCUMENT")
+                    vector = {"id": it["id"], "values": emb, "metadata": it["metadata"]}
+                    vectors.append(vector)
+                    print(f"Created vector {len(vectors)}/{len(items)}: {it['id']}")
+                except Exception as e:
+                    print(f"Error creating vector for item {idx}: {e}")
         
         # Skip update if no vectors were created
         if not vectors:
@@ -469,7 +685,7 @@ async def search_transcripts(query: str, limit: int = None, filter_dict: Dict = 
             return []
     
     try:
-        query_embedding = get_embedding(query)
+        query_embedding = get_embedding(query, task_type="RETRIEVAL_QUERY")
         
         # Execute search
         search_response = index.query(
