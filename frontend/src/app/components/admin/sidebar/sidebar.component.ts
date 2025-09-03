@@ -44,6 +44,11 @@ export class SidebarComponent {
       icon: Users,
     },
     {
+      id: 'credit-management',
+      label: 'Credit Management',
+      icon: Users,
+    },
+    {
       id: 'audio-management',
       label: 'Audio Management',
       icon: AudioLines,

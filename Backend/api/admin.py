@@ -7,6 +7,7 @@ from pydantic import BaseModel, EmailStr, Field
 import os
 import shutil
 import asyncio
+from services.database import ip_credits_collection
 
 from services.auth import get_current_user, requires_role, get_password_hash, get_user_by_email
 from services.database import (
@@ -55,6 +56,19 @@ class UserCreateRequest(BaseModel):
     role: str = "user"
     status: str = "active"
 
+# Response models
+class IPCreditResponse(BaseModel):
+    id: str
+    ip: str
+    credits: int
+    created: datetime
+    last_used: datetime
+
+class IPCreditListResponse(BaseModel):
+    total_count: int
+    ip_credits: List[IPCreditResponse]
+
+
 # Helper functions
 def sanitize_user(user: Dict[str, Any]) -> Dict[str, Any]:
     """Remove sensitive data and format the user object for API responses"""
@@ -68,6 +82,95 @@ def sanitize_user(user: Dict[str, Any]) -> Dict[str, Any]:
     user.pop("password", None)
     
     return user
+
+# To get all the ip and their credits
+@router.get("/ip-credits", response_model=IPCreditListResponse, status_code=status.HTTP_200_OK)
+async def list_ip_credits(
+    current_user: Dict[str, Any] = Depends(requires_role("admin")),
+    page: int = Query(1, ge=1, description="Page number, starting from 1"),
+    limit: int = Query(10, ge=1, le=100, description="Number of items per page"),
+    sort_by: str = Query("last_used", description="Field to sort by"),
+    sort_order: int = Query(-1, description="Sort order: 1 for ascending, -1 for descending"),
+    ip: Optional[str] = Query(None, description="Filter by specific IP address"),
+    min_credits: Optional[int] = Query(None, description="Filter by minimum credits"),
+    max_credits: Optional[int] = Query(None, description="Filter by maximum credits"),
+    search: Optional[str] = Query(None, description="Search in IP address")
+):
+    """
+    List all IP credits with pagination and filtering.
+    Only accessible to administrators.
+    """
+    # Build the filter query
+    filter_query = {}
+    
+    if ip:
+        filter_query["ip"] = ip
+    
+    if min_credits is not None:
+        filter_query.setdefault("credits", {})["$gte"] = min_credits
+    
+    if max_credits is not None:
+        filter_query.setdefault("credits", {})["$lte"] = max_credits
+    
+    if search:
+        filter_query["ip"] = {"$regex": search, "$options": "i"}
+    
+    # Get total count for pagination
+    total_count = await ip_credits_collection.count_documents(filter_query)
+    
+    # Calculate skip for pagination
+    skip = (page - 1) * limit
+    
+    # Get IP credits with pagination and sorting
+    cursor = ip_credits_collection.find(filter_query)
+    cursor = cursor.sort(sort_by, sort_order)
+    cursor = cursor.skip(skip).limit(limit)
+    
+    ip_credits = await cursor.to_list(length=limit)
+    
+    # Convert ObjectId to string and format response
+    sanitized_ip_credits = []
+    for ip_credit in ip_credits:
+        sanitized_ip_credits.append(IPCreditResponse(
+            id=str(ip_credit["_id"]),
+            ip=ip_credit["ip"],
+            credits=ip_credit["credits"],
+            created=datetime.fromtimestamp(ip_credit["created"]),
+            last_used=datetime.fromtimestamp(ip_credit["last_used"])
+        ))
+    
+    return IPCreditListResponse(
+        total_count=total_count,
+        ip_credits=sanitized_ip_credits
+    )
+
+# To get credits for a specific IP
+@router.get("/ip-credits/{ip_address}", response_model=IPCreditResponse, status_code=status.HTTP_200_OK)
+async def get_ip_credits(
+    ip_address: str,
+    current_user: Dict[str, Any] = Depends(requires_role("admin"))
+):
+    """
+    Get credits for a specific IP address.
+    Only accessible to administrators.
+    """
+    ip_credit = await ip_credits_collection.find_one({"ip": ip_address})
+    
+    if not ip_credit:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="IP address not found"
+        )
+    
+    return IPCreditResponse(
+        id=str(ip_credit["_id"]),
+        ip=ip_credit["ip"],
+        credits=ip_credit["credits"],
+        created=datetime.fromtimestamp(ip_credit["created"]),
+        last_used=datetime.fromtimestamp(ip_credit["last_used"])
+    )
+
+
 
 @router.get("/users", response_model=UserListResponse, status_code=status.HTTP_200_OK)
 async def list_users(
