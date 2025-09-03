@@ -41,9 +41,12 @@ export class CreditService {
   }
 
   getIPCredits(): Observable<ApiIPCreditsResponse> {
-    return this.http.get<ApiIPCreditsResponse>(`${this.baseUrl}/api/admin/ip-credits`, {
-      headers: this.getHeaders(),
-    });
+    return this.http.get<ApiIPCreditsResponse>(
+      `${this.baseUrl}/api/admin/ip-credits`,
+      {
+        headers: this.getHeaders(),
+      }
+    );
   }
 
   // Transform API credit to component format

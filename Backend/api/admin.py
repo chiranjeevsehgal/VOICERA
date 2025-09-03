@@ -3,6 +3,7 @@ from fastapi.responses import JSONResponse
 from typing import List, Optional, Dict, Any
 from bson import ObjectId
 from datetime import datetime, timedelta
+import time
 from pydantic import BaseModel, EmailStr, Field
 import os
 import shutil
@@ -68,6 +69,17 @@ class IPCreditListResponse(BaseModel):
     total_count: int
     ip_credits: List[IPCreditResponse]
 
+class UpdateCreditsRequest(BaseModel):
+    credits: int = Field(..., ge=0, description="New credit amount (must be non-negative)")
+    reason: Optional[str] = Field(None, max_length=500, description="Reason for credit adjustment")
+
+class UpdateCreditsResponse(BaseModel):
+    id: str
+    ip: str
+    old_credits: int
+    new_credits: int
+    updated_at: datetime
+    updated_by: str
 
 # Helper functions
 def sanitize_user(user: Dict[str, Any]) -> Dict[str, Any]:
@@ -170,7 +182,56 @@ async def get_ip_credits(
         last_used=datetime.fromtimestamp(ip_credit["last_used"])
     )
 
-
+# To edit credits for any IP
+@router.put("/ip-credits/{ip_address}/credits", response_model=UpdateCreditsResponse, status_code=status.HTTP_200_OK)
+async def update_ip_credits(
+    ip_address: str,
+    request: UpdateCreditsRequest,
+    current_user: Dict[str, Any] = Depends(requires_role("admin"))
+):
+    """
+    Update credits for a specific IP address.
+    Only accessible to administrators.
+    """
+    # Find the IP credit record
+    ip_credit = await ip_credits_collection.find_one({"ip": ip_address})
+    
+    if not ip_credit:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"IP address {ip_address} not found in credits system"
+        )
+    
+    old_credits = ip_credit["credits"]
+    current_timestamp = int(time.time())
+    
+    # Update the credits
+    update_data = {
+        "credits": request.credits,
+        "last_updated": current_timestamp,
+        "updated_by": current_user.get("email", current_user.get("id", "unknown"))
+    }
+    
+    # Update the main record
+    result = await ip_credits_collection.update_one(
+        {"ip": ip_address},
+        {"$set": update_data}
+    )
+    
+    if result.modified_count == 0:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to update credits"
+        )
+    
+    return UpdateCreditsResponse(
+        id=str(ip_credit["_id"]),
+        ip=ip_address,
+        old_credits=old_credits,
+        new_credits=request.credits,
+        updated_at=datetime.fromtimestamp(current_timestamp),
+        updated_by=current_user.get("email", current_user.get("id", "unknown")),
+    )
 
 @router.get("/users", response_model=UserListResponse, status_code=status.HTTP_200_OK)
 async def list_users(
