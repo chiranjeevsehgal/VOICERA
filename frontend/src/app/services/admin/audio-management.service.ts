@@ -35,6 +35,12 @@ export interface AudioFilters {
   author?: string;
 }
 
+export interface DeleteAudioResponse {
+  status: string;
+  detail: string;
+}
+
+
 @Injectable({
   providedIn: 'root',
 })
@@ -71,5 +77,12 @@ export class AudioService {
       headers: this.getHeaders(),
       params: params
     });
+  }
+
+  deleteAudio(audioId: string): Observable<DeleteAudioResponse> {
+    return this.http.delete<DeleteAudioResponse>(
+      `${this.baseUrl}/api/audios/${audioId}`,
+      { headers: this.getHeaders() }
+    );
   }
 }
