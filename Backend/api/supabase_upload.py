@@ -13,6 +13,8 @@ from services.supabase_service import upload_file_to_supabase, list_files_in_buc
 from services.pinecone_service import index_transcript
 from api.embedding import extract_metadata_from_mp3_to_json
 from services.auth import get_current_user
+from services.database import podcasts_collection
+from bson.objectid import ObjectId
 
 router = APIRouter()
 
@@ -124,15 +126,19 @@ async def list_audio_files(
     page: int = 1,
 ):
     """
-    List files stored in the Supabase bucket
+    List podcasts from MongoDB collection
     
     Args:
         current_user (dict): The authenticated user information
         user_files_only (bool): If True, only return files uploaded by the current user
+        page (int): Page number for pagination
     """
     try:
-        # Determine user scope
-        user_id = None
+        per_page = 10
+        skip = (page - 1) * per_page
+        
+        # Build query filter
+        query_filter = {}
         if user_files_only:
             # Support multiple possible shapes for current_user
             user_id = (
@@ -140,20 +146,41 @@ async def list_audio_files(
                 or current_user.get("_id")
                 or (current_user.get("_id", {}).get("$oid") if isinstance(current_user.get("_id"), dict) else None)
             )
+            if user_id:
+                # Convert to ObjectId if it's a string
+                if isinstance(user_id, str):
+                    try:
+                        user_id = ObjectId(user_id)
+                    except:
+                        pass
+                query_filter["user_id"] = user_id
 
-        per_page = 10
-        # Fetch one extra item to determine if there's a next page
-        files_page = await list_files_in_bucket(
-            user_id=user_id,
-            bucket_name=os.getenv("SUPABASE_BUCKET_EMBEDDED"),
-            page=page,
-            limit=per_page + 1,
-        )
-        has_next = len(files_page) > per_page
-        files = files_page[:per_page]
-        return {"files": files, "page": page, "limit": per_page, "has_next": has_next}
+        # Fetch podcasts with pagination
+        cursor = podcasts_collection.find(query_filter).sort("created_at", -1).skip(skip).limit(per_page + 1)
+        podcasts_list = await cursor.to_list(length=per_page + 1)
+        
+        # Check if there's a next page
+        has_next = len(podcasts_list) > per_page
+        podcasts = podcasts_list[:per_page]
+        
+        # Convert ObjectId to string for JSON serialization
+        for podcast in podcasts:
+            podcast["_id"] = str(podcast["_id"])
+            if "upload_id" in podcast and isinstance(podcast["upload_id"], ObjectId):
+                podcast["upload_id"] = str(podcast["upload_id"])
+            if "user_id" in podcast and isinstance(podcast["user_id"], ObjectId):
+                podcast["user_id"] = str(podcast["user_id"])
+        
+        return {
+            "files": podcasts,
+            "page": page,
+            "limit": per_page,
+            "has_next": has_next,
+            "total_count": await podcasts_collection.count_documents(query_filter)
+        }
+        
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to list files: {str(e)}"
+            detail=f"Failed to list podcasts: {str(e)}"
         ) 

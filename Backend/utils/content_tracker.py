@@ -181,7 +181,8 @@ async def create_podcast(
     is_featured: bool = False,
     is_published: bool = True,
     upload_id: Optional[str] = None,
-    supabase_url: Optional[str] = None
+    supabase_url: Optional[str] = None,
+    user_id: Optional[str] = None
 ) -> str:
     """
     Create a podcast entry in the podcasts collection.
@@ -224,6 +225,12 @@ async def create_podcast(
         podcast_data["upload_id"] = upload_id
         
     # Do not persist supabase_url separately; audio_url will always point to the final embedded URL
+    # Store user_id if provided (as ObjectId when valid)
+    if user_id:
+        try:
+            podcast_data["user_id"] = ObjectId(user_id)
+        except Exception:
+            podcast_data["user_id"] = user_id
     
     try:
         result = await podcasts_collection.insert_one(podcast_data)
@@ -526,7 +533,8 @@ def sync_create_podcast(
     is_featured: bool = False,
     is_published: bool = True,
     upload_id: Optional[str] = None,
-    supabase_url: Optional[str] = None
+    supabase_url: Optional[str] = None,
+    user_id: Optional[str] = None
 ) -> str:
     """Synchronous wrapper for create_podcast"""
     try:
@@ -543,7 +551,8 @@ def sync_create_podcast(
                 is_featured=is_featured,
                 is_published=is_published,
                 upload_id=upload_id,
-                supabase_url=supabase_url
+                supabase_url=supabase_url,
+                user_id=user_id
             )
         )
     except Exception as e:
@@ -658,7 +667,8 @@ async def process_transcription_data(transcription_data: Dict[str, Any], upload_
             duration_seconds=float(results.get("audio_duration", 0)),
             author=user_id,
             tags=["uploaded"],
-            upload_id=upload_data.get("upload_id")
+            upload_id=upload_data.get("upload_id"),
+            user_id=user_id
         )
         
         if podcast_id:

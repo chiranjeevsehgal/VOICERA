@@ -522,6 +522,7 @@ async def process_audio_background(
                     language=podcast_creation_data["language"],
                     upload_id=podcast_creation_data["upload_id"],
                     supabase_url=embedded_supabase_url,  # Use embedded URL
+                    user_id=user_id,
                 ),
             )
 

@@ -628,7 +628,8 @@ async def process_audio_background(
                     author=author,
                     language=detected_language,
                     upload_id=upload_id,
-                    supabase_url=supabase_url
+                    supabase_url=supabase_url,
+                    user_id=str(current_user.get("_id", ""))
                 )
             )
             

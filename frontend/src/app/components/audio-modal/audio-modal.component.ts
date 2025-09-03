@@ -70,6 +70,11 @@ export class AudioModalComponent implements OnInit, OnDestroy, OnChanges, AfterV
     const becameVisible = changes['isVisible']?.currentValue === true && changes['isVisible']?.previousValue !== true;
     const podcastChanged = !!changes['podcast'];
 
+    // Prefill duration from API if available (fallback to loaded metadata later)
+    if (podcastChanged) {
+      this.duration = this.podcast?.audioFile?.duration_seconds ?? 0;
+    }
+
     if ((becameVisible || podcastChanged) && this.isVisible) {
       this.fetchTranscript();
     }
@@ -117,7 +122,7 @@ export class AudioModalComponent implements OnInit, OnDestroy, OnChanges, AfterV
     this.transcriptError = null;
     this.words = [];
 
-    const mp3Url = this.podcast?.audioFile?.user_data?.file_url;
+    const mp3Url = this.podcast?.audioFile?.audio_url || this.podcast?.audioFile?.user_data?.file_url;
     if (!mp3Url) return;
 
     this.transcriptLoading = true;
