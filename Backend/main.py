@@ -1,6 +1,6 @@
 from fastapi import FastAPI, Depends, Request
 from fastapi.middleware.cors import CORSMiddleware
-from api import health, transcribe, embedding, upload, llm_translation, supabase_upload, auth, ip_detection, search, credit_management, oauth, all_in_one, admin, content_management, otpEmailService
+from api import health, transcribe, embedding, upload, llm_translation, supabase_upload, auth, ip_detection, search, credit_management, oauth, admin, content_management, otpEmailService, process_audio
 import uvicorn
 import time
 from utils.analytics import track_api_usage
@@ -99,8 +99,8 @@ app.include_router(oauth.router, prefix="/api", tags=["oauth"])
 # Mail Service Router
 app.include_router(otpEmailService.router, prefix="/api", tags=["mail-service"])
 
-# All-in-one Router
-app.include_router(all_in_one.router, prefix="/api", tags=["all-in-one"])
+# Process Audio Router (modularized)
+app.include_router(process_audio.router, prefix="/api", tags=["process-audio"])
 
 # Admin Router
 app.include_router(admin.router, prefix="/api", tags=["admin"])
