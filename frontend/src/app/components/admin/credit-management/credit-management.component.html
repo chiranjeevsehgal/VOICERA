@@ -1,1 +1,262 @@
-<p>credit-management works!</p>
+<div class="card flex justify-center">
+  <p-toast
+    [breakpoints]="{ '640px': { width: '90vw', right: '5vw', left: '5vw' } }"
+  />
+</div>
+
+<div class="flex flex-col space-y-4 lg:space-y-6">
+  <!-- Loading Overlay for Initial Load -->
+  <div
+    *ngIf="loading && credits.length === 0"
+    class="fixed inset-0 z-50 flex items-center justify-center bg-white/80 backdrop-blur-sm"
+  >
+    <div class="flex flex-col items-center space-y-4">
+      <div
+        class="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"
+      ></div>
+      <p class="text-gray-600 font-medium">Loading IP credits...</p>
+    </div>
+  </div>
+
+  <!-- Search and Filter Controls -->
+  <div
+    class="flex flex-col lg:flex-row gap-3 lg:gap-4 lg:items-center justify-between"
+  >
+    <!-- Search Input -->
+    <div class="flex-1 lg:max-w-md order-1">
+      <div class="relative">
+        <input
+          type="text"
+          placeholder="Search IP addresses..."
+          [(ngModel)]="searchQuery"
+          (input)="filterCredits()"
+          class="w-full pl-10 pr-4 py-2.5 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors duration-200 text-sm sm:text-base"
+        />
+        <div
+          class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"
+        >
+          <svg
+            class="w-4 h-4 sm:w-5 sm:h-5 text-gray-400"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+            />
+          </svg>
+        </div>
+      </div>
+    </div>
+
+    <!-- Filter Controls and Refresh Button -->
+    <div
+      class="flex flex-col lg:flex-row md:flex-row md:justify-center sm:flex-row sm:justify-center xs:flex-row gap-3 lg:gap-4 order-2 items-stretch xs:items-center"
+    >
+      <!-- Refresh Button -->
+      <div class="w-full xs:w-32 sm:w-36 lg:w-40">
+        <button
+          (click)="refreshCredits()"
+          [disabled]="refreshing"
+          class="w-full px-3 py-2.5 cursor-pointer bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition-colors duration-200 flex items-center justify-center space-x-1 sm:space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
+          title="Refresh credits list"
+        >
+          <svg
+            *ngIf="!refreshing"
+            class="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+            />
+          </svg>
+          <svg
+            *ngIf="refreshing"
+            class="animate-spin w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0"
+            fill="none"
+            viewBox="0 0 24 24"
+          >
+            <circle
+              class="opacity-25"
+              cx="12"
+              cy="12"
+              r="10"
+              stroke="currentColor"
+              stroke-width="4"
+            ></circle>
+            <path
+              class="opacity-75"
+              fill="currentColor"
+              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+            ></path>
+          </svg>
+          <span class="text-xs xs:text-sm sm:text-base truncate">
+            {{ refreshing ? "Refreshing..." : "Refresh" }}
+          </span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Credits Table -->
+  <div
+    class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden relative"
+  >
+    <!-- Refreshing Overlay -->
+    <div
+      *ngIf="refreshing"
+      class="absolute inset-0 z-10 flex items-center justify-center bg-white/80 backdrop-blur-sm rounded-2xl"
+    >
+      <div class="flex flex-col items-center space-y-3">
+        <div
+          class="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"
+        ></div>
+        <p class="text-sm text-gray-600 font-medium">Refreshing credits...</p>
+      </div>
+    </div>
+
+    <!-- Table Header -->
+    <div class="px-4 sm:px-6 py-3 sm:py-4 bg-gray-50 border-b border-gray-100">
+      <h3
+        class="text-base sm:text-lg font-semibold text-gray-900 flex items-center space-x-2"
+      >
+        <svg
+          class="w-4 h-4 sm:w-5 sm:h-5 text-indigo-600"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"
+          />
+        </svg>
+        <span>IP Credits ({{ filteredCredits.length }})</span>
+      </h3>
+    </div>
+
+    <!-- Mobile Cards View (xs to md screens) -->
+    <div class="block lg:hidden">
+      <div
+        *ngFor="let credit of filteredCredits; trackBy: trackCreditById"
+        class="p-4 border-b border-gray-100 last:border-b-0"
+      >
+        <!-- Credit Info Row -->
+        <div class="flex items-start space-x-3 mb-3">
+          <div class="min-w-0 flex-1">
+            <p class="font-semibold text-gray-900 text-base">
+              {{ credit.ip }}
+            </p>
+            <p class="text-sm text-gray-500 mb-2">
+              {{ credit.credits | number }} credits
+            </p>
+          </div>
+        </div>
+
+        <!-- Usage Info -->
+        <div class="text-xs text-gray-500 space-y-1">
+          <p>Created: {{ formatCreatedAt(credit.createdAt) }}</p>
+          <p>Last used: {{ formatLastUsed(credit.lastUsed) }}</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Desktop Table View (lg+ screens) -->
+    <div class="hidden lg:block overflow-x-auto">
+      <table class="min-w-full divide-y divide-gray-200">
+        <thead class="bg-gray-50">
+          <tr>
+            <th
+              class="px-4 xl:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+            >
+              IP Address
+            </th>
+            <th
+              class="px-4 xl:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+            >
+              Credits
+            </th>
+            <th
+              class="px-4 xl:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+            >
+              Created
+            </th>
+            <th
+              class="px-4 xl:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+            >
+              Last Used
+            </th>
+          </tr>
+        </thead>
+        <tbody class="bg-white divide-y divide-gray-200">
+          <tr
+            *ngFor="let credit of filteredCredits; trackBy: trackCreditById"
+            class="hover:bg-gray-50 transition-colors duration-200"
+          >
+            <td class="px-4 xl:px-6 py-4 whitespace-nowrap">
+              <div class="flex items-center">
+                <div class="ml-3 lg:ml-4 min-w-0 flex-1">
+                  <div class="text-sm font-semibold text-gray-900">
+                    {{ credit.ip }}
+                  </div>
+                </div>
+              </div>
+            </td>
+            <td class="px-4 xl:px-6 py-4 whitespace-nowrap">
+              <div class="text-sm font-semibold text-gray-900">
+                {{ credit.credits | number }}
+              </div>
+            </td>
+            <td
+              class="px-4 xl:px-6 py-4 whitespace-nowrap text-sm text-gray-500"
+            >
+              {{ formatCreatedAt(credit.createdAt) }}
+            </td>
+            <td
+              class="px-4 xl:px-6 py-4 whitespace-nowrap text-sm text-gray-500"
+            >
+              {{ formatLastUsed(credit.lastUsed) }}
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Empty State -->
+    <div *ngIf="filteredCredits.length === 0" class="text-center py-8 sm:py-12">
+      <div
+        class="w-12 sm:w-16 h-12 sm:h-16 mx-auto mb-3 sm:mb-4 bg-gray-100 rounded-full flex items-center justify-center"
+      >
+        <svg
+          class="w-6 sm:w-8 h-6 sm:h-8 text-gray-400"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"
+          />
+        </svg>
+      </div>
+      <h3 class="text-base sm:text-lg font-semibold text-gray-900 mb-2">
+        No IP credits found
+      </h3>
+      <p class="text-sm sm:text-base text-gray-600">
+        Try adjusting your search or filter criteria.
+      </p>
+    </div>
+  </div>
+</div>

@@ -5,10 +5,11 @@ import { UserManagementComponent } from '../../../components/admin/user-manageme
 import { AdminAuthService } from '../../../services/admin/admin.auth.service';
 import { Subject, takeUntil } from 'rxjs';
 import { UserProfile } from '../../../services/auth/profile.service';
+import { CreditManagementComponent } from '../../../components/admin/credit-management/credit-management.component';
 
 @Component({
   selector: 'app-dashboard',
-  imports: [CommonModule, SidebarComponent, UserManagementComponent],
+  imports: [CommonModule, SidebarComponent, UserManagementComponent, CreditManagementComponent],
   templateUrl: './dashboard.component.html',
   styles: ``
 })

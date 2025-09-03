@@ -1,11 +1,107 @@
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
+import { HttpClientModule } from '@angular/common/http';
+import { IPCredit, CreditService } from '../../../services/admin/credit.service';
+import { Toast } from 'primeng/toast';
+import { MessageService } from 'primeng/api';
 
 @Component({
   selector: 'app-credit-management',
-  imports: [],
+  standalone: true,
+  imports: [Toast, CommonModule, FormsModule, HttpClientModule],
+  providers: [MessageService, CreditService],
   templateUrl: './credit-management.component.html',
-  styles: ``
+  styles: ``,
 })
-export class CreditManagementComponent {
+export class CreditManagementComponent implements OnInit {
+  credits: IPCredit[] = [];
+  filteredCredits: IPCredit[] = [];
+  searchQuery: string = '';
+  selectedCreditRange: string = 'all';
+  loading: boolean = false;
+  refreshing: boolean = false;
+  error: string = '';
+  totalCount: number = 0;
 
+  constructor(
+    private creditService: CreditService,
+    private messageService: MessageService
+  ) {}
+
+  ngOnInit() {
+    this.loadCredits();
+  }
+
+  loadCredits() {
+    this.loading = true;
+    this.error = '';
+
+    this.creditService.getIPCredits().subscribe({
+      next: (response) => {
+        this.totalCount = response.total_count;
+        this.credits = response.ip_credits.map((apiCredit) =>
+          this.creditService.transformApiCredit(apiCredit)
+        );
+        this.filteredCredits = [...this.credits];
+        this.loading = false;
+        this.refreshing = false;
+      },
+      error: (error) => {
+        console.error('Error loading IP credits:', error);
+        this.error = 'Failed to load IP credits. Please try again.';
+        this.loading = false;
+
+        this.messageService.add({
+          severity: 'error',
+          summary: 'Error',
+          detail: 'Failed to load IP credits. Please try again.',
+          life: 5000,
+        });
+
+        this.credits = [];
+        this.filteredCredits = [];
+      },
+    });
+  }
+
+  filterCredits() {
+    this.filteredCredits = this.credits.filter((credit) => {
+      const matchesSearch = credit.ip.toLowerCase().includes(this.searchQuery.toLowerCase());
+      return matchesSearch;
+    });
+  }
+
+  formatLastUsed(date: Date): string {
+    const now = new Date();
+    const diffInHours = Math.floor(
+      (now.getTime() - date.getTime()) / (1000 * 60 * 60)
+    );
+
+    if (diffInHours < 1) return 'Just now';
+    if (diffInHours < 24) return `${diffInHours}h ago`;
+
+    const diffInDays = Math.floor(diffInHours / 24);
+    if (diffInDays < 30) return `${diffInDays}d ago`;
+
+    const diffInMonths = Math.floor(diffInDays / 30);
+    return `${diffInMonths}mo ago`;
+  }
+
+  formatCreatedAt(date: Date): string {
+    return date.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+    });
+  }
+
+  refreshCredits() {
+    this.refreshing = true;
+    this.loadCredits();
+  }
+
+  trackCreditById(index: number, credit: IPCredit): string {
+    return credit.id;
+  }
 }
