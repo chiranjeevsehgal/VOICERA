@@ -4,10 +4,12 @@ import time
 import hashlib
 import threading
 import random
+import math
 from typing import List, Dict, Any
 from together import Together
 from pinecone import Pinecone, ServerlessSpec, CloudProvider, AwsRegion
 from dotenv import load_dotenv
+import requests
 
 # Load environment variables
 load_dotenv()
@@ -27,8 +29,13 @@ UPSERT_MAX_CONCURRENCY = int(os.getenv("UPSERT_MAX_CONCURRENCY", "2"))
 UPSERT_MAX_RETRIES = int(os.getenv("UPSERT_MAX_RETRIES", "5"))
 UPSERT_RETRY_BASE_DELAY = float(os.getenv("UPSERT_RETRY_BASE_DELAY", "0.5"))
 
-# Initialize the Together AI client
-together_client = Together(api_key=TOGETHER_API_KEY)
+# Embedding provider switch: 0 = Together, 1 = Google Gemini
+EMBED_PROVIDER = int(os.getenv("EMBED_PROVIDER", "1"))
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+GEMINI_EMBED_MODEL = os.getenv("GEMINI_EMBED_MODEL", "gemini-embedding-001")
+
+# Initialize the Together AI client lazily to avoid requiring the key when using Google
+together_client = None  # type: ignore
 
 # Global semaphore to limit concurrent embedding requests (helps prevent 429s in bulk)
 _embedding_sem = threading.Semaphore(EMBED_MAX_CONCURRENCY)
@@ -39,6 +46,15 @@ _upsert_sem = threading.Semaphore(UPSERT_MAX_CONCURRENCY)
 # Initialize Pinecone client
 pc = None
 index = None
+
+def _l2_normalize(vec: List[float]) -> List[float]:
+    """L2-normalize a vector to unit length."""
+    if not vec:
+        return vec
+    norm = math.sqrt(sum((x * x) for x in vec))
+    if norm == 0:
+        return vec
+    return [x / norm for x in vec]
 
 def init_pinecone():
     """Initialize the Pinecone client and create index if it doesn't exist"""
@@ -95,38 +111,105 @@ def init_pinecone():
 
 def get_embedding(text: str) -> List[float]:
     """
-    Generate an embedding vector for a text string using Together AI's API
-    with bounded concurrency and retries to handle rate limits in bulk mode.
+    Generate an embedding vector for a text string using the selected provider.
+    Provider switch: 0=Together, 1=Google Gemini.
+    Bounded concurrency and retries are applied to handle rate limits in bulk mode.
     """
-    if not TOGETHER_API_KEY:
-        print("ERROR: TOGETHER_API_KEY is not set")
-        raise ValueError("TOGETHER_API_KEY is not set")
-
     last_err = None
-    for attempt in range(1, EMBED_MAX_RETRIES + 1):
-        try:
-            # Bound concurrency across threads
-            with _embedding_sem:
-                print(f"\nGenerating embedding (attempt {attempt}) for text: {text[:100]}...")
-                print(f"Using model: {EMBEDDING_MODEL}")
-                response = together_client.embeddings.create(
-                    model=EMBEDDING_MODEL,
-                    input=text
-                )
-            embedding = response.data[0].embedding
-            print(f"Generated embedding of dimension: {len(embedding)}")
-            return embedding
-        except Exception as e:
-            last_err = e
-            # Exponential backoff with jitter
-            sleep_s = EMBED_RETRY_BASE_DELAY * (2 ** (attempt - 1)) + random.uniform(0, 0.3)
-            msg = str(e)
-            print(f"[WARN] Embedding attempt {attempt} failed: {msg}. Retrying in {sleep_s:.2f}s...")
-            time.sleep(sleep_s)
 
-    # Exhausted retries
-    print(f"[ERROR] Failed to generate embedding after {EMBED_MAX_RETRIES} attempts: {last_err}")
-    raise last_err
+    # Provider: Together AI
+    if EMBED_PROVIDER == 0:
+        if not TOGETHER_API_KEY:
+            print("ERROR: TOGETHER_API_KEY is not set")
+            raise ValueError("TOGETHER_API_KEY is not set")
+
+        global together_client
+        if together_client is None:
+            together_client = Together(api_key=TOGETHER_API_KEY)
+
+        for attempt in range(1, EMBED_MAX_RETRIES + 1):
+            try:
+                # Bound concurrency across threads
+                with _embedding_sem:
+                    print(f"\nGenerating embedding (attempt {attempt}) for text: {text[:100]}...")
+                    print(f"Using Together model: {EMBEDDING_MODEL}")
+                    response = together_client.embeddings.create(
+                        model=EMBEDDING_MODEL,
+                        input=text
+                    )
+                embedding = response.data[0].embedding
+                print(f"Generated embedding of dimension: {len(embedding)}")
+                return embedding
+            except Exception as e:
+                last_err = e
+                # Exponential backoff with jitter
+                sleep_s = EMBED_RETRY_BASE_DELAY * (2 ** (attempt - 1)) + random.uniform(0, 0.3)
+                msg = str(e)
+                print(f"[WARN] Together embedding attempt {attempt} failed: {msg}. Retrying in {sleep_s:.2f}s...")
+                time.sleep(sleep_s)
+
+        # Exhausted retries
+        print(f"[ERROR] Failed to generate Together embedding after {EMBED_MAX_RETRIES} attempts: {last_err}")
+        raise last_err
+
+    # Provider: Google Gemini
+    elif EMBED_PROVIDER == 1:
+        if not GEMINI_API_KEY:
+            print("ERROR: GEMINI_API_KEY is not set")
+            raise ValueError("GEMINI_API_KEY is not set")
+
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/{GEMINI_EMBED_MODEL}:embedContent"
+        headers = {
+            "Content-Type": "application/json",
+            "x-goog-api-key": GEMINI_API_KEY,
+        }
+
+        for attempt in range(1, EMBED_MAX_RETRIES + 1):
+            try:
+                with _embedding_sem:
+                    print(f"\nGenerating Google embedding (attempt {attempt}) for text: {text[:100]}...")
+                    print(f"Using Google model: {GEMINI_EMBED_MODEL} with target dim {EMBEDDING_DIMENSION}")
+                    payload: Dict[str, Any] = {
+                        "content": {"parts": [{"text": text}]}
+                    }
+                    # Request reduced dimensionality if different from default (3072)
+                    if EMBEDDING_DIMENSION and EMBEDDING_DIMENSION != 3072:
+                        payload["outputDimensionality"] = EMBEDDING_DIMENSION
+
+                    resp = requests.post(url, headers=headers, data=json.dumps(payload), timeout=30)
+                if resp.status_code >= 400:
+                    raise RuntimeError(f"Google Embedding HTTP {resp.status_code}: {resp.text}")
+
+                data = resp.json()
+                # Response may be either {"embedding": {"values": [...]}} or batched {"embeddings": [{"values": [...]}]}
+                embedding = None
+                if isinstance(data, dict):
+                    if "embedding" in data and isinstance(data["embedding"], dict):
+                        embedding = data["embedding"].get("values")
+                    elif "embeddings" in data and isinstance(data["embeddings"], list) and data["embeddings"]:
+                        embedding = data["embeddings"][0].get("values")
+
+                if not embedding or not isinstance(embedding, list):
+                    raise RuntimeError(f"Google Embedding: no embedding values in response: {data}")
+
+                # Normalize for non-default dimensionality (per Google guidance)
+                if EMBEDDING_DIMENSION != 3072:
+                    embedding = _l2_normalize([float(x) for x in embedding])
+
+                print(f"Generated Google embedding of dimension: {len(embedding)}")
+                return embedding  # type: ignore
+            except Exception as e:
+                last_err = e
+                sleep_s = EMBED_RETRY_BASE_DELAY * (2 ** (attempt - 1)) + random.uniform(0, 0.3)
+                msg = str(e)
+                print(f"[WARN] Google embedding attempt {attempt} failed: {msg}. Retrying in {sleep_s:.2f}s...")
+                time.sleep(sleep_s)
+
+        print(f"[ERROR] Failed to generate Google embedding after {EMBED_MAX_RETRIES} attempts: {last_err}")
+        raise last_err
+
+    else:
+        raise ValueError(f"Unsupported EMBED_PROVIDER value: {EMBED_PROVIDER}")
 
 def chunk_transcript(transcript_data: Dict) -> List[Dict]:
     """
