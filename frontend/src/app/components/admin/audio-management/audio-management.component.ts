@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnDestroy, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClientModule } from '@angular/common/http';
@@ -7,6 +7,8 @@ import {
   Podcast,
 } from '../../../services/admin/audio-management.service';
 import { HotToastService } from '@ngxpert/hot-toast';
+import { Subject } from 'rxjs';
+import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
 
 @Component({
   selector: 'app-audio-management',
@@ -16,7 +18,7 @@ import { HotToastService } from '@ngxpert/hot-toast';
   templateUrl: './audio-management.component.html',
   styles: ``,
 })
-export class AudioManagementComponent implements OnInit {
+export class AudioManagementComponent implements OnInit, OnDestroy {
   podcasts: Podcast[] = [];
   filteredPodcasts: Podcast[] = [];
   searchQuery: string = '';
@@ -40,6 +42,8 @@ export class AudioManagementComponent implements OnInit {
   currentPage: number = 1;
   limit: number = 20;
   totalPages: number = 0;
+  private searchSubject = new Subject<string>();
+  private authorSubject = new Subject<string>();
 
   // Audio player state
   currentlyPlaying: string | null = null;
@@ -48,10 +52,46 @@ export class AudioManagementComponent implements OnInit {
   constructor(
     private audioService: AudioService,
     private toast: HotToastService
-  ) {}
+  ) {
+    // Debounced search
+    this.searchSubject
+      .pipe(
+        debounceTime(500), // Waiting 500ms after user stops typing
+        distinctUntilChanged() // Only emit if value actually changed
+      )
+      .subscribe(() => {
+        this.currentPage = 1;
+        this.loadPodcasts();
+      });
+
+    // Setup debounced author filter
+    this.authorSubject
+      .pipe(debounceTime(500), distinctUntilChanged())
+      .subscribe(() => {
+        this.currentPage = 1;
+        this.loadPodcasts();
+      });
+  }
 
   ngOnInit() {
     this.loadPodcasts();
+  }
+
+  ngOnDestroy() {
+    if (this.audioElement) {
+      this.audioElement.pause();
+    }
+    // Complete the subjects to prevent memory leaks
+    this.searchSubject.complete();
+    this.authorSubject.complete();
+  }
+
+  onSearchInput() {
+    this.searchSubject.next(this.searchQuery);
+  }
+
+  onAuthorInput() {
+    this.authorSubject.next(this.selectedAuthor);
   }
 
   loadPodcasts() {
@@ -89,10 +129,10 @@ export class AudioManagementComponent implements OnInit {
       });
   }
 
-  filterPodcasts() {
-    this.currentPage = 1;
-    this.loadPodcasts();
-  }
+  // filterPodcasts() {
+  //   this.currentPage = 1;
+  //   this.loadPodcasts();
+  // }
 
   goToPage(page: number) {
     if (page >= 1 && page <= this.totalPages && page !== this.currentPage) {
@@ -186,12 +226,6 @@ export class AudioManagementComponent implements OnInit {
       this.audioElement.onended = () => {
         this.currentlyPlaying = null;
       };
-    }
-  }
-
-  ngOnDestroy() {
-    if (this.audioElement) {
-      this.audioElement.pause();
     }
   }
 

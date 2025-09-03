@@ -23,7 +23,7 @@
           type="text"
           placeholder="Search audio files..."
           [(ngModel)]="searchQuery"
-          (input)="filterPodcasts()"
+          (input)="onSearchInput()"
           class="w-full pl-10 pr-4 py-2.5 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors duration-200 text-sm sm:text-base"
         />
         <div
@@ -56,7 +56,7 @@
           type="text"
           placeholder="Filter by author..."
           [(ngModel)]="selectedAuthor"
-          (input)="filterPodcasts()"
+          (input)="onAuthorInput()"
           class="w-full px-3 py-2.5 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors duration-200 text-sm sm:text-base"
         />
       </div>
