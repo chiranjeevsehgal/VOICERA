@@ -1,0 +1,75 @@
+import { Injectable } from '@angular/core';
+import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
+import { Observable } from 'rxjs';
+import { environment } from '../../../environments/environment';
+
+export interface Podcast {
+  id: string;
+  title: string;
+  description: string;
+  image_url: string | null;
+  audio_url: string;
+  duration_seconds: number;
+  author: string;
+  published_date: string;
+  tags: string[];
+  language: string;
+  created_at: string;
+  updated_at: string;
+  views: number | null;
+  likes: number | null;
+  average_rating: number | null;
+  is_featured: boolean;
+  is_published: boolean;
+}
+
+export interface AudioResponse {
+  podcasts: Podcast[];
+  total_count: number;
+  page: number;
+  limit: number;
+}
+
+export interface AudioFilters {
+  title_search?: string;
+  author?: string;
+}
+
+@Injectable({
+  providedIn: 'root',
+})
+export class AudioService {
+  private baseUrl = environment.apiUrl;
+
+  constructor(private http: HttpClient) {}
+
+  private getHeaders(): HttpHeaders {
+    const token = localStorage.getItem('vEra_auth_token');
+    return new HttpHeaders({
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    });
+  }
+
+  getAudios(
+    page: number = 1,
+    limit: number = 20,
+    filters: AudioFilters = {}
+  ): Observable<AudioResponse> {
+    let params = new HttpParams()
+      .set('page', page.toString())
+      .set('limit', limit.toString());
+
+    if (filters.title_search) {
+      params = params.set('title_search', filters.title_search);
+    }
+    if (filters.author) {
+      params = params.set('author', filters.author);
+    }
+
+    return this.http.get<AudioResponse>(`${this.baseUrl}/api/audios`, {
+      headers: this.getHeaders(),
+      params: params
+    });
+  }
+}

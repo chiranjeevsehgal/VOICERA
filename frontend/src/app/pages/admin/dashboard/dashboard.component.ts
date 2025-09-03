@@ -6,10 +6,11 @@ import { AdminAuthService } from '../../../services/admin/admin.auth.service';
 import { Subject, takeUntil } from 'rxjs';
 import { UserProfile } from '../../../services/auth/profile.service';
 import { CreditManagementComponent } from '../../../components/admin/credit-management/credit-management.component';
+import { AudioManagementComponent } from '../../../components/admin/audio-management/audio-management.component';
 
 @Component({
   selector: 'app-dashboard',
-  imports: [CommonModule, SidebarComponent, UserManagementComponent, CreditManagementComponent],
+  imports: [CommonModule, SidebarComponent, UserManagementComponent, CreditManagementComponent, AudioManagementComponent],
   templateUrl: './dashboard.component.html',
   styles: ``
 })

@@ -68,8 +68,8 @@ def sanitize_mongo_doc(doc: Dict[str, Any]) -> Dict[str, Any]:
     return doc
 
 # Podcasts Management
-@router.get("/podcasts", response_model=PodcastsResponse, status_code=status.HTTP_200_OK)
-async def list_podcasts(
+@router.get("/audios", response_model=PodcastsResponse, status_code=status.HTTP_200_OK)
+async def list_audios(
     page: int = Query(1, ge=1, description="Page number, starting from 1"),
     limit: int = Query(20, ge=1, le=100, description="Number of items per page"),
     sort_by: str = Query("created_at", description="Field to sort by"),
@@ -138,19 +138,19 @@ async def list_podcasts(
         limit=limit
     )
 
-@router.get("/podcasts/{podcast_id}", response_model=Podcast, status_code=status.HTTP_200_OK)
-async def get_podcast_details(
-    podcast_id: str = Path(..., description="Podcast ID")
+@router.get("/audios/{audio_id}", response_model=Podcast, status_code=status.HTTP_200_OK)
+async def get_audio_details(
+    audio_id: str = Path(..., description="Audio ID")
 ):
     """
     Get detailed information about a specific podcast.
     """
     try:
-        obj_id = ObjectId(podcast_id)
+        obj_id = ObjectId(audio_id)
     except:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid podcast ID format"
+            detail="Invalid audio ID format"
         )
     
     podcast = await podcasts_collection.find_one({"_id": obj_id})
@@ -158,40 +158,40 @@ async def get_podcast_details(
     if not podcast:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Podcast with ID {podcast_id} not found"
+            detail=f"Audio with ID {audio_id} not found"
         )
     
     log_info(
-        f"Viewed podcast details. Podcast ID: {podcast_id}",
+        f"Viewed audio details. Audio ID: {audio_id}",
         "content_management",
-        {"podcast_id": podcast_id}
+        {"audio_id": audio_id}
     )
     
     return sanitize_mongo_doc(podcast)
 
-@router.put("/podcasts/{podcast_id}", response_model=Podcast, status_code=status.HTTP_200_OK)
-async def update_podcast(
+@router.put("/audios/{audio_id}", response_model=Podcast, status_code=status.HTTP_200_OK)
+async def update_audio(
     update_data: PodcastUpdate,
-    podcast_id: str = Path(..., description="Podcast ID"),
+    audio_id: str = Path(..., description="Audio ID"),
     current_user: Dict[str, Any] = Depends(requires_role("admin"))
 ):
     """
-    Update details of a specific podcast.
+    Update details of a specific audio.
     Only accessible to administrators.
     """
     try:
-        obj_id = ObjectId(podcast_id)
+        obj_id = ObjectId(audio_id)
     except:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid podcast ID format"
+            detail="Invalid audio ID format"
         )
     
     existing_podcast = await podcasts_collection.find_one({"_id": obj_id})
     if not existing_podcast:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Podcast with ID {podcast_id} not found"
+            detail=f"Audio with ID {audio_id} not found"
         )
     
     update_dict = update_data.dict(exclude_unset=True, exclude_none=True)
@@ -209,46 +209,46 @@ async def update_podcast(
     updated_podcast = await podcasts_collection.find_one({"_id": obj_id})
     
     log_info(
-        f"Admin updated podcast. Podcast ID: {podcast_id}, Changes: {update_dict}",
+        f"Admin updated podcast. Podcast ID: {audio_id}, Changes: {update_dict}",
         "content_management",
-        {"admin_id": str(current_user["_id"]), "podcast_id": podcast_id}
+        {"admin_id": str(current_user["_id"]), "podcast_id": audio_id}
     )
     
     return sanitize_mongo_doc(updated_podcast)
 
-@router.delete("/podcasts/{podcast_id}", status_code=status.HTTP_200_OK)
-async def delete_podcast(
-    podcast_id: str = Path(..., description="Podcast ID"),
+@router.delete("/audios/{audio_id}", status_code=status.HTTP_200_OK)
+async def delete_audio(
+    audio_id: str = Path(..., description="Audio ID"),
     current_user: Dict[str, Any] = Depends(requires_role("admin"))
 ):
     """
-    Permanently delete a podcast from the system.
+    Permanently delete an audio from the system.
     Only accessible to administrators.
     """
     try:
-        obj_id = ObjectId(podcast_id)
+        obj_id = ObjectId(audio_id)
     except:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid podcast ID format"
+            detail="Invalid audio ID format"
         )
     
     existing_podcast = await podcasts_collection.find_one({"_id": obj_id})
     if not existing_podcast:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Podcast with ID {podcast_id} not found"
+            detail=f"Audio with ID {audio_id} not found"
         )
     
     await podcasts_collection.delete_one({"_id": obj_id})
     
     log_info(
-        f"Admin deleted podcast. Podcast ID: {podcast_id}",
+        f"Admin deleted audio. Audio ID: {audio_id}",
         "content_management",
-        {"admin_id": str(current_user["_id"]), "podcast_id": podcast_id}
+        {"admin_id": str(current_user["_id"]), "audio_id": audio_id}
     )
     
-    return {"status": "success", "detail": f"Podcast {podcast_id} has been permanently deleted"}
+    return {"status": "success", "detail": f"Audio {audio_id} has been permanently deleted"}
 
 # Transcripts Management
 @router.get("/transcripts", response_model=TranscriptsResponse, status_code=status.HTTP_200_OK)
