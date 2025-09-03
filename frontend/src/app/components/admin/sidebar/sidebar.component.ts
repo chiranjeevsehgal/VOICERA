@@ -26,18 +26,13 @@ export interface SidebarItem {
 export class SidebarComponent {
   @Input() isOpen: boolean = false;
   @Input() isMobile: boolean = false;
-  @Input() currentView: string = 'dashboard';
+  @Input() currentView: string = 'user-management';
   @Output() itemSelected = new EventEmitter<string>();
   @Output() sidebarToggle = new EventEmitter<void>();
 
   constructor(private router: Router, private messageService: MessageService) {}
 
   sidebarItems: SidebarItem[] = [
-    {
-      id: 'dashboard',
-      label: 'Dashboard',
-      icon: Home,
-    },
     {
       id: 'user-management',
       label: 'User Management',

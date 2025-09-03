@@ -6,10 +6,11 @@ import { AdminAuthService } from '../../../services/admin/admin.auth.service';
 import { Subject, takeUntil } from 'rxjs';
 import { UserProfile } from '../../../services/auth/profile.service';
 import { CreditManagementComponent } from '../../../components/admin/credit-management/credit-management.component';
+import { AudioManagementComponent } from '../../../components/admin/audio-management/audio-management.component';
 
 @Component({
   selector: 'app-dashboard',
-  imports: [CommonModule, SidebarComponent, UserManagementComponent, CreditManagementComponent],
+  imports: [CommonModule, SidebarComponent, UserManagementComponent, CreditManagementComponent, AudioManagementComponent],
   templateUrl: './dashboard.component.html',
   styles: ``
 })
@@ -18,7 +19,7 @@ export class AdminDashboardComponent implements OnInit, OnDestroy  {
   // Sidebar state management
   isSidebarOpen: boolean = false;
   isMobile: boolean = false;
-  currentView: string = 'dashboard';
+  currentView: string = 'user-management';
   userProfile: UserProfile | null = null;
   userInitials: string = 'A';
   isLoadingProfile: boolean = true;
@@ -73,7 +74,7 @@ export class AdminDashboardComponent implements OnInit, OnDestroy  {
     if (savedView && this.isValidView(savedView)) {
       this.currentView = savedView;
     }
-    // If no saved view or invalid view, it will remain 'dashboard'
+    // If no saved view or invalid view, it will remain 'user-management'
   }
 
   private saveCurrentView(): void {
@@ -86,7 +87,6 @@ export class AdminDashboardComponent implements OnInit, OnDestroy  {
 
   private isValidView(view: string): boolean {
     const validViews = [
-      'dashboard',
       'user-management', 
       'audio-management',
       'credit-management',
@@ -117,14 +117,9 @@ export class AdminDashboardComponent implements OnInit, OnDestroy  {
   // Helper method to get page title
   getPageTitle(): string {
     const titles: { [key: string]: string } = {
-      'dashboard': 'Dashboard Overview',
       'user-management': 'User Management',
       'credit-management': 'Credit Management',
       'audio-management': 'Audio Management',
-      'search-analytics': 'Search Analytics',
-      'ai-configuration': 'AI Configuration',
-      'system-settings': 'System Settings',
-      'reports': 'Reports & Logs'
     };
     return titles[this.currentView] || 'Dashboard';
   }
@@ -132,14 +127,9 @@ export class AdminDashboardComponent implements OnInit, OnDestroy  {
   // Helper method to get page description
   getPageDescription(): string {
     const descriptions: { [key: string]: string } = {
-      'dashboard': 'Welcome to your audio search admin dashboard',
       'user-management': 'Manage user accounts',
       'credit-management': 'Manage user credits based on IP',
       'audio-management': 'Upload, organize and manage audio content',
-      'search-analytics': 'View search performance and user behavior',
-      'ai-configuration': 'Configure AI models and search parameters',
-      'system-settings': 'System configuration and preferences',
-      'reports': 'Generate reports and view system logs'
     };
     return descriptions[this.currentView] || 'Manage your application';
   }
