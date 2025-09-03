@@ -24,6 +24,15 @@ export interface IPCredit {
   lastUsed: Date;
 }
 
+export interface ApiUpdateCreditResponse {
+  id: string;
+  ip: string;
+  old_credits: number;
+  new_credits: number;
+  updated_at: string;
+  updated_by: string;
+}
+
 @Injectable({
   providedIn: 'root',
 })
@@ -46,6 +55,17 @@ export class CreditService {
       {
         headers: this.getHeaders(),
       }
+    );
+  }
+
+  updateIPCredits(
+    ip: string,
+    credits: number
+  ): Observable<ApiUpdateCreditResponse> {
+    return this.http.put<ApiUpdateCreditResponse>(
+      `${this.baseUrl}/api/admin/ip-credits/${ip}/credits`,
+      { credits },
+      { headers: this.getHeaders() }
     );
   }
 

@@ -2,7 +2,10 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClientModule } from '@angular/common/http';
-import { IPCredit, CreditService } from '../../../services/admin/credit.service';
+import {
+  IPCredit,
+  CreditService,
+} from '../../../services/admin/credit.service';
 import { HotToastService } from '@ngxpert/hot-toast';
 
 @Component({
@@ -22,10 +25,14 @@ export class CreditManagementComponent implements OnInit {
   refreshing: boolean = false;
   error: string = '';
   totalCount: number = 0;
+  showEditModal: boolean = false;
+  creditToEdit: IPCredit | null = null;
+  newCreditAmount: number = 0;
+  updatingCredits: boolean = false;
 
   constructor(
     private creditService: CreditService,
-    private toast:HotToastService
+    private toast: HotToastService
   ) {}
 
   ngOnInit() {
@@ -61,7 +68,9 @@ export class CreditManagementComponent implements OnInit {
 
   filterCredits() {
     this.filteredCredits = this.credits.filter((credit) => {
-      const matchesSearch = credit.ip.toLowerCase().includes(this.searchQuery.toLowerCase());
+      const matchesSearch = credit.ip
+        .toLowerCase()
+        .includes(this.searchQuery.toLowerCase());
       return matchesSearch;
     });
   }
@@ -97,5 +106,56 @@ export class CreditManagementComponent implements OnInit {
 
   trackCreditById(index: number, credit: IPCredit): string {
     return credit.id;
+  }
+
+  openEditModal(credit: IPCredit) {
+    this.creditToEdit = credit;
+    this.newCreditAmount = credit.credits;
+    this.showEditModal = true;
+  }
+
+  closeEditModal() {
+    this.showEditModal = false;
+    this.creditToEdit = null;
+    this.newCreditAmount = 0;
+    this.updatingCredits = false;
+  }
+
+  confirmUpdateCredits() {
+    if (!this.creditToEdit || this.newCreditAmount < 0) return;
+
+    this.updatingCredits = true;
+
+    this.creditService
+      .updateIPCredits(this.creditToEdit.ip, this.newCreditAmount)
+      .subscribe({
+        next: (response) => {
+          // Update the credit in local arrays
+          const creditIndex = this.credits.findIndex(
+            (c) => c.id === this.creditToEdit!.id
+          );
+          if (creditIndex !== -1) {
+            this.credits[creditIndex].credits = response.new_credits;
+            // Update filtered credits as well
+            const filteredIndex = this.filteredCredits.findIndex(
+              (c) => c.id === this.creditToEdit!.id
+            );
+            if (filteredIndex !== -1) {
+              this.filteredCredits[filteredIndex].credits =
+                response.new_credits;
+            }
+          }
+
+          this.toast.success(
+            `Credits updated successfully for ${this.creditToEdit!.ip}`
+          );
+          this.closeEditModal();
+        },
+        error: (error) => {
+          console.error('Error updating credits:', error);
+          this.toast.error('Failed to update credits. Please try again.');
+          this.updatingCredits = false;
+        },
+      });
   }
 }
