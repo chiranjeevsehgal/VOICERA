@@ -12,6 +12,7 @@ from utils.logging_config import setup_logging
 # Initialize logging before app and routers
 setup_logging()
 logger = logging.getLogger("voicera.main")
+from middleware.user_status import UserStatusMiddleware
 
 # Create a middleware class for API usage tracking
 class APIUsageMiddleware(BaseHTTPMiddleware):
@@ -72,6 +73,11 @@ app = FastAPI(
     description="Backend for VOICERA",
     version="1.0.0"
 )
+# Add user status checking middleware
+app.add_middleware(UserStatusMiddleware)
+
+# Add API usage tracking middleware
+app.add_middleware(APIUsageMiddleware)
 
 app.add_middleware(
     CORSMiddleware,
@@ -81,8 +87,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Add API usage tracking middleware
-app.add_middleware(APIUsageMiddleware)
 
 @app.get("/")
 async def root():

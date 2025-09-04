@@ -45,6 +45,17 @@ async def google_login(
     
     # Get or create user
     user = await get_or_create_user_from_google(google_user_info)
+
+    if user.get("status") == "inactive":
+        return JSONResponse(
+            status_code=status.HTTP_403_FORBIDDEN,
+            content={
+                "status": False,
+                "detail": "Your account is inactive. Please contact support for assistance.",
+                "access_token": None,
+                "token_type": None
+            }
+        )
     
     # Generate JWT
     token_data = {
