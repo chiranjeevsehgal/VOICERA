@@ -147,7 +147,9 @@
         >
           <p
             class="text-xs sm:text-sm text-gray-500 order-2 sm:order-1 text-center sm:text-left"
-          >Tweak Parameters for better results</p>
+          >
+            Tweak Parameters for better results
+          </p>
           <div class="order-1 sm:order-2 w-full sm:w-auto">
             <div
               class="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-3 items-end"
@@ -242,23 +244,25 @@
         </div>
       </div>
 
-      <!-- Loading state -->
+      <!-- Loading state with Perceptron Animation -->
       <div
         *ngIf="loading"
         class="text-center py-12 sm:py-16 md:py-20 bg-white rounded-2xl sm:rounded-3xl shadow-lg border border-gray-100"
       >
-        <div
-          class="animate-spin rounded-full h-12 w-12 sm:h-16 sm:w-16 border-4 border-indigo-600 border-t-transparent mx-auto mb-4 sm:mb-6"
-        ></div>
+        <!-- Perceptron Neural Network Animation -->
+        <div class="mb-6 sm:mb-8 flex justify-center">
+          <canvas
+            #perceptronCanvas
+            class="rounded-xl border border-gray-200 shadow-inner bg-slate-50"
+            width="700"
+            height="600"
+            style="max-width: 100%; height: 100%"
+          ></canvas>
+        </div>
         <div class="max-w-md mx-auto px-4">
-          <h3
-            class="text-xl sm:text-2xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent mb-3 sm:mb-4"
-          >
-            Processing Your Query
-          </h3>
-          <p class="text-gray-600 text-sm sm:text-base">
-            Our AI is understanding the semantic meaning of your search...
-          </p>
+          <div
+            class="mt-4 flex items-center justify-center space-x-4 text-xs text-gray-500"
+          ></div>
         </div>
       </div>
 
