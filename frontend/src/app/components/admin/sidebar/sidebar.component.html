@@ -109,10 +109,19 @@
                 'text-gray-400 group-hover:text-indigo-500': !item.active
               }"
             >
-              <lucide-icon
-                [img]="item.icon"
-                class="w-full h-full"
-              ></lucide-icon>
+              <ng-container *ngIf="item.icon; else iconByName">
+                <lucide-icon
+                  [img]="item.icon"
+                  class="w-full h-full"
+                ></lucide-icon>
+              </ng-container>
+              <ng-template #iconByName>
+                <lucide-icon
+                  *ngIf="item.iconName"
+                  [name]="item.iconName"
+                  class="w-full h-full"
+                ></lucide-icon>
+              </ng-template>
             </div>
           </div>
 

@@ -509,22 +509,48 @@ async def create_user(
 @router.get("/analytics/usage", response_model=APIUsageStats, status_code=status.HTTP_200_OK)
 async def get_api_usage_metrics(
     current_user: Dict[str, Any] = Depends(requires_role("admin")),
-    days: int = Query(30, ge=1, le=365, description="Number of days to include in analytics")
+    days: int = Query(30, ge=1, le=365, description="Number of days to include in analytics"),
+    ip_address: Optional[str] = Query(None, description="Filter by specific IP address"),
+    user_id: Optional[str] = Query(None, description="Filter by specific user ID"),
+    endpoint: Optional[str] = Query(None, description="Filter by specific endpoint"),
+    status_code: Optional[int] = Query(None, description="Filter by HTTP status code"),
+    start_date: Optional[datetime] = Query(None, description="Custom start date"),
+    end_date: Optional[datetime] = Query(None, description="Custom end date")
 ):
     """
-    Track API usage metrics.
+    Track API usage metrics with advanced filtering.
     Returns data on API usage patterns, endpoint popularity, and performance metrics.
     Only accessible to administrators.
     """
-    start_date = datetime.utcnow() - timedelta(days=days)
+    # Use custom date range if provided, otherwise use days parameter
+    if start_date and end_date:
+        filter_start = start_date
+        filter_end = end_date
+    else:
+        filter_start = datetime.utcnow() - timedelta(days=days)
+        filter_end = datetime.utcnow()
+    
+    # Build match filter
+    match_filter = {"timestamp": {"$gte": filter_start, "$lte": filter_end}}
+    
+    if ip_address:
+        match_filter["ip_address"] = ip_address
+    if user_id:
+        match_filter["user_id"] = user_id
+    if endpoint:
+        match_filter["endpoint"] = {"$regex": endpoint, "$options": "i"}
+    if status_code:
+        match_filter["status_code"] = status_code
     
     # Get usage metrics from the database
     pipeline = [
-        {"$match": {"timestamp": {"$gte": start_date}}},
+        {"$match": match_filter},
         {"$group": {
             "_id": None,
             "total_requests": {"$sum": 1},
             "average_response_time": {"$avg": "$response_time"},
+            "min_response_time": {"$min": "$response_time"},
+            "max_response_time": {"$max": "$response_time"},
             "min_date": {"$min": "$timestamp"},
             "max_date": {"$max": "$timestamp"}
         }}
@@ -536,30 +562,78 @@ async def get_api_usage_metrics(
         # Return empty stats if no data found
         return APIUsageStats(
             date_range={
-                "start": start_date,
-                "end": datetime.utcnow()
+                "start": filter_start,
+                "end": filter_end
             }
         )
     
     # Get endpoint distribution
     endpoint_pipeline = [
-        {"$match": {"timestamp": {"$gte": start_date}}},
+        {"$match": match_filter},
         {"$group": {
             "_id": "$endpoint",
-            "count": {"$sum": 1}
+            "count": {"$sum": 1},
+            "avg_response_time": {"$avg": "$response_time"},
+            "success_rate": {
+                "$avg": {
+                    "$cond": [{"$lt": ["$status_code", 400]}, 1, 0]
+                }
+            }
         }},
         {"$sort": {"count": -1}}
     ]
     
     endpoint_results = await api_usage_collection.aggregate(endpoint_pipeline).to_list(length=100)
     endpoint_counts = {item["_id"]: item["count"] for item in endpoint_results}
+    endpoint_details = [
+        {
+            "endpoint": item.get("_id"),
+            "count": item.get("count", 0),
+            "avg_response_time": item.get("avg_response_time"),
+            "success_rate": item.get("success_rate"),
+        }
+        for item in endpoint_results
+    ]
+
+    # Get IP distribution with detailed stats
+    ip_pipeline = [
+        {"$match": dict(match_filter, **{"ip_address": {"$exists": True, "$nin": [None, ""]}})},
+        {"$group": {
+            "_id": "$ip_address",
+            "count": {"$sum": 1},
+            "unique_endpoints": {"$addToSet": "$endpoint"},
+            "avg_response_time": {"$avg": "$response_time"},
+            "last_seen": {"$max": "$timestamp"},
+            "first_seen": {"$min": "$timestamp"},
+            "user_agents": {"$addToSet": "$user_agent"}
+        }},
+        {"$sort": {"count": -1}},
+        {"$limit": 100}
+    ]
+
+    ip_results = await api_usage_collection.aggregate(ip_pipeline).to_list(length=100)
+    ip_counts = {str(item["_id"]): item["count"] for item in ip_results}
+    ip_details = [
+        {
+            "ip": str(item.get("_id")),
+            "count": item.get("count", 0),
+            "avg_response_time": item.get("avg_response_time"),
+            "last_seen": item.get("last_seen"),
+            "first_seen": item.get("first_seen"),
+            "unique_endpoints": len(item.get("unique_endpoints", [])),
+        }
+        for item in ip_results
+    ]
     
     # Get user distribution
     user_pipeline = [
-        {"$match": {"timestamp": {"$gte": start_date}, "user_id": {"$exists": True}}},
+        {"$match": dict(match_filter, **{"user_id": {"$exists": True, "$nin": [None, ""]}})},
         {"$group": {
             "_id": "$user_id",
-            "count": {"$sum": 1}
+            "count": {"$sum": 1},
+            "unique_endpoints": {"$addToSet": "$endpoint"},
+            "avg_response_time": {"$avg": "$response_time"},
+            "last_activity": {"$max": "$timestamp"}
         }},
         {"$sort": {"count": -1}},
         {"$limit": 50}
@@ -568,19 +642,317 @@ async def get_api_usage_metrics(
     user_results = await api_usage_collection.aggregate(user_pipeline).to_list(length=50)
     user_counts = {str(item["_id"]): item["count"] for item in user_results}
     
+    # Get status code distribution
+    status_pipeline = [
+        {"$match": match_filter},
+        {"$group": {
+            "_id": "$status_code",
+            "count": {"$sum": 1}
+        }},
+        {"$sort": {"_id": 1}}
+    ]
+    
+    status_results = await api_usage_collection.aggregate(status_pipeline).to_list(length=20)
+    status_counts = {str(item["_id"]): item["count"] for item in status_results}
+    
+    # Get hourly distribution
+    hourly_pipeline = [
+        {"$match": match_filter},
+        {"$group": {
+            "_id": {"$hour": "$timestamp"},
+            "count": {"$sum": 1}
+        }},
+        {"$sort": {"_id": 1}}
+    ]
+    
+    hourly_results = await api_usage_collection.aggregate(hourly_pipeline).to_list(length=24)
+    hourly_counts = {str(item["_id"]): item["count"] for item in hourly_results}
+    
     # Construct the response
     stats = APIUsageStats(
         total_requests=result[0].get("total_requests", 0),
         endpoint_counts=endpoint_counts,
         user_counts=user_counts,
+        ip_counts=ip_counts,
+        status_counts=status_counts,
+        hourly_distribution=hourly_counts,
         average_response_time=result[0].get("average_response_time"),
+        min_response_time=result[0].get("min_response_time"),
+        max_response_time=result[0].get("max_response_time"),
+        endpoint_details=endpoint_details,
+        ip_details=ip_details,
         date_range={
-            "start": result[0].get("min_date", start_date),
-            "end": result[0].get("max_date", datetime.utcnow())
+            "start": result[0].get("min_date", filter_start),
+            "end": result[0].get("max_date", filter_end)
         }
     )
     
     return stats
+
+@router.get("/analytics/ip-details/{ip_address}", status_code=status.HTTP_200_OK)
+async def get_ip_detailed_analytics(
+    ip_address: str,
+    current_user: Dict[str, Any] = Depends(requires_role("admin")),
+    days: int = Query(30, ge=1, le=365, description="Number of days to include in analytics")
+):
+    """
+    Get detailed analytics for a specific IP address.
+    Returns comprehensive usage patterns, endpoints accessed, and behavior analysis.
+    Only accessible to administrators.
+    """
+    start_date = datetime.utcnow() - timedelta(days=days)
+    match_filter = {
+        "timestamp": {"$gte": start_date},
+        "ip_address": ip_address
+    }
+    
+    # Get overall stats for this IP
+    overall_pipeline = [
+        {"$match": match_filter},
+        {"$group": {
+            "_id": None,
+            "total_requests": {"$sum": 1},
+            "unique_endpoints": {"$addToSet": "$endpoint"},
+            "unique_user_agents": {"$addToSet": "$user_agent"},
+            "avg_response_time": {"$avg": "$response_time"},
+            "first_seen": {"$min": "$timestamp"},
+            "last_seen": {"$max": "$timestamp"},
+            "unique_users": {"$addToSet": "$user_id"}
+        }}
+    ]
+    
+    overall_result = await api_usage_collection.aggregate(overall_pipeline).to_list(length=1)
+    
+    # Get endpoint breakdown
+    endpoint_pipeline = [
+        {"$match": match_filter},
+        {"$group": {
+            "_id": "$endpoint",
+            "count": {"$sum": 1},
+            "avg_response_time": {"$avg": "$response_time"},
+            "status_codes": {"$push": "$status_code"},
+            "last_accessed": {"$max": "$timestamp"}
+        }},
+        {"$sort": {"count": -1}}
+    ]
+    
+    endpoint_results = await api_usage_collection.aggregate(endpoint_pipeline).to_list(length=100)
+    
+    # Get hourly activity pattern
+    hourly_pipeline = [
+        {"$match": match_filter},
+        {"$group": {
+            "_id": {"$hour": "$timestamp"},
+            "count": {"$sum": 1}
+        }},
+        {"$sort": {"_id": 1}}
+    ]
+    
+    hourly_results = await api_usage_collection.aggregate(hourly_pipeline).to_list(length=24)
+    
+    # Get daily activity pattern
+    daily_pipeline = [
+        {"$match": match_filter},
+        {"$group": {
+            "_id": {
+                "year": {"$year": "$timestamp"},
+                "month": {"$month": "$timestamp"},
+                "day": {"$dayOfMonth": "$timestamp"}
+            },
+            "count": {"$sum": 1},
+            "avg_response_time": {"$avg": "$response_time"}
+        }},
+        {"$sort": {"_id": 1}}
+    ]
+    
+    daily_results = await api_usage_collection.aggregate(daily_pipeline).to_list(length=365)
+    
+    # Get status code distribution
+    status_pipeline = [
+        {"$match": match_filter},
+        {"$group": {
+            "_id": "$status_code",
+            "count": {"$sum": 1}
+        }},
+        {"$sort": {"_id": 1}}
+    ]
+    
+    status_results = await api_usage_collection.aggregate(status_pipeline).to_list(length=20)
+    
+    if not overall_result:
+        return {
+            "ip_address": ip_address,
+            "message": "No data found for this IP address in the specified time range",
+            "date_range": {"start": start_date, "end": datetime.utcnow()}
+        }
+    
+    overall_stats = overall_result[0]
+    
+    return {
+        "ip_address": ip_address,
+        "summary": {
+            "total_requests": overall_stats.get("total_requests", 0),
+            "unique_endpoints": len(overall_stats.get("unique_endpoints", [])),
+            "unique_user_agents": len(overall_stats.get("unique_user_agents", [])),
+            "unique_users": len([u for u in overall_stats.get("unique_users", []) if u]),
+            "avg_response_time": overall_stats.get("avg_response_time"),
+            "first_seen": overall_stats.get("first_seen"),
+            "last_seen": overall_stats.get("last_seen")
+        },
+        "endpoints": [
+            {
+                "endpoint": result["_id"],
+                "count": result["count"],
+                "avg_response_time": result["avg_response_time"],
+                "last_accessed": result["last_accessed"],
+                "success_rate": len([s for s in result["status_codes"] if s < 400]) / len(result["status_codes"]) if result["status_codes"] else 0
+            }
+            for result in endpoint_results
+        ],
+        "hourly_pattern": {str(result["_id"]): result["count"] for result in hourly_results},
+        "daily_activity": [
+            {
+                "date": f"{result['_id']['year']}-{result['_id']['month']:02d}-{result['_id']['day']:02d}",
+                "requests": result["count"],
+                "avg_response_time": result["avg_response_time"]
+            }
+            for result in daily_results
+        ],
+        "status_distribution": {str(result["_id"]): result["count"] for result in status_results},
+        "user_agents": overall_stats.get("unique_user_agents", []),
+        "date_range": {"start": start_date, "end": datetime.utcnow()}
+    }
+
+@router.get("/analytics/real-time", status_code=status.HTTP_200_OK)
+async def get_real_time_analytics(
+    current_user: Dict[str, Any] = Depends(requires_role("admin")),
+    minutes: int = Query(60, ge=1, le=1440, description="Number of minutes for real-time data")
+):
+    """
+    Get real-time analytics for the last N minutes.
+    Returns live data on current API usage, active IPs, and performance metrics.
+    Only accessible to administrators.
+    """
+    start_time = datetime.utcnow() - timedelta(minutes=minutes)
+    match_filter = {"timestamp": {"$gte": start_time}}
+    
+    # Get current activity summary
+    summary_pipeline = [
+        {"$match": match_filter},
+        {"$group": {
+            "_id": None,
+            "total_requests": {"$sum": 1},
+            "unique_ips": {"$addToSet": "$ip_address"},
+            "unique_users": {"$addToSet": "$user_id"},
+            "avg_response_time": {"$avg": "$response_time"},
+            "error_count": {
+                "$sum": {
+                    "$cond": [{"$gte": ["$status_code", 400]}, 1, 0]
+                }
+            }
+        }}
+    ]
+    
+    summary_result = await api_usage_collection.aggregate(summary_pipeline).to_list(length=1)
+    
+    # Get minute-by-minute breakdown
+    minute_pipeline = [
+        {"$match": match_filter},
+        {"$group": {
+            "_id": {
+                "year": {"$year": "$timestamp"},
+                "month": {"$month": "$timestamp"},
+                "day": {"$dayOfMonth": "$timestamp"},
+                "hour": {"$hour": "$timestamp"},
+                "minute": {"$minute": "$timestamp"}
+            },
+            "count": {"$sum": 1},
+            "avg_response_time": {"$avg": "$response_time"},
+            "errors": {
+                "$sum": {
+                    "$cond": [{"$gte": ["$status_code", 400]}, 1, 0]
+                }
+            }
+        }},
+        {"$sort": {"_id": 1}}
+    ]
+    
+    minute_results = await api_usage_collection.aggregate(minute_pipeline).to_list(length=1440)
+    
+    # Get most active IPs in real-time
+    active_ips_pipeline = [
+        {"$match": match_filter},
+        {"$group": {
+            "_id": "$ip_address",
+            "count": {"$sum": 1},
+            "last_seen": {"$max": "$timestamp"},
+            "endpoints": {"$addToSet": "$endpoint"}
+        }},
+        {"$sort": {"count": -1}},
+        {"$limit": 20}
+    ]
+    
+    active_ips_results = await api_usage_collection.aggregate(active_ips_pipeline).to_list(length=20)
+    
+    # Get most accessed endpoints
+    endpoints_pipeline = [
+        {"$match": match_filter},
+        {"$group": {
+            "_id": "$endpoint",
+            "count": {"$sum": 1},
+            "avg_response_time": {"$avg": "$response_time"}
+        }},
+        {"$sort": {"count": -1}},
+        {"$limit": 15}
+    ]
+    
+    endpoints_results = await api_usage_collection.aggregate(endpoints_pipeline).to_list(length=15)
+    
+    if not summary_result:
+        return {
+            "message": "No real-time data available",
+            "time_range": {"start": start_time, "end": datetime.utcnow()}
+        }
+    
+    summary = summary_result[0]
+    
+    return {
+        "summary": {
+            "total_requests": summary.get("total_requests", 0),
+            "unique_ips": len(summary.get("unique_ips", [])),
+            "unique_users": len([u for u in summary.get("unique_users", []) if u]),
+            "avg_response_time": summary.get("avg_response_time"),
+            "error_rate": (summary.get("error_count", 0) / summary.get("total_requests", 1)) * 100,
+            "requests_per_minute": summary.get("total_requests", 0) / minutes
+        },
+        "timeline": [
+            {
+                "timestamp": f"{result['_id']['year']}-{result['_id']['month']:02d}-{result['_id']['day']:02d} {result['_id']['hour']:02d}:{result['_id']['minute']:02d}",
+                "requests": result["count"],
+                "avg_response_time": result["avg_response_time"],
+                "errors": result["errors"]
+            }
+            for result in minute_results
+        ],
+        "active_ips": [
+            {
+                "ip": result["_id"],
+                "requests": result["count"],
+                "last_seen": result["last_seen"],
+                "unique_endpoints": len(result["endpoints"])
+            }
+            for result in active_ips_results
+        ],
+        "top_endpoints": [
+            {
+                "endpoint": result["_id"],
+                "requests": result["count"],
+                "avg_response_time": result["avg_response_time"]
+            }
+            for result in endpoints_results
+        ],
+        "time_range": {"start": start_time, "end": datetime.utcnow()}
+    }
 
 @router.get("/analytics/transcriptions", response_model=TranscriptionStats, status_code=status.HTTP_200_OK)
 async def get_transcription_statistics(
