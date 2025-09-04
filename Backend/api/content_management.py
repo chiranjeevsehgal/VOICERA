@@ -1,30 +1,22 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Query, Path, Body
-from fastapi.responses import JSONResponse
+from fastapi import APIRouter, Depends, HTTPException, status, Query, Path
 from typing import List, Optional, Dict, Any
 from bson import ObjectId
 from datetime import datetime
 from pydantic import HttpUrl # Import HttpUrl
 
-from services.auth import get_current_user, requires_role
+from services.auth import requires_role
 from services.database import (
     podcasts_collection,
-    transcripts_collection,
     uploads_collection,
-    featured_content_collection
 )
 from models.content import (
     Podcast,
     PodcastsResponse,
-    Transcript,
-    TranscriptsResponse,
     Upload,
     UploadsResponse,
-    FeaturedContent,
-    FeaturedContentResponse,
     PodcastBase, # Import PodcastBase for update model
-    TranscriptBase # Import TranscriptBase for update model
 )
-from utils.logging import log_info, log_error
+from utils.logging import log_info
 
 router = APIRouter()
 
@@ -45,16 +37,6 @@ class PodcastUpdate(PodcastBase):
     likes: Optional[int] = None
     average_rating: Optional[float] = None
     transcription_status: Optional[str] = None # Add transcription_status for updates
-
-class TranscriptUpdate(TranscriptBase):
-    podcast_id: Optional[str] = None
-    content: Optional[str] = None
-    language: Optional[str] = None
-    is_edited: Optional[bool] = None
-    is_published: Optional[bool] = None
-    segments: Optional[List[Dict[str, Any]]] = None
-    confidence_score: Optional[float] = None
-    word_count: Optional[int] = None
 
 # Helper functions
 def sanitize_mongo_doc(doc: Dict[str, Any]) -> Dict[str, Any]:
@@ -250,191 +232,6 @@ async def delete_audio(
     
     return {"status": "success", "detail": f"Audio {audio_id} has been permanently deleted"}
 
-# Transcripts Management
-@router.get("/transcripts", response_model=TranscriptsResponse, status_code=status.HTTP_200_OK)
-async def list_transcripts(
-    current_user: Dict[str, Any] = Depends(requires_role("admin")),
-    page: int = Query(1, ge=1, description="Page number, starting from 1"),
-    limit: int = Query(20, ge=1, le=100, description="Number of items per page"),
-    sort_by: str = Query("created_at", description="Field to sort by"),
-    sort_order: int = Query(-1, description="Sort order: 1 for ascending, -1 for descending"),
-    podcast_id: Optional[str] = Query(None, description="Filter by podcast ID"),
-    language: Optional[str] = Query(None, description="Filter by language"),
-    is_edited: Optional[bool] = Query(None, description="Filter by edited status"),
-    is_published: Optional[bool] = Query(None, description="Filter by published status"),
-    content_search: Optional[str] = Query(None, description="Search in transcript content")
-):
-    """
-    List and filter transcripts with pagination.
-    Only accessible to administrators.
-    """
-    # Build the filter query
-    filter_query = {}
-    
-    if podcast_id:
-        try:
-            filter_query["podcast_id"] = podcast_id
-        except:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Invalid podcast ID format"
-            )
-    
-    if language:
-        filter_query["language"] = language
-    
-    if is_edited is not None:
-        filter_query["is_edited"] = is_edited
-    
-    if is_published is not None:
-        filter_query["is_published"] = is_published
-    
-    if content_search:
-        filter_query["content"] = {"$regex": content_search, "$options": "i"}
-    
-    # Get total count for pagination
-    total_count = await transcripts_collection.count_documents(filter_query)
-    
-    # Calculate skip for pagination
-    skip = (page - 1) * limit
-    
-    # Get transcripts with pagination and sorting
-    cursor = transcripts_collection.find(filter_query)
-    cursor = cursor.sort(sort_by, sort_order)
-    cursor = cursor.skip(skip).limit(limit)
-    
-    transcripts = await cursor.to_list(length=limit)
-    
-    # Convert MongoDB documents to Pydantic models
-    sanitized_transcripts = [sanitize_mongo_doc(transcript) for transcript in transcripts]
-    
-    log_info(
-        f"Admin listed transcripts. Filters: {filter_query}, Total: {total_count}",
-        "content_management",
-        {"admin_id": str(current_user["_id"]), "page": page, "limit": limit}
-    )
-    
-    return TranscriptsResponse(
-        transcripts=sanitized_transcripts,
-        total_count=total_count,
-        page=page,
-        limit=limit
-    )
-
-@router.get("/transcripts/{transcript_id}", response_model=Transcript, status_code=status.HTTP_200_OK)
-async def get_transcript_details(
-    transcript_id: str = Path(..., description="Transcript ID"),
-    current_user: Dict[str, Any] = Depends(requires_role("admin"))
-):
-    """
-    Get detailed information about a specific transcript.
-    Only accessible to administrators.
-    """
-    try:
-        obj_id = ObjectId(transcript_id)
-    except:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid transcript ID format"
-        )
-    
-    transcript = await transcripts_collection.find_one({"_id": obj_id})
-    
-    if not transcript:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Transcript with ID {transcript_id} not found"
-        )
-    
-    log_info(
-        f"Admin viewed transcript details. Transcript ID: {transcript_id}",
-        "content_management",
-        {"admin_id": str(current_user["_id"]), "transcript_id": transcript_id}
-    )
-    
-    return sanitize_mongo_doc(transcript)
-
-@router.put("/transcripts/{transcript_id}", response_model=Transcript, status_code=status.HTTP_200_OK)
-async def update_transcript(
-    update_data: TranscriptUpdate,
-    transcript_id: str = Path(..., description="Transcript ID"),
-    current_user: Dict[str, Any] = Depends(requires_role("admin"))
-):
-    """
-    Update details of a specific transcript.
-    Only accessible to administrators.
-    """
-    try:
-        obj_id = ObjectId(transcript_id)
-    except:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid transcript ID format"
-        )
-    
-    existing_transcript = await transcripts_collection.find_one({"_id": obj_id})
-    if not existing_transcript:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Transcript with ID {transcript_id} not found"
-        )
-    
-    update_dict = update_data.dict(exclude_unset=True, exclude_none=True)
-    
-    if not update_dict:
-        return sanitize_mongo_doc(existing_transcript)
-    
-    update_dict["updated_at"] = datetime.utcnow()
-    
-    await transcripts_collection.update_one(
-        {"_id": obj_id},
-        {"$set": update_dict}
-    )
-    
-    updated_transcript = await transcripts_collection.find_one({"_id": obj_id})
-    
-    log_info(
-        f"Admin updated transcript. Transcript ID: {transcript_id}, Changes: {update_dict}",
-        "content_management",
-        {"admin_id": str(current_user["_id"]), "transcript_id": transcript_id}
-    )
-    
-    return sanitize_mongo_doc(updated_transcript)
-
-@router.delete("/transcripts/{transcript_id}", status_code=status.HTTP_200_OK)
-async def delete_transcript(
-    transcript_id: str = Path(..., description="Transcript ID"),
-    current_user: Dict[str, Any] = Depends(requires_role("admin"))
-):
-    """
-    Permanently delete a transcript from the system.
-    Only accessible to administrators.
-    """
-    try:
-        obj_id = ObjectId(transcript_id)
-    except:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid transcript ID format"
-        )
-    
-    existing_transcript = await transcripts_collection.find_one({"_id": obj_id})
-    if not existing_transcript:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Transcript with ID {transcript_id} not found"
-        )
-    
-    await transcripts_collection.delete_one({"_id": obj_id})
-    
-    log_info(
-        f"Admin deleted transcript. Transcript ID: {transcript_id}",
-        "content_management",
-        {"admin_id": str(current_user["_id"]), "transcript_id": transcript_id}
-    )
-    
-    return {"status": "success", "detail": f"Transcript {transcript_id} has been permanently deleted"}
-
 # Uploads Management
 @router.get("/uploads", response_model=UploadsResponse, status_code=status.HTTP_200_OK)
 async def list_uploads(
@@ -534,93 +331,3 @@ async def get_upload_details(
     )
     
     return sanitize_mongo_doc(upload)
-
-# Featured Content Management
-@router.get("/featured-content", response_model=FeaturedContentResponse, status_code=status.HTTP_200_OK)
-async def list_featured_content(
-    current_user: Dict[str, Any] = Depends(requires_role("admin")),
-    page: int = Query(1, ge=1, description="Page number, starting from 1"),
-    limit: int = Query(20, ge=1, le=100, description="Number of items per page"),
-    sort_by: str = Query("priority", description="Field to sort by"),
-    sort_order: int = Query(-1, description="Sort order: 1 for ascending, -1 for descending"),
-    is_active: Optional[bool] = Query(None, description="Filter by active status"),
-    content_type: Optional[str] = Query(None, description="Filter by content type"),
-    title_search: Optional[str] = Query(None, description="Search in title")
-):
-    """
-    List and filter featured content items with pagination.
-    Only accessible to administrators.
-    """
-    # Build the filter query
-    filter_query = {}
-    
-    if is_active is not None:
-        filter_query["is_active"] = is_active
-    
-    if content_type:
-        filter_query["content_type"] = content_type
-    
-    if title_search:
-        filter_query["title"] = {"$regex": title_search, "$options": "i"}
-    
-    # Get total count for pagination
-    total_count = await featured_content_collection.count_documents(filter_query)
-    
-    # Calculate skip for pagination
-    skip = (page - 1) * limit
-    
-    # Get featured content with pagination and sorting
-    cursor = featured_content_collection.find(filter_query)
-    cursor = cursor.sort(sort_by, sort_order)
-    cursor = cursor.skip(skip).limit(limit)
-    
-    featured_items = await cursor.to_list(length=limit)
-    
-    # Convert MongoDB documents to Pydantic models
-    sanitized_items = [sanitize_mongo_doc(item) for item in featured_items]
-    
-    log_info(
-        f"Admin listed featured content. Filters: {filter_query}, Total: {total_count}",
-        "content_management",
-        {"admin_id": str(current_user["_id"]), "page": page, "limit": limit}
-    )
-    
-    return FeaturedContentResponse(
-        featured_items=sanitized_items,
-        total_count=total_count,
-        page=page,
-        limit=limit
-    )
-
-@router.get("/featured-content/{content_id}", response_model=FeaturedContent, status_code=status.HTTP_200_OK)
-async def get_featured_content_details(
-    content_id: str = Path(..., description="Featured content ID"),
-    current_user: Dict[str, Any] = Depends(requires_role("admin"))
-):
-    """
-    Get detailed information about a specific featured content item.
-    Only accessible to administrators.
-    """
-    try:
-        obj_id = ObjectId(content_id)
-    except:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid featured content ID format"
-        )
-    
-    content_item = await featured_content_collection.find_one({"_id": obj_id})
-    
-    if not content_item:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Featured content with ID {content_id} not found"
-        )
-    
-    log_info(
-        f"Admin viewed featured content details. Content ID: {content_id}",
-        "content_management",
-        {"admin_id": str(current_user["_id"]), "content_id": content_id}
-    )
-    
-    return sanitize_mongo_doc(content_item)

@@ -71,7 +71,7 @@
           #audioPlayer
           controls
           class="w-full rounded-lg sm:rounded-xl"
-          [src]="podcast.audioFile?.user_data?.file_url"
+          [src]="podcast.audioFile?.audio_url || podcast.audioFile?.user_data?.file_url"
           (timeupdate)="onTimeUpdate()"
           (loadedmetadata)="onLoadedMetadata()"
           (play)="isPlaying = true"
@@ -83,7 +83,7 @@
       </div>
 
       <!-- Audio Details Grid (Including Owner) -->
-      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4 mb-4 sm:mb-6">
+      <div class="grid grid-cols-1 sm:grid-cols-1 lg:grid-cols-1 xl:grid-cols-3 gap-3 sm:gap-4 mb-4 sm:mb-6">
         
         <div class="bg-gradient-to-br from-indigo-50 to-purple-50 p-3 sm:p-4 rounded-xl sm:rounded-2xl border border-indigo-100">
           <div class="flex items-center justify-center mb-1 sm:mb-2">
@@ -93,15 +93,15 @@
           <p class="text-gray-600 font-medium text-xs sm:text-sm text-center">{{ formatTime(duration) }}</p>
         </div>
         
-        <div class="bg-gradient-to-br from-blue-50 to-cyan-50 p-3 sm:p-4 rounded-xl sm:rounded-2xl border border-blue-100">
+        <!-- <div *ngIf="podcast?.audioFile?.metadata?.size" class="bg-gradient-to-br from-blue-50 to-cyan-50 p-3 sm:p-4 rounded-xl sm:rounded-2xl border border-blue-100">
           <div class="flex items-center justify-center mb-1 sm:mb-2">
             <div class="w-1.5 sm:w-2 h-1.5 sm:h-2 bg-gradient-to-r from-blue-400 to-cyan-400 rounded-full mr-2"></div>
             <span class="font-semibold text-gray-700 text-xs sm:text-sm">Size</span>
           </div>
           <p class="text-gray-600 font-medium text-xs sm:text-sm text-center">
-            {{ formatFileSize(podcast.audioFile.metadata.size) }}
+            {{ formatFileSize(podcast?.audioFile?.metadata?.size) }}
           </p>
-        </div>
+        </div> -->
         
         <div class="bg-gradient-to-br from-green-50 to-emerald-50 p-3 sm:p-4 rounded-xl sm:rounded-2xl border border-green-100">
           <div class="flex items-center justify-center mb-1 sm:mb-2">
@@ -119,7 +119,7 @@
             <span class="font-semibold text-gray-700 text-xs sm:text-sm">Uploaded by</span>
           </div>
           <p class="text-gray-600 font-medium text-xs sm:text-sm text-center">
-            {{ podcast.audioFile?.user_data?.user_details?.full_name }}
+            {{ podcast.creator }}
           </p>
         </div>
       </div>
@@ -138,7 +138,7 @@
           <div *ngIf="transcriptLoading" class="flex items-center text-indigo-600 text-sm">
             <svg class="animate-spin h-4 w-4 mr-2" viewBox="0 0 24 24">
               <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd" />
             </svg>
             Fetching transcript...
           </div>
@@ -180,7 +180,7 @@
     <!-- Footer -->
     <div *ngIf="podcast" class="flex justify-center sm:justify-end p-4 sm:p-6 border-t border-gray-100 relative z-10">
       <a
-        [href]="podcast.audioFile?.user_data?.file_url"
+        [href]="podcast.audioFile?.audio_url || podcast.audioFile?.user_data?.file_url"
         download
         class="group px-4 sm:px-6 py-2 sm:py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl sm:rounded-2xl font-semibold hover:from-indigo-700 hover:to-purple-700 transition-all duration-300 flex items-center shadow-lg hover:shadow-xl hover:-translate-y-1 text-sm sm:text-base"
       >

@@ -833,7 +833,8 @@ class EnhancedSearch:
     def _embed(self, text: str) -> List[float]:
         if text in self._embedding_cache:
             return self._embedding_cache[text]
-        vec = get_embedding(text)
+        # Use query-optimized embeddings for user/query texts
+        vec = get_embedding(text, task_type="RETRIEVAL_QUERY")
         self._embedding_cache[text] = vec
         return vec
 

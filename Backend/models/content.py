@@ -4,13 +4,13 @@ from datetime import datetime
 
 class PodcastBase(BaseModel):
     title: str
-    description: str
+    description: Optional[str] = None
     image_url: Optional[HttpUrl] = None
     audio_url: HttpUrl
     duration_seconds: float
     author: str
     published_date: datetime
-    tags: List[str] = []
+    tags: Optional[List[str]] = None
     language: str = "en"
     
 class PodcastCreate(PodcastBase):

@@ -1,0 +1,228 @@
+from fastapi import APIRouter, UploadFile, File, Form, HTTPException, status, Depends, Request, BackgroundTasks
+from fastapi.responses import JSONResponse
+from typing import Optional, Dict, Any, List
+import json
+import threading
+import asyncio
+
+from services.auth import get_current_user, requires_role
+from services.ip_utils import get_ip_for_request
+from services.job_tracker import (
+    create_job, get_job_status, clean_old_jobs
+)
+from api.upload import AUDIO_MIME_TYPES
+
+# Import the background processor entrypoint
+from services.background_processor import run_processing_in_thread
+
+router = APIRouter()
+
+
+@router.on_event("startup")
+async def setup_job_cleaner():
+    async def cleanup_jobs():
+        while True:
+            clean_old_jobs()
+            await asyncio.sleep(3600)
+
+    asyncio.create_task(cleanup_jobs())
+
+
+@router.post("/process_audio", status_code=202)
+async def process_audio(
+    request: Request,
+    background_tasks: BackgroundTasks,
+    file: UploadFile = File(...),
+    custom_filename: Optional[str] = Form(None),
+    transcription_options: Optional[str] = Form("{}"),
+    current_user: dict = Depends(get_current_user),
+    detected_ip: str = Depends(get_ip_for_request),
+):
+    # Validate file
+    if not file:
+        return JSONResponse(status_code=400, content={"message": "No file provided"})
+
+    if file.content_type not in AUDIO_MIME_TYPES:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Unsupported file type: {file.content_type}. Please upload an audio file.",
+        )
+
+    job_id = create_job()
+
+    MAX_FILE_SIZE_MB = 50
+    MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024
+
+    file_content = await file.read()
+    await file.seek(0)
+
+    if len(file_content) > MAX_FILE_SIZE_BYTES:
+        raise HTTPException(
+            status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+            detail=f"File size exceeds the limit of {MAX_FILE_SIZE_MB}MB.",
+        )
+
+    # Extract JWT for internal calls
+    auth_header = request.headers.get("Authorization", "")
+    jwt_token = (
+        auth_header.replace("Bearer ", "") if auth_header.startswith("Bearer ") else None
+    )
+
+    enhanced_user = dict(current_user)
+    if jwt_token:
+        enhanced_user["auth_token"] = jwt_token
+
+    file_info = {
+        "filename": file.filename,
+        "content_type": file.content_type,
+        "size": len(file_content),
+    }
+
+    # Dispatch processing thread
+    thread = threading.Thread(
+        target=run_processing_in_thread,
+        args=(
+            job_id,
+            file_content,
+            file_info,
+            custom_filename,
+            transcription_options,
+            enhanced_user,
+            detected_ip,
+            background_tasks,
+        ),
+    )
+    thread.daemon = True
+    thread.start()
+
+    return {
+        "job_id": job_id,
+        "status": "accepted",
+        "message": "Your audio is being processed. You can check the status using the job_id.",
+    }
+
+
+@router.post("/process_audio_bulk", status_code=202)
+async def process_audio_bulk(
+    request: Request,
+    background_tasks: BackgroundTasks,
+    files: List[UploadFile] = File(...),
+    custom_filenames: Optional[str] = Form(None),
+    transcription_options: Optional[str] = Form("{}"),
+    current_user: dict = Depends(requires_role("admin")),
+    detected_ip: str = Depends(get_ip_for_request),
+):
+    if not files or len(files) == 0:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="No files provided"
+        )
+
+    MAX_FILES = 50
+    if len(files) > MAX_FILES:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Too many files. Max {MAX_FILES} allowed",
+        )
+
+    filename_map: Dict[str, str] = {}
+    try:
+        if custom_filenames:
+            filename_map = json.loads(custom_filenames) or {}
+            if not isinstance(filename_map, dict):
+                filename_map = {}
+    except Exception:
+        filename_map = {}
+
+    auth_header = request.headers.get("Authorization", "")
+    jwt_token = (
+        auth_header.replace("Bearer ", "") if auth_header.startswith("Bearer ") else None
+    )
+    enhanced_user = dict(current_user)
+    if jwt_token:
+        enhanced_user["auth_token"] = jwt_token
+
+    MAX_FILE_SIZE_MB = 50
+    MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024
+
+    job_items: List[Dict[str, Any]] = []
+
+    for idx, file in enumerate(files):
+        if file.content_type not in AUDIO_MIME_TYPES:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=(
+                    f"Unsupported file type for {file.filename}: {file.content_type}. "
+                    "Please upload an audio file."
+                ),
+            )
+
+        file_content = await file.read()
+        await file.seek(0)
+
+        if len(file_content) > MAX_FILE_SIZE_BYTES:
+            raise HTTPException(
+                status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+                detail=f"File {file.filename} exceeds {MAX_FILE_SIZE_MB}MB limit.",
+            )
+
+        custom_name = None
+        if str(idx) in filename_map:
+            custom_name = filename_map[str(idx)]
+        elif file.filename in filename_map:
+            custom_name = filename_map[file.filename]
+
+        job_id = create_job()
+        file_info = {
+            "filename": file.filename,
+            "content_type": file.content_type,
+            "size": len(file_content),
+        }
+
+        thread = threading.Thread(
+            target=run_processing_in_thread,
+            args=(
+                job_id,
+                file_content,
+                file_info,
+                custom_name,
+                transcription_options,
+                enhanced_user,
+                detected_ip,
+                background_tasks,
+            ),
+        )
+        thread.daemon = True
+        thread.start()
+
+        job_items.append({"file": file.filename, "job_id": job_id})
+
+    return {
+        "status": "accepted",
+        "message": "Bulk processing started. Track each job via job_id.",
+        "items": job_items,
+    }
+
+
+@router.get("/job-status/{job_id}")
+async def get_job_status_endpoint(
+    job_id: str, current_user: dict = Depends(get_current_user)
+):
+    job_status = get_job_status(job_id)
+    if not job_status:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Job with ID {job_id} not found",
+        )
+
+    simplified_status = {
+        "id": job_status["id"],
+        "status": job_status["status"],
+        "created_at": job_status["created_at"],
+        "updated_at": job_status["updated_at"],
+        "progress": job_status["progress"],
+    }
+
+    if job_status.get("error"):
+        simplified_status["error"] = job_status["error"]
+
+    return simplified_status

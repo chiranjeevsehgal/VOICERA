@@ -1,6 +1,5 @@
 import requests
 import json
-from datetime import datetime, timedelta
 
 class VoiceraAdminAPITester:
     def __init__(self, base_url, admin_token=None):
@@ -337,89 +336,6 @@ class VoiceraAdminAPITester:
             headers=self.headers
         )
         self.print_response(response)
-    
-    def test_list_transcripts(self):
-        print("\n=== Testing List Transcripts ===")
-        podcast_id = input("Filter by podcast ID (leave empty to skip): ")
-        is_edited = input("Is edited (true/false, leave empty to skip): ")
-        language = input("Language filter (leave empty to skip): ")
-        
-        params = []
-        if podcast_id: params.append(f"podcast_id={podcast_id}")
-        if is_edited: params.append(f"is_edited={is_edited}")
-        if language: params.append(f"language={language}")
-        
-        url = f"{self.base_url}/api/admin/transcripts"
-        if params:
-            url += "?" + "&".join(params)
-        
-        response = requests.get(url, headers=self.headers)
-        self.print_response(response)
-    
-    def test_featured_content(self):
-        print("\n=== Testing Featured Content ===")
-        print("1. List featured content")
-        print("2. Create featured content")
-        print("3. Delete featured content")
-        choice = input("Enter your choice (1-3): ")
-        
-        if choice == "1":
-            is_active = input("Filter by active status (true/false, leave empty to skip): ")
-            content_type = input("Filter by content type (leave empty to skip): ")
-            title_search = input("Search by title (leave empty to skip): ")
-            
-            params = []
-            if is_active: params.append(f"is_active={is_active}")
-            if content_type: params.append(f"content_type={content_type}")
-            if title_search: params.append(f"title_search={title_search}")
-            
-            url = f"{self.base_url}/api/admin/featured-content"
-            if params:
-                url += "?" + "&".join(params)
-            
-            response = requests.get(url, headers=self.headers)
-            self.print_response(response)
-        
-        elif choice == "2":
-            print("Enter featured content details:")
-            title = input("Title (required): ")
-            description = input("Description (required): ")
-            image_url = input("Image URL (required): ")
-            target_url = input("Target URL (required): ")
-            content_type = input("Content Type (podcast/transcript/etc., required): ")
-            priority = input("Priority (number, default 5): ") or "5"
-            is_active = input("Is active (true/false, default true): ") or "true"
-            
-            featured_data = {
-                "title": title,
-                "description": description,
-                "image_url": image_url,
-                "target_url": target_url,
-                "content_type": content_type,
-                "priority": int(priority),
-                "start_date": datetime.utcnow().isoformat() + "Z",
-                "end_date": (datetime.utcnow() + timedelta(days=30)).isoformat() + "Z",
-                "is_active": is_active.lower() == "true"
-            }
-            
-            response = requests.post(
-                f"{self.base_url}/api/admin/featured-content",
-                headers=self.headers,
-                json=featured_data
-            )
-            self.print_response(response)
-        
-        elif choice == "3":
-            content_id = input("Enter featured content ID to delete: ")
-            if not content_id:
-                print("Content ID is required")
-                return
-            
-            response = requests.delete(
-                f"{self.base_url}/api/admin/featured-content/{content_id}",
-                headers=self.headers
-            )
-            self.print_response(response)
 
 def main():
     print("=== Voicera Admin API Tester ===")
@@ -520,11 +436,9 @@ def main():
                 print("2. Get Podcast Details")
                 print("3. Update Podcast")
                 print("4. Delete Podcast")
-                print("5. List Transcripts")
-                print("6. Featured Content")
                 print("0. Back to Main Menu")
                 
-                sub_choice = input("Enter your choice (0-6): ")
+                sub_choice = input("Enter your choice (0-4): ")
                 
                 if sub_choice == "0":
                     break
@@ -536,10 +450,6 @@ def main():
                     tester.test_update_podcast()
                 elif sub_choice == "4":
                     tester.test_delete_podcast()
-                elif sub_choice == "5":
-                    tester.test_list_transcripts()
-                elif sub_choice == "6":
-                    tester.test_featured_content()
 
 if __name__ == "__main__":
     main()

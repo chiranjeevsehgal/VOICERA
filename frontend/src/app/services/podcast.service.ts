@@ -4,20 +4,21 @@ import { Observable, map } from "rxjs";
 import { environment } from "../../environments/environment"; // Adjust path as needed
 
 export interface AudioFile {
-  name: string;
-  id: string;
-  updated_at: string;
+  _id: string;
+  title: string;
+  audio_url: string;
+  duration_seconds: number;
+  author: string;
+  published_date: string;
+  language: string;
   created_at: string;
-  last_accessed_at: string;
-  metadata: {
-    eTag: string;
-    size: number;
-    mimetype: string;
-    cacheControl: string;
-    lastModified: string;
-    contentLength: number;
-    httpStatusCode: number;
-  };
+  updated_at: string;
+  is_published: boolean;
+  upload_id?: string;
+  // Legacy fields for backward compatibility
+  name?: string;
+  id?: string;
+  metadata?: any;
   user_data?: {
     id: string;
     user_id: string;
@@ -145,18 +146,17 @@ export class PodcastService {
     if (!Array.isArray(files)) return [];
 
     return files
-      .filter((f): f is AudioFile => !!f && typeof f.id === 'string')
+      .filter((f): f is AudioFile => !!f && (typeof f._id === 'string' || typeof f.id === 'string'))
       .map((file) => {
-        const rawTitle = file.user_data?.file_name || file.name || 'Untitled';
-        const title = rawTitle.replace(/\.mp3$/i, '');
-        const creator =
-          file.user_data?.user_details?.full_name ||
-          file.user_data?.user_id ||
-          'Unknown';
+        // Use new MongoDB podcast structure first, fallback to legacy
+        const title = file.title || file.user_data?.file_name || file.name || 'Untitled';
+        const creator = file.author || file.user_data?.user_details?.full_name || file.user_data?.user_id || 'Unknown';
+        // Ensure id is always a string for the Podcast interface
+        const id: string = typeof file._id === 'string' ? file._id : (file.id ?? '');
 
         return {
-          id: file.id,
-          title,
+          id,
+          title: title.replace(/\.mp3$/i, ''),
           creator,
           imageUrl:
             "https://media.istockphoto.com/id/1244097573/vector/headphones-minimal-icon-with-sound-waves.jpg?s=612x612&w=0&k=20&c=OvARZEMYt_CM9M9-oJmMZ3O-HtEB-CAKqpGZPSA1acM=",

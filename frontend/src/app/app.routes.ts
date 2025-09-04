@@ -33,7 +33,6 @@ export const routes: Routes = [
             authGuard
         ],
         children: [
-            //   { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
             { path: '', redirectTo: 'login', pathMatch: 'full' },
             { path: 'login', component: AdminLoginPageComponent },
             { path: 'dashboard', component: AdminDashboardComponent },

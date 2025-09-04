@@ -203,7 +203,8 @@ async def transcribe_audio(
                 duration_seconds=duration,
                 author=current_user.get("username", "unknown"),
                 language=detected_language or request.language or "en",
-                upload_id=request.upload_id
+                upload_id=request.upload_id,
+                user_id=str(current_user.get("_id", ""))
             )
             
             print(f"Created podcast record with ID: {podcast_id}")
