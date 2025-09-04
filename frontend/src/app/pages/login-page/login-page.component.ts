@@ -10,16 +10,52 @@ import { HotToastService } from '@ngxpert/hot-toast';
   imports: [LoginFormComponent],
 })
 export class LoginPageComponent implements OnInit {
-  constructor(private router: Router, private route: ActivatedRoute, private toast:HotToastService) {}
+  constructor(
+    private router: Router,
+    private route: ActivatedRoute,
+    private toast: HotToastService
+  ) {}
 
   ngOnInit(): void {
     // Check for logout success message
     this.route.queryParams.subscribe((params) => {
+      // Check for logout success message
       if (params['loggedOut'] === 'true') {
-        this.toast.success('You have been logged out successfully.')
-        // this.toast.error('Failed to load product. Please try again.')
-        
-        // Clean up the query parameter
+        this.toast.success('You have been logged out successfully.');
+      }
+
+      // Check for authentication errors
+      if (params['error']) {
+        switch (params['error']) {
+          case 'account_inactive':
+            this.toast.error(
+              params['message'] ||
+                'Your account is inactive. Please contact support for assistance.',
+              {
+                id: 'account_inactive',
+              }
+            );
+            break;
+          case 'auth_failed':
+            this.toast.error(
+              params['message'] || 'Authentication failed. Please try again.',
+              {
+                id: 'auth_failed',
+              }
+            );
+            break;
+          default:
+            if (params['message']) {
+              this.toast.error(params['message'], {
+                id: 'unknown_error',
+              });
+            }
+            break;
+        }
+      }
+
+      // Clean up the query parameters after showing messages
+      if (params['loggedOut'] || params['error']) {
         this.router.navigate([], {
           queryParams: {},
           replaceUrl: true,

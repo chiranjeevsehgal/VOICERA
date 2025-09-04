@@ -6,6 +6,7 @@ import time
 from utils.analytics import track_api_usage
 from starlette.middleware.base import BaseHTTPMiddleware
 from services.auth import decode_token
+from middleware.user_status import UserStatusMiddleware
 
 # Create a middleware class for API usage tracking
 class APIUsageMiddleware(BaseHTTPMiddleware):
@@ -42,6 +43,11 @@ app = FastAPI(
     description="Backend for VOICERA",
     version="1.0.0"
 )
+# Add user status checking middleware
+app.add_middleware(UserStatusMiddleware)
+
+# Add API usage tracking middleware
+app.add_middleware(APIUsageMiddleware)
 
 app.add_middleware(
     CORSMiddleware,
@@ -51,8 +57,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Add API usage tracking middleware
-app.add_middleware(APIUsageMiddleware)
 
 @app.get("/")
 async def root():
