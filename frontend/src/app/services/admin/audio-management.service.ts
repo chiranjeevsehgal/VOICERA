@@ -8,11 +8,11 @@ export interface Podcast {
   title: string;
   description: string;
   image_url: string | null;
-  audio_url: string;
+  embedded_audio_url: string;
   duration_seconds: number;
   author: string;
   published_date: string;
-  tags: string[];
+  tags: string[] | null;
   language: string;
   created_at: string;
   updated_at: string;
@@ -35,9 +35,22 @@ export interface AudioFilters {
   author?: string;
 }
 
+export interface DeletionSummary {
+  podcast_deleted?: boolean;
+  transcripts_deleted?: number;
+  uploads_deleted?: number;
+  transcription_stats_deleted?: number;
+  supabase_files_deleted?: string[];
+  supabase_errors?: string[];
+  pinecone_deleted?: boolean;
+  pinecone_error?: string | null;
+  pinecone_vectors_deleted?: number;
+}
+
 export interface DeleteAudioResponse {
-  status: string;
+  status?: string;
   detail: string;
+  deletion_summary?: DeletionSummary;
 }
 
 export interface UpdateAudioRequest {

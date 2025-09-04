@@ -12,7 +12,7 @@ from services.database import (
     featured_content_collection
 )
 
-from utils.logging import log_info, log_error
+from utils.logging import log_info, log_error, log_debug
 
 async def track_upload(
     user_id: str,
@@ -39,8 +39,15 @@ async def track_upload(
     if metadata is None:
         metadata = {}
     
-    print(f"[TRACK_UPLOAD] Tracking upload for user: {user_id}, file: {file_name}")
-    print(f"[TRACK_UPLOAD] Metadata: {json.dumps(metadata, default=str)}")
+    log_info(
+        f"Tracking upload for user {user_id}",
+        "content_tracker",
+        {
+            "user_id": user_id,
+            "file_name": file_name,
+            "metadata": json.loads(json.dumps(metadata, default=str)),
+        },
+    )
     
     upload_data = {
         "user_id": user_id,
@@ -95,7 +102,11 @@ async def update_upload_status(
         True if update was successful, False otherwise
     """
     try:
-        print(f"[DEBUG] Updating upload {upload_id} with status {status}, supabase_url: {supabase_url}")
+        log_debug(
+            f"Updating upload {upload_id} with status {status}",
+            "content_tracker",
+            {"upload_id": upload_id, "status": status, "supabase_url": supabase_url},
+        )
         
         # First validate the upload exists
         upload = await uploads_collection.find_one({"_id": ObjectId(upload_id)})
@@ -106,7 +117,11 @@ async def update_upload_status(
                 "content_tracker",
                 {"upload_id": upload_id}
             )
-            print(f"[DEBUG] {error_msg}")
+            log_debug(
+                error_msg,
+                "content_tracker",
+                {"upload_id": upload_id},
+            )
             return False
 
         update_data = {
@@ -126,7 +141,11 @@ async def update_upload_status(
         if supabase_url:
             update_data["supabase_url"] = supabase_url
             update_data["file_url"] = supabase_url  # Ensure file_url is set
-            print(f"[DEBUG] Setting file_url to: {supabase_url}")
+            log_debug(
+                "Setting file_url for upload",
+                "content_tracker",
+                {"upload_id": upload_id, "file_url": supabase_url},
+            )
         
         result = await uploads_collection.update_one(
             {"_id": ObjectId(upload_id)},
@@ -146,7 +165,11 @@ async def update_upload_status(
                 "update_data": update_data
             }
         )
-        print(f"[DEBUG] {log_msg}, modified_count: {result.modified_count}")
+        log_debug(
+            log_msg,
+            "content_tracker",
+            {"upload_id": upload_id, "modified_count": result.modified_count},
+        )
         
         if result.modified_count > 0:
             log_info(

@@ -3,12 +3,15 @@ import asyncio
 from typing import Dict, Any, Optional
 from fastapi import Request, Response, BackgroundTasks
 import time
+import logging
 from services.database import (
     api_usage_collection, 
     search_trends_collection,
     user_activity_collection,
     transcription_stats_collection
 )
+
+logger = logging.getLogger("voicera.analytics")
 
 async def track_api_usage(
     request: Request,
@@ -40,7 +43,7 @@ async def track_api_usage(
     try:
         await api_usage_collection.insert_one(usage_data)
     except Exception as e:
-        print(f"WARNING: Failed to track API usage: {e}")
+        logger.exception("Failed to track API usage: %s", e)
 
 def track_search_term(term: str, user_id: Optional[str] = None, background_tasks: Optional[BackgroundTasks] = None):
     """
@@ -59,14 +62,14 @@ def track_search_term(term: str, user_id: Optional[str] = None, background_tasks
     if background_tasks is not None:
         background_tasks.add_task(_insert_search_trend, search_data)
     else:
-        # Instead of creating a task that might be destroyed, just print the search term
-        print(f"SEARCH: {term} by user {user_id or 'anonymous'}")
+        # If not using background tasks, still capture the event via logging
+        logger.info("SEARCH: %s by user %s", term, user_id or "anonymous")
 
 async def _insert_search_trend(search_data: Dict[str, Any]):
     try:
         await search_trends_collection.insert_one(search_data)
     except Exception as e:
-        print(f"WARNING: Failed to track search trend: {e}")
+        logger.exception("Failed to track search trend: %s", e)
 
 def track_user_activity(
     user_id: str,
@@ -100,14 +103,19 @@ def track_user_activity(
     if background_tasks is not None:
         background_tasks.add_task(_insert_user_activity, activity_data)
     else:
-        # Instead of creating a task that might be destroyed, just print the activity
-        print(f"ACTIVITY: User {user_id} used {feature} for {session_duration or 'unknown'} seconds")
+        # If not using background tasks, still capture the event via logging
+        logger.info(
+            "ACTIVITY: User %s used %s for %s seconds",
+            user_id,
+            feature,
+            session_duration or "unknown",
+        )
 
 async def _insert_user_activity(activity_data: Dict[str, Any]):
     try:
         await user_activity_collection.insert_one(activity_data)
     except Exception as e:
-        print(f"WARNING: Failed to track user activity: {e}")
+        logger.exception("Failed to track user activity: %s", e)
 
 def track_transcription(
     status: str,
@@ -149,11 +157,17 @@ def track_transcription(
     if background_tasks is not None:
         background_tasks.add_task(_insert_transcription_stats, transcription_data)
     else:
-        # Instead of creating a task that might be destroyed, just print the transcription stats
-        print(f"TRANSCRIPTION: {status} for {audio_length}s audio by {user_id or 'unknown'} (took {processing_time}s)")
+        # If not using background tasks, still capture the event via logging
+        logger.info(
+            "TRANSCRIPTION: %s for %ss audio by %s (took %ss)",
+            status,
+            audio_length,
+            user_id or "unknown",
+            processing_time,
+        )
 
 async def _insert_transcription_stats(stats_data: Dict[str, Any]):
     try:
         await transcription_stats_collection.insert_one(stats_data)
     except Exception as e:
-        print(f"WARNING: Failed to track transcription stats: {e}")
+        logger.exception("Failed to track transcription stats: %s", e)

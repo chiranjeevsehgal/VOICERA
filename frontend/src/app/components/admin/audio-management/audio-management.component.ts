@@ -211,7 +211,7 @@ export class AudioManagementComponent implements OnInit, OnDestroy {
         this.audioElement.pause();
       }
 
-      this.audioElement = new Audio(podcast.audio_url);
+      this.audioElement = new Audio(podcast.embedded_audio_url);
       this.audioElement
         .play()
         .then(() => {
@@ -266,9 +266,34 @@ export class AudioManagementComponent implements OnInit, OnDestroy {
           this.currentlyPlaying = null;
         }
 
-        this.toast.success(
-          `Audio "${this.podcastToDelete!.title}" deleted successfully`
-        );
+        // Build success message from backend response
+        const detailMsg = response?.detail
+          ? response.detail
+          : `Audio "${this.podcastToDelete!.title}" deleted successfully`;
+        const summary = response?.deletion_summary;
+        let summaryMsg = '';
+        if (summary) {
+          const parts: string[] = [];
+          if (typeof summary.transcripts_deleted === 'number') {
+            parts.push(`Transcripts: ${summary.transcripts_deleted}`);
+          }
+          if (typeof summary.uploads_deleted === 'number') {
+            parts.push(`Uploads: ${summary.uploads_deleted}`);
+          }
+          if (typeof summary.transcription_stats_deleted === 'number') {
+            parts.push(`Transcription stats: ${summary.transcription_stats_deleted}`);
+          }
+          if (typeof summary.pinecone_vectors_deleted === 'number') {
+            parts.push(`Pinecone vectors: ${summary.pinecone_vectors_deleted}`);
+          }
+          if (Array.isArray(summary.supabase_files_deleted) && summary.supabase_files_deleted.length > 0) {
+            parts.push(`Supabase files: ${summary.supabase_files_deleted.length}`);
+          }
+          if (parts.length) {
+            summaryMsg = `\n(${parts.join(' • ')})`;
+          }
+        }
+        this.toast.success(`${detailMsg}${summaryMsg}`);
         this.closeDeleteModal();
 
         // If current page is empty and not the first page, go to previous page
@@ -279,7 +304,14 @@ export class AudioManagementComponent implements OnInit, OnDestroy {
       },
       error: (error) => {
         console.error('Error deleting audio:', error);
-        this.toast.error('Failed to delete audio. Please try again.');
+        const backendDetail = error?.error?.detail;
+        if (error?.status === 404 && backendDetail) {
+          this.toast.error(backendDetail);
+        } else if (backendDetail) {
+          this.toast.error(backendDetail);
+        } else {
+          this.toast.error('Failed to delete audio. Please try again.');
+        }
         this.deleting = false;
       },
     });

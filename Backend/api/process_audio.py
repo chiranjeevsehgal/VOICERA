@@ -124,14 +124,34 @@ async def process_audio_bulk(
             detail=f"Too many files. Max {MAX_FILES} allowed",
         )
 
+    # Validate transcription options format
+    try:
+        transcription_opts = json.loads(transcription_options or "{}")
+        if not isinstance(transcription_opts, dict):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="transcription_options must be a valid JSON object"
+            )
+    except json.JSONDecodeError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Invalid JSON in transcription_options: {str(e)}"
+        )
+
     filename_map: Dict[str, str] = {}
     try:
         if custom_filenames:
             filename_map = json.loads(custom_filenames) or {}
             if not isinstance(filename_map, dict):
-                filename_map = {}
-    except Exception:
-        filename_map = {}
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="custom_filenames must be a valid JSON object"
+                )
+    except json.JSONDecodeError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Invalid JSON in custom_filenames: {str(e)}"
+        )
 
     auth_header = request.headers.get("Authorization", "")
     jwt_token = (
@@ -145,62 +165,106 @@ async def process_audio_bulk(
     MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024
 
     job_items: List[Dict[str, Any]] = []
+    failed_files: List[Dict[str, str]] = []
 
     for idx, file in enumerate(files):
-        if file.content_type not in AUDIO_MIME_TYPES:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=(
-                    f"Unsupported file type for {file.filename}: {file.content_type}. "
-                    "Please upload an audio file."
+        try:
+            # Validate file type
+            if file.content_type not in AUDIO_MIME_TYPES:
+                failed_files.append({
+                    "file": file.filename,
+                    "error": f"Unsupported file type: {file.content_type}"
+                })
+                continue
+
+            # Read file content and reset pointer for each file
+            file_content = await file.read()
+            if len(file_content) == 0:
+                # If file is empty after read, try to seek to beginning and read again
+                await file.seek(0)
+                file_content = await file.read()
+            
+            # Always reset file pointer after reading
+            await file.seek(0)
+
+            # Validate file size
+            if len(file_content) > MAX_FILE_SIZE_BYTES:
+                failed_files.append({
+                    "file": file.filename,
+                    "error": f"File exceeds {MAX_FILE_SIZE_MB}MB limit"
+                })
+                continue
+
+            if len(file_content) == 0:
+                failed_files.append({
+                    "file": file.filename,
+                    "error": "File is empty or could not be read"
+                })
+                continue
+
+            # Get custom filename if provided
+            custom_name = None
+            if str(idx) in filename_map:
+                custom_name = filename_map[str(idx)]
+            elif file.filename in filename_map:
+                custom_name = filename_map[file.filename]
+
+            # Create job and file info
+            job_id = create_job()
+            file_info = {
+                "filename": file.filename,
+                "content_type": file.content_type,
+                "size": len(file_content),
+            }
+
+            # Start processing thread
+            thread = threading.Thread(
+                target=run_processing_in_thread,
+                args=(
+                    job_id,
+                    file_content,
+                    file_info,
+                    custom_name,
+                    transcription_options,
+                    enhanced_user,
+                    detected_ip,
+                    background_tasks,
                 ),
             )
+            thread.daemon = True
+            thread.start()
 
-        file_content = await file.read()
-        await file.seek(0)
+            job_items.append({"file": file.filename, "job_id": job_id})
 
-        if len(file_content) > MAX_FILE_SIZE_BYTES:
-            raise HTTPException(
-                status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
-                detail=f"File {file.filename} exceeds {MAX_FILE_SIZE_MB}MB limit.",
-            )
+        except Exception as e:
+            failed_files.append({
+                "file": file.filename,
+                "error": f"Processing error: {str(e)}"
+            })
+            continue
 
-        custom_name = None
-        if str(idx) in filename_map:
-            custom_name = filename_map[str(idx)]
-        elif file.filename in filename_map:
-            custom_name = filename_map[file.filename]
-
-        job_id = create_job()
-        file_info = {
-            "filename": file.filename,
-            "content_type": file.content_type,
-            "size": len(file_content),
-        }
-
-        thread = threading.Thread(
-            target=run_processing_in_thread,
-            args=(
-                job_id,
-                file_content,
-                file_info,
-                custom_name,
-                transcription_options,
-                enhanced_user,
-                detected_ip,
-                background_tasks,
-            ),
+    # If no files were successfully queued, return error
+    if not job_items and failed_files:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail={
+                "message": "No files could be processed",
+                "failed_files": failed_files
+            }
         )
-        thread.daemon = True
-        thread.start()
 
-        job_items.append({"file": file.filename, "job_id": job_id})
-
-    return {
+    response = {
         "status": "accepted",
         "message": "Bulk processing started. Track each job via job_id.",
         "items": job_items,
     }
+
+    # Include failed files in response if any
+    if failed_files:
+        response["failed_files"] = failed_files
+        response["message"] = f"Bulk processing started for {len(job_items)} files. {len(failed_files)} files failed validation."
+
+    return response
 
 
 @router.get("/job-status/{job_id}")

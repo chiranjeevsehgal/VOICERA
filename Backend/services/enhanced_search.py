@@ -13,6 +13,7 @@ from typing import Any, Tuple
 import hashlib
 import time
 from services.database import transcripts_collection
+from utils.logging import log_info, log_warning, log_error
 
 # Optional dependencies (graceful fallbacks)
 try:
@@ -494,7 +495,7 @@ class EnhancedSearch:
             if not index:
                 from services.pinecone_service import init_pinecone
                 if not init_pinecone():
-                    print("Error: Could not initialize Pinecone")
+                    log_error("Could not initialize Pinecone", "enhanced_search")
                     return []
             
             results = index.query(
@@ -506,7 +507,7 @@ class EnhancedSearch:
             )
             
             if not results or not results.get("matches"):
-                print(f"No results found for query (limit: {limit})")
+                log_info(f"No results found for query (limit: {limit})", "enhanced_search", {"query": query_embedding[:5] if query_embedding else None, "limit": limit})
                 return []
                 
             return [{
@@ -519,7 +520,7 @@ class EnhancedSearch:
             } for match in results.get("matches", [])]
             
         except Exception as e:
-            print(f"Error in semantic search: {str(e)}")
+            log_error(f"Error in semantic search: {str(e)}", "enhanced_search", {"error": str(e)})
             return []
 
     async def _batched_keyword_search(
@@ -692,11 +693,11 @@ class EnhancedSearch:
         """
         try:
             if not semantic_results:
-                print("Warning: No semantic results found")
+                log_warning("No semantic results found", "enhanced_search")
                 return ([], {"note": "no_semantic_results", "skip_count": 0}) if debug else []
 
             if not keyword_scores:
-                print("Warning: No keyword scores found")
+                log_warning("No keyword scores found", "enhanced_search")
                 return (semantic_results, {"note": "no_keyword_scores", "skip_count": 0}) if debug else semantic_results
 
             # Initialize technical scorer
@@ -725,7 +726,7 @@ class EnhancedSearch:
             for result, keyword_score in zip(semantic_results, keyword_scores):
                 # Ensure all required fields are present
                 if "text" not in result:
-                    print(f"Warning: Missing text field in result: {result}")
+                    log_warning(f"Missing text field in result: {result}", "enhanced_search", {"result_keys": list(result.keys()) if isinstance(result, dict) else None})
                     continue
 
                 # Preserve raw and normalized variants
@@ -801,10 +802,7 @@ class EnhancedSearch:
             combined_results.sort(key=lambda x: x["combined_score"], reverse=True)
 
             # Debug logging
-            print(f"Combined {len(combined_results)} results")
-            if combined_results:
-                print(f"Top score: {combined_results[0]['combined_score']}")
-                print(f"Technical score: {combined_results[0]['technical_score']}")
+            log_info(f"Combined {len(combined_results)} results", "enhanced_search", {"result_count": len(combined_results), "top_score": combined_results[0]['combined_score'] if combined_results else None, "top_technical_score": combined_results[0]['technical_score'] if combined_results else None})
             try:
                 logger.info(f"Context gate skipped {skip_count} results (short_or_specific={(short_query or has_specific_token)}) out of {len(semantic_results)} candidates")
             except Exception:
@@ -822,7 +820,7 @@ class EnhancedSearch:
             return combined_results
             
         except Exception as e:
-            print(f"Error combining results: {str(e)}")
+            log_error(f"Error combining results: {str(e)}", "enhanced_search", {"error": str(e)})
             # Return semantic results as fallback
             return (semantic_results, {"note": "combine_error", "error": str(e)}) if debug else semantic_results
 

@@ -337,6 +337,51 @@ class VoiceraAdminAPITester:
         )
         self.print_response(response)
 
+    # ---- Content (Audios) helpers ----
+    def test_list_audios(self):
+        print("\n=== Testing List Audios (/api/content/audios) ===")
+        page = input("Page number (default: 1): ") or "1"
+        limit = input("Items per page (default: 20): ") or "20"
+        title_search = input("Search by title (leave empty to skip): ")
+        language = input("Language filter (leave empty to skip): ")
+        transcription_status = input("Transcription status filter (leave empty to skip): ")
+
+        params = [f"page={page}", f"limit={limit}"]
+        if title_search: params.append(f"title_search={title_search}")
+        if language: params.append(f"language={language}")
+        if transcription_status: params.append(f"transcription_status={transcription_status}")
+
+        url = f"{self.base_url}/api/content/audios"
+        if params:
+            url += "?" + "&".join(params)
+
+        update_data = {}
+        if title: update_data["title"] = title
+        if description: update_data["description"] = description
+        if image_url: update_data["image_url"] = image_url
+        if audio_url: update_data["audio_url"] = audio_url
+        if is_featured:
+            update_data["is_featured"] = is_featured.lower() == "true"
+
+        response = requests.put(
+            f"{self.base_url}/api/content/audios/{audio_id}",
+            headers=self.headers,
+            json=update_data
+        )
+        self.print_response(response)
+
+    def test_delete_audio(self):
+        print("\n=== Testing Delete Audio (/api/content/audios/{id}) ===")
+        audio_id = input("Enter audio ID to delete: ")
+        if not audio_id:
+            print("Audio ID is required")
+            return
+        response = requests.delete(
+            f"{self.base_url}/api/content/audios/{audio_id}",
+            headers=self.headers
+        )
+        self.print_response(response)
+
 def main():
     print("=== Voicera Admin API Tester ===")
     base_url = input("Enter base URL (default: http://localhost:8000): ") or "http://localhost:8000"
@@ -432,13 +477,17 @@ def main():
         elif choice == "4":
             while True:
                 print("\n=== Content Management Menu ===")
-                print("1. List Podcasts")
-                print("2. Get Podcast Details")
-                print("3. Update Podcast")
-                print("4. Delete Podcast")
+                print("1. List (Admin) Podcasts")
+                print("2. Get (Admin) Podcast Details")
+                print("3. Update (Admin) Podcast")
+                print("4. Delete (Admin) Podcast")
+                print("5. List Audios (/api/content)")
+                print("6. Get Audio Details (/api/content)")
+                print("7. Update Audio (/api/content)")
+                print("8. Delete Audio (/api/content)")
                 print("0. Back to Main Menu")
                 
-                sub_choice = input("Enter your choice (0-4): ")
+                sub_choice = input("Enter your choice (0-8): ")
                 
                 if sub_choice == "0":
                     break
@@ -450,6 +499,14 @@ def main():
                     tester.test_update_podcast()
                 elif sub_choice == "4":
                     tester.test_delete_podcast()
+                elif sub_choice == "5":
+                    tester.test_list_audios()
+                elif sub_choice == "6":
+                    tester.test_audio_details()
+                elif sub_choice == "7":
+                    tester.test_update_audio()
+                elif sub_choice == "8":
+                    tester.test_delete_audio()
 
 if __name__ == "__main__":
     main()

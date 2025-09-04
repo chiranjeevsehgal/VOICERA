@@ -6,6 +6,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from services.database import users_collection
 from services.auth import get_password_hash, get_user_by_email
 from datetime import datetime
+from utils.logging import log_info, log_warning, log_error
 
 async def create_admin_user(email, password, full_name="Admin User"):
     # Check if user already exists
@@ -13,7 +14,7 @@ async def create_admin_user(email, password, full_name="Admin User"):
     
     if existing_user:
         if existing_user.get("role") == "admin":
-            print(f"Admin user {email} already exists.")
+            log_info(f"Admin user {email} already exists.", "create_admin", {"email": email})
             return
         
         # Update existing user to admin
@@ -21,7 +22,7 @@ async def create_admin_user(email, password, full_name="Admin User"):
             {"email": email},
             {"$set": {"role": "admin", "updated_at": datetime.utcnow()}}
         )
-        print(f"User {email} updated to admin role.")
+        log_info(f"User {email} updated to admin role.", "create_admin", {"email": email})
         return
     
     # Create new admin user
@@ -36,7 +37,7 @@ async def create_admin_user(email, password, full_name="Admin User"):
     }
     
     await users_collection.insert_one(admin_user)
-    print(f"Admin user {email} created successfully.")
+    log_info(f"Admin user {email} created successfully.", "create_admin", {"email": email})
 
 async def main():
     # Get admin credentials from environment or use defaults
@@ -47,7 +48,7 @@ async def main():
     try:
         await create_admin_user(admin_email, admin_password, admin_name)
     except Exception as e:
-        print(f"Error creating admin user: {str(e)}")
+        log_error(f"Error creating admin user: {str(e)}", "create_admin", {"error": str(e)})
         sys.exit(1)
 
 if __name__ == "__main__":

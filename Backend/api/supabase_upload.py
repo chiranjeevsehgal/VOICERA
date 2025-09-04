@@ -15,6 +15,7 @@ from api.embedding import extract_metadata_from_mp3_to_json
 from services.auth import get_current_user
 from services.database import podcasts_collection
 from bson.objectid import ObjectId
+from utils.logging import log_info, log_warning, log_error
 
 router = APIRouter()
 
@@ -36,7 +37,7 @@ async def upload_to_supabase(
     Returns:
         JSON response with the Supabase URL, metadata, and user information
     """
-    print(f"[DEBUG] Upload request received. Current user: {json.dumps(current_user, default=str)}")
+    log_info(f"Upload request received. Current user: {json.dumps(current_user, default=str)}", "supabase_upload", {"user_id": str(current_user.get('_id', 'unknown'))})
     
     # Check if uploaded file is an MP3
     AUDIO_MIME_TYPES = ["audio/mpeg"]
@@ -57,7 +58,7 @@ async def upload_to_supabase(
             content = await file.read()
             buffer.write(content)
         
-        print(f"[DEBUG] File saved temporarily at: {file_path}")
+        log_info(f"File saved temporarily at: {file_path}", "supabase_upload", {"file_path": file_path})
         
         # Extract metadata if it's an MP3 file
         metadata = None
@@ -71,12 +72,12 @@ async def upload_to_supabase(
                 else:
                     metadata = {"info": "No ID3 metadata found in file"}
             except Exception as e:
-                print(f"[DEBUG] Metadata extraction failed: {str(e)}")
+                log_warning(f"Metadata extraction failed: {str(e)}", "supabase_upload", {"error": str(e)})
                 metadata = {"info": "Failed to extract metadata"}
         
         # Get user ID from current_user
         user_id = current_user.get("_id")
-        print(f"[DEBUG] Extracted user_id from current_user: {user_id}")
+        log_info(f"Extracted user_id from current_user: {user_id}", "supabase_upload", {"user_id": str(user_id)})
         
         # Upload the file to Supabase with user information
         response = await upload_file_to_supabase(
@@ -86,7 +87,7 @@ async def upload_to_supabase(
             bucket_name=os.getenv("SUPABASE_BUCKET_ORIGINAL")
         )
         
-        print(f"[DEBUG] Upload response received: {json.dumps(response, default=str)}")
+        log_info(f"Upload response received: {json.dumps(response, default=str)}", "supabase_upload", {"response": response})
         
         # Add metadata to the response if available
         if metadata and isinstance(metadata, dict):
@@ -102,13 +103,13 @@ async def upload_to_supabase(
                     )
                     response["indexed"] = True
                 except Exception as e:
-                    print(f"[DEBUG] Failed to index transcript: {str(e)}")
+                    log_error(f"Failed to index transcript: {str(e)}", "supabase_upload", {"error": str(e)})
                     response["indexed"] = False
         
         return response
         
     except Exception as e:
-        print(f"[DEBUG] Upload failed with error: {str(e)}")
+        log_error(f"Upload failed with error: {str(e)}", "supabase_upload", {"error": str(e)})
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to upload file to Supabase: {str(e)}"
@@ -117,7 +118,7 @@ async def upload_to_supabase(
         # Clean up temporary files
         if os.path.exists(temp_dir):
             shutil.rmtree(temp_dir)
-            print("[DEBUG] Temporary files cleaned up")
+            log_info("Temporary files cleaned up", "supabase_upload")
 
 @router.get("/listAudioFiles")
 async def list_audio_files(

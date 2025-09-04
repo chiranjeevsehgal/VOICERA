@@ -12,6 +12,7 @@ import uuid
 import base64
 import requests
 from services.auth import get_current_user
+from utils.logging import log_info, log_warning, log_error
 
 router = APIRouter()
 
@@ -91,7 +92,7 @@ async def extract_metadata(
     if not mp3_file and not mp3_url:
         raise HTTPException(status_code=400, detail="Must provide either mp3_file or mp3_url")
     
-    print(f"Extracting metadata from {'mp3_file' if mp3_file else 'mp3_url'}: {mp3_url if mp3_url else mp3_file.filename}")
+    log_info(f"Extracting metadata from {'mp3_file' if mp3_file else 'mp3_url'}: {mp3_url if mp3_url else mp3_file.filename}", "embedding", {"source_type": 'mp3_file' if mp3_file else 'mp3_url', "filename": mp3_url if mp3_url else mp3_file.filename})
     
     temp_dir = tempfile.mkdtemp()
     try:
