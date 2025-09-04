@@ -34,7 +34,6 @@ export class AudioManagementComponent implements OnInit, OnDestroy {
   updating: boolean = false;
   editForm = {
     title: '',
-    description: '',
   };
 
   // Pagination
@@ -290,7 +289,6 @@ export class AudioManagementComponent implements OnInit, OnDestroy {
     this.podcastToEdit = podcast;
     this.editForm = {
       title: podcast.title,
-      description: podcast.description,
     };
     this.showEditModal = true;
   }
@@ -301,14 +299,12 @@ export class AudioManagementComponent implements OnInit, OnDestroy {
     this.updating = false;
     this.editForm = {
       title: '',
-      description: '',
     };
   }
 
   isFormValid(): boolean {
     return (
-      this.editForm.title.trim().length > 0 &&
-      this.editForm.description.trim().length > 0
+      this.editForm.title.trim().length > 0
     );
   }
 
@@ -319,7 +315,6 @@ export class AudioManagementComponent implements OnInit, OnDestroy {
 
     const updateData = {
       title: this.editForm.title.trim(),
-      description: this.editForm.description.trim(),
     };
 
     this.audioService.updateAudio(this.podcastToEdit.id, updateData).subscribe({
