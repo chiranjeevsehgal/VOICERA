@@ -623,12 +623,12 @@ async def process_audio_background(
                 lambda: sync_create_podcast(
                     title=title,
                     description=f"Uploaded on {datetime.utcnow().strftime('%Y-%m-%d %H:%M')}",
-                    audio_url=supabase_url,
+                    raw_audio_url=supabase_url,
                     duration_seconds=duration,
                     author=author,
                     language=detected_language,
                     upload_id=upload_id,
-                    supabase_url=supabase_url,
+                    embedded_audio_url=supabase_url,
                     user_id=str(current_user.get("_id", ""))
                 )
             )

@@ -6,7 +6,7 @@ class PodcastBase(BaseModel):
     title: str
     description: Optional[str] = None
     image_url: Optional[HttpUrl] = None
-    audio_url: HttpUrl
+    embedded_audio_url: HttpUrl
     duration_seconds: float
     author: str
     published_date: datetime

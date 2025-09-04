@@ -516,12 +516,12 @@ async def process_audio_background(
                 lambda: sync_create_podcast(
                     title=podcast_creation_data["title"],
                     description=podcast_creation_data["description"],
-                    audio_url=embedded_supabase_url,  # Use embedded URL
+                    raw_audio_url=supabase_url, # Raw Audio URL
+                    embedded_audio_url=embedded_supabase_url,  # Embedded Audio URL
                     duration_seconds=podcast_creation_data["duration_seconds"],
                     author=podcast_creation_data["author"],
                     language=podcast_creation_data["language"],
                     upload_id=podcast_creation_data["upload_id"],
-                    supabase_url=embedded_supabase_url,  # Use embedded URL
                     user_id=user_id,
                 ),
             )

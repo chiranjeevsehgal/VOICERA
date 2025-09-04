@@ -6,7 +6,8 @@ import { environment } from "../../environments/environment"; // Adjust path as 
 export interface AudioFile {
   _id: string;
   title: string;
-  audio_url: string;
+  embedded_audio_url: string;
+  raw_audio_url: string;
   duration_seconds: number;
   author: string;
   published_date: string;

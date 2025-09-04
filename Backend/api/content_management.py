@@ -103,7 +103,6 @@ async def list_audios(
     cursor = cursor.skip(skip).limit(limit)
     
     podcasts = await cursor.to_list(length=limit)
-    
     # Convert MongoDB documents to Pydantic models
     sanitized_podcasts = [sanitize_mongo_doc(podcast) for podcast in podcasts]
     

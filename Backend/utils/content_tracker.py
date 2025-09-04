@@ -1,5 +1,6 @@
 from datetime import datetime
 import asyncio
+import hashlib
 from typing import Dict, List, Any, Optional
 from bson import ObjectId
 import json
@@ -172,7 +173,7 @@ async def update_upload_status(
 async def create_podcast(
     title: str,
     description: str,
-    audio_url: str,
+    raw_audio_url: str,
     duration_seconds: float,
     author: str,
     image_url: Optional[str] = None,
@@ -181,7 +182,7 @@ async def create_podcast(
     is_featured: bool = False,
     is_published: bool = True,
     upload_id: Optional[str] = None,
-    supabase_url: Optional[str] = None,
+    embedded_audio_url: Optional[str] = None,
     user_id: Optional[str] = None
 ) -> str:
     """
@@ -190,7 +191,7 @@ async def create_podcast(
     Args:
         title: Podcast title
         description: Podcast description
-        audio_url: URL to the audio file
+        raw_audio_url: URL to the audio file in Supabase
         duration_seconds: Duration of the audio in seconds
         author: Author/creator of the podcast
         image_url: Optional URL to cover image
@@ -199,7 +200,7 @@ async def create_podcast(
         is_featured: Whether this podcast is featured
         is_published: Whether this podcast is published
         upload_id: ID of the associated upload record
-        supabase_url: URL of the file in Supabase storage
+        embedded_audio_url: URL of the embedded file in Supabase storage
         
     Returns:
         ID of the created podcast
@@ -208,10 +209,16 @@ async def create_podcast(
         tags = []
     
     now = datetime.utcnow()
+
+    # Creating file id from raw_audio_url to track pinecone chunks
+    file_key_src = (raw_audio_url or "")
+    file_id = hashlib.sha1(file_key_src.encode("utf-8")).hexdigest()[:12] if file_key_src else None
     
     podcast_data = {
         "title": title,
-        "audio_url": audio_url,
+        "raw_audio_url": raw_audio_url,
+        "embedded_audio_url": embedded_audio_url,
+        "file_id": file_id,
         "duration_seconds": duration_seconds,
         "author": author,
         "published_date": now,
@@ -524,7 +531,7 @@ def sync_update_upload_status(
 def sync_create_podcast(
     title: str,
     description: str,
-    audio_url: str,
+    raw_audio_url: str,
     duration_seconds: float,
     author: str,
     image_url: Optional[str] = None,
@@ -533,7 +540,7 @@ def sync_create_podcast(
     is_featured: bool = False,
     is_published: bool = True,
     upload_id: Optional[str] = None,
-    supabase_url: Optional[str] = None,
+    embedded_audio_url: Optional[str] = None,
     user_id: Optional[str] = None
 ) -> str:
     """Synchronous wrapper for create_podcast"""
@@ -542,7 +549,7 @@ def sync_create_podcast(
             create_podcast(
                 title=title,
                 description=description,
-                audio_url=audio_url,
+                raw_audio_url=raw_audio_url,
                 duration_seconds=duration_seconds,
                 author=author,
                 image_url=image_url,
@@ -551,7 +558,7 @@ def sync_create_podcast(
                 is_featured=is_featured,
                 is_published=is_published,
                 upload_id=upload_id,
-                supabase_url=supabase_url,
+                embedded_audio_url=embedded_audio_url,
                 user_id=user_id
             )
         )
@@ -663,7 +670,7 @@ async def process_transcription_data(transcription_data: Dict[str, Any], upload_
         podcast_id = await create_podcast(
             title=upload_data.get("file_name", "Untitled Podcast"),
             description=f"Uploaded on {datetime.utcnow().strftime('%Y-%m-%d')}",
-            audio_url=upload_data.get("file_url", ""),
+            embedded_audio_url=upload_data.get("file_url", ""),
             duration_seconds=float(results.get("audio_duration", 0)),
             author=user_id,
             tags=["uploaded"],
