@@ -6,6 +6,7 @@ class APIUsageStats(BaseModel):
     total_requests: int = 0
     endpoint_counts: Dict[str, int] = {}
     user_counts: Dict[str, int] = {}
+    ip_counts: Dict[str, int] = {}
     date_range: Dict[str, datetime] = {}
     average_response_time: Optional[float] = None
 

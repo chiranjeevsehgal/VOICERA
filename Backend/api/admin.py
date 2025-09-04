@@ -553,6 +553,20 @@ async def get_api_usage_metrics(
     
     endpoint_results = await api_usage_collection.aggregate(endpoint_pipeline).to_list(length=100)
     endpoint_counts = {item["_id"]: item["count"] for item in endpoint_results}
+
+    # Get IP distribution
+    ip_pipeline = [
+        {"$match": {"timestamp": {"$gte": start_date}, "ip_address": {"$exists": True, "$nin": [None, ""]}}},
+        {"$group": {
+            "_id": "$ip_address",
+            "count": {"$sum": 1}
+        }},
+        {"$sort": {"count": -1}},
+        {"$limit": 100}
+    ]
+
+    ip_results = await api_usage_collection.aggregate(ip_pipeline).to_list(length=100)
+    ip_counts = {str(item["_id"]): item["count"] for item in ip_results}
     
     # Get user distribution
     user_pipeline = [
@@ -573,6 +587,7 @@ async def get_api_usage_metrics(
         total_requests=result[0].get("total_requests", 0),
         endpoint_counts=endpoint_counts,
         user_counts=user_counts,
+        ip_counts=ip_counts,
         average_response_time=result[0].get("average_response_time"),
         date_range={
             "start": result[0].get("min_date", start_date),
