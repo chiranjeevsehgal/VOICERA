@@ -1,5 +1,6 @@
 from datetime import datetime
 import asyncio
+import hashlib
 from typing import Dict, List, Any, Optional
 from bson import ObjectId
 import json
@@ -208,11 +209,16 @@ async def create_podcast(
         tags = []
     
     now = datetime.utcnow()
+
+    # Creating file id from raw_audio_url to track pinecone chunks
+    file_key_src = (raw_audio_url or "")
+    file_id = hashlib.sha1(file_key_src.encode("utf-8")).hexdigest()[:12] if file_key_src else None
     
     podcast_data = {
         "title": title,
         "raw_audio_url": raw_audio_url,
         "embedded_audio_url": embedded_audio_url,
+        "file_id": file_id,
         "duration_seconds": duration_seconds,
         "author": author,
         "published_date": now,
