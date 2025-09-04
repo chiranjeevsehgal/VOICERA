@@ -1,5 +1,18 @@
-import { Component, OnInit, OnDestroy, AfterViewInit, ElementRef, ViewChild, NgZone } from '@angular/core';
-import { Subscription } from 'rxjs';
+import {
+  Component,
+  OnInit,
+  OnDestroy,
+  AfterViewInit,
+  ElementRef,
+  ViewChild,
+  NgZone,
+} from '@angular/core';
+import {
+  debounceTime,
+  distinctUntilChanged,
+  Subject,
+  Subscription,
+} from 'rxjs';
 import { Podcast, PodcastService } from '../../services/podcast.service';
 import { HeaderComponent } from '../../components/header/header.component';
 import { SerachSectionComponent } from '../../components/search-section/search-section.component';
@@ -28,6 +41,7 @@ export class SearchComponent implements OnInit, OnDestroy, AfterViewInit {
   selectedPodcast: Podcast | null = null;
   isModalVisible = false;
   private subscription?: Subscription;
+  private searchSubscription?: Subscription;
   isSearching = false;
   isLoading = true;
   hasSearched = false;
@@ -36,15 +50,17 @@ export class SearchComponent implements OnInit, OnDestroy, AfterViewInit {
   loadingMore = false;
   private io?: IntersectionObserver;
   @ViewChild('infiniteAnchor') infiniteAnchor?: ElementRef;
+  private searchSubject = new Subject<string>();
 
   constructor(
     private podcastService: PodcastService,
     private messageService: MessageService,
-    private ngZone: NgZone,
+    private ngZone: NgZone
   ) {}
 
   ngOnInit(): void {
     this.loadPodcasts();
+    this.setupDebouncedSearch();
   }
 
   ngOnDestroy(): void {
@@ -52,9 +68,24 @@ export class SearchComponent implements OnInit, OnDestroy, AfterViewInit {
     if (this.subscription) {
       this.subscription.unsubscribe();
     }
+    if (this.searchSubscription) {
+      this.searchSubscription.unsubscribe();
+    }
+    this.searchSubject.complete();
     if (this.io) {
       this.io.disconnect();
     }
+  }
+
+  private setupDebouncedSearch(): void {
+    this.searchSubscription = this.searchSubject
+      .pipe(
+        debounceTime(300), // Wait 300ms after user stops typing
+        distinctUntilChanged() // Only emit if the value has changed
+      )
+      .subscribe((query: string) => {
+        this.performSearch(query);
+      });
   }
 
   private loadPodcasts(): void {
@@ -70,17 +101,20 @@ export class SearchComponent implements OnInit, OnDestroy, AfterViewInit {
 
   private setupInfiniteScroll(): void {
     if (this.io) this.io.disconnect();
-    this.io = new IntersectionObserver((entries) => {
-      const entry = entries[0];
-      if (!entry || !entry.isIntersecting) return;
-      if (this.isLoading || this.loadingMore || !this.hasNext) return;
-      // Ensure updates happen inside Angular zone
-      this.ngZone.run(() => this.loadNextPage());
-    }, {
-      root: null,
-      rootMargin: '200px',
-      threshold: 0.1,
-    });
+    this.io = new IntersectionObserver(
+      (entries) => {
+        const entry = entries[0];
+        if (!entry || !entry.isIntersecting) return;
+        if (this.isLoading || this.loadingMore || !this.hasNext) return;
+        // Ensure updates happen inside Angular zone
+        this.ngZone.run(() => this.loadNextPage());
+      },
+      {
+        root: null,
+        rootMargin: '200px',
+        threshold: 0.1,
+      }
+    );
     if (this.infiniteAnchor?.nativeElement) {
       this.io.observe(this.infiniteAnchor.nativeElement);
     }
@@ -129,8 +163,15 @@ export class SearchComponent implements OnInit, OnDestroy, AfterViewInit {
 
   onSearchChange(query: string): void {
     this.searchQuery = query.trim();
+    this.searchSubject.next(this.searchQuery);
+  }
+
+  private performSearch(query: string): void {
+    this.searchQuery = query;
     if (!this.searchQuery) {
       this.hasSearched = false;
+    } else {
+      this.hasSearched = true;
     }
     this.filterPodcasts();
   }
@@ -145,12 +186,8 @@ export class SearchComponent implements OnInit, OnDestroy, AfterViewInit {
     return podcasts.sort((a, b) => {
       // Assuming the podcast object has a date field like 'created_at', 'uploadDate', or 'audioFile.created_at'
       // Adjust the property path based on your actual data structure
-      const dateA = new Date(
-        a.audioFile?.created_at
-      );
-      const dateB = new Date(
-        b.audioFile?.created_at
-      );
+      const dateA = new Date(a.audioFile?.created_at);
+      const dateB = new Date(b.audioFile?.created_at);
 
       // Sort in descending order (newest first)
       return dateB.getTime() - dateA.getTime();
