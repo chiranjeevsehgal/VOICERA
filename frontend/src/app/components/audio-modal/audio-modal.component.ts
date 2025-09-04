@@ -122,7 +122,7 @@ export class AudioModalComponent implements OnInit, OnDestroy, OnChanges, AfterV
     this.transcriptError = null;
     this.words = [];
 
-    const mp3Url = this.podcast?.audioFile?.audio_url || this.podcast?.audioFile?.user_data?.file_url;
+    const mp3Url = this.podcast?.audioFile?.embedded_audio_url || this.podcast?.audioFile?.user_data?.file_url;
     if (!mp3Url) return;
 
     this.transcriptLoading = true;

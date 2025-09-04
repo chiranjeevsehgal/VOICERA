@@ -71,7 +71,7 @@
           #audioPlayer
           controls
           class="w-full rounded-lg sm:rounded-xl"
-          [src]="podcast.audioFile?.audio_url || podcast.audioFile?.user_data?.file_url"
+          [src]="podcast.audioFile?.embedded_audio_url || podcast.audioFile?.user_data?.file_url"
           (timeupdate)="onTimeUpdate()"
           (loadedmetadata)="onLoadedMetadata()"
           (play)="isPlaying = true"
@@ -180,7 +180,7 @@
     <!-- Footer -->
     <div *ngIf="podcast" class="flex justify-center sm:justify-end p-4 sm:p-6 border-t border-gray-100 relative z-10">
       <a
-        [href]="podcast.audioFile?.audio_url || podcast.audioFile?.user_data?.file_url"
+        [href]="podcast.audioFile?.embedded_audio_url || podcast.audioFile?.user_data?.file_url"
         download
         class="group px-4 sm:px-6 py-2 sm:py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl sm:rounded-2xl font-semibold hover:from-indigo-700 hover:to-purple-700 transition-all duration-300 flex items-center shadow-lg hover:shadow-xl hover:-translate-y-1 text-sm sm:text-base"
       >
