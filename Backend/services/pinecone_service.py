@@ -738,6 +738,56 @@ async def search_transcripts(query: str, limit: int = None, filter_dict: Dict = 
         traceback.print_exc()
         return []
 
+async def delete_by_file_id(file_id: str) -> Dict[str, Any]:
+    """
+    Delete all Pinecone vectors that have metadata.file_id == file_id.
+    Returns a dict with keys: success (bool), deleted_count (int), error (str|None).
+    """
+    global index
+    if not index:
+        if not init_pinecone():
+            msg = "Failed to initialize Pinecone"
+            return {"success": False, "deleted_count": 0, "error": msg}
+    try:
+        # Collect matching vector IDs via a filtered query
+        dummy_vector = [0.0] * EMBEDDING_DIMENSION
+        
+        search_response = index.query(
+            vector=dummy_vector,
+            top_k=10000,
+            include_metadata=True,
+            filter={"file_id": {"$eq": file_id}}
+        )
+        
+        # Access matches from Pinecone response object
+        matches = search_response.matches if hasattr(search_response, 'matches') else []
+        
+        if not matches:
+            return {"success": True, "deleted_count": 0, "error": None}
+
+        vector_ids = [m.id for m in matches if hasattr(m, 'id')]
+
+        batch_size = 1000  # Pinecone's delete limit per request
+        deleted_count = 0
+        errors: List[str] = []
+
+        for i in range(0, len(vector_ids), batch_size):
+            batch_ids = vector_ids[i:i + batch_size]
+            try:
+                delete_response = index.delete(ids=batch_ids)
+                deleted_count += len(batch_ids)
+            except Exception as de:
+                err = f"Error deleting batch {i//batch_size + 1}: {str(de)}"
+                errors.append(err)
+
+        if errors:
+            return {"success": False, "deleted_count": deleted_count, "error": "; ".join(errors)}
+
+        return {"success": True, "deleted_count": deleted_count, "error": None}
+    except Exception as e:
+        error_msg = f"Error deleting vectors for file_id {file_id}: {str(e)}"
+        return {"success": False, "deleted_count": 0, "error": error_msg}
+
 def test_pinecone_connection():
     """Test Pinecone connection and index status"""
     try:

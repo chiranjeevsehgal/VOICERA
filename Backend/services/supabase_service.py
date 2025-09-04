@@ -13,9 +13,9 @@ load_dotenv()
 
 # Supabase configuration
 supabase_url = os.getenv("SUPABASE_URL")
-# Prefer service role key on the server to bypass RLS
-supabase_service_role_key = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
-supabase_key = supabase_service_role_key or os.getenv("SUPABASE_KEY")
+# Use anon key only (no service role)
+supabase_service_role_key = None
+supabase_key = os.getenv("SUPABASE_KEY")
 supabase_bucket = os.getenv("SUPABASE_BUCKET", "audiofiles")
 # Optional specialized buckets (fallback to SUPABASE_BUCKET if not set)
 supabase_bucket_original = os.getenv("SUPABASE_BUCKET_ORIGINAL", supabase_bucket)
@@ -30,7 +30,7 @@ def init_supabase():
     if supabase_url and supabase_key:
         try:
             supabase = create_client(supabase_url, supabase_key)
-            key_mode = "service-role" if supabase_service_role_key else "standard"
+            key_mode = "anon"
             print(f"Supabase client initialized ({key_mode} key). Default bucket: {supabase_bucket}; original: {supabase_bucket_original}; embedded: {supabase_bucket_embedded}")
             # We don't try to create buckets - they should be created in the dashboard
         except Exception as e:
@@ -231,14 +231,30 @@ async def delete_file_from_supabase(file_name, bucket_name: str = None):
     if not supabase:
         raise ValueError("Supabase client not initialized. Check your environment variables.")
     
-    # Prepend 'public/' if the path doesn't already include it
+    # Ensure file path starts with "public/" for RLS compatibility
     if not file_name.startswith("public/"):
         file_name = f"public/{file_name}"
     
     selected_bucket = bucket_name or supabase_bucket
-    response = supabase.storage.from_(selected_bucket).remove([file_name])
-    return {
-        "success": True,
-        "message": f"File {file_name} deleted successfully",
-        "response": response
-    }
+    
+    try:
+        response = supabase.storage.from_(selected_bucket).remove([file_name])
+        # Check if deletion was successful
+        if response and len(response) > 0:
+            return {
+                "success": True,
+                "message": f"File {file_name} deleted from {selected_bucket}",
+                "response": response
+            }
+        else:
+            return {
+                "success": False,
+                "message": f"Failed to delete {file_name} from {selected_bucket} - no response",
+                "response": response
+            }
+    except Exception as e:
+        return {
+            "success": False,
+            "message": f"Error deleting {file_name}: {str(e)}",
+            "response": None
+        }
