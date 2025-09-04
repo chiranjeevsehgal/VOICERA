@@ -27,7 +27,7 @@ export class SemanticSearchComponent implements OnInit, OnDestroy {
   searchQuery: string = '';
   limit: number = 10;
   limits: number[] = Array.from({ length: 10 }, (_, i) => i + 1);
-  minConfidence: number = 0.4;
+  minConfidence: number = 0.2;
   minRelevance: number = 0.2;
   confidenceOptions: number[] = [0.0, 0.2, 0.4, 0.5, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9];
   relevanceOptions: number[] = [0.0, 0.2, 0.4, 0.5, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9];
