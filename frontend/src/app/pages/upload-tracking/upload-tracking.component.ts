@@ -30,13 +30,11 @@ export class UploadTrackingComponent implements OnInit, OnDestroy {
 
   private readonly processingStatuses = [
     'pending',
-    'checking_credits',
     'uploading',
     'transcribing',
     'embedding',
     'indexing',
     'uploading_to_supabase',
-    'deducting_credits',
   ];
 
   constructor(
@@ -67,7 +65,7 @@ export class UploadTrackingComponent implements OnInit, OnDestroy {
     this.errorMessage = '';
 
     this.uploadService.getJobStatus(this.jobId).subscribe({
-      next: (status:any) => {
+      next: (status: any) => {
         this.jobStatus = status;
         this.loading = false;
 
@@ -154,8 +152,6 @@ export class UploadTrackingComponent implements OnInit, OnDestroy {
     switch (this.jobStatus.status) {
       case 'pending':
         return 'Job Queued';
-      case 'checking_credits':
-        return 'Checking Credits';
       case 'uploading':
         return 'Uploading File';
       case 'transcribing':
@@ -164,10 +160,6 @@ export class UploadTrackingComponent implements OnInit, OnDestroy {
         return 'Creating Embeddings';
       case 'indexing':
         return 'Indexing Content';
-      case 'uploading_to_supabase':
-        return 'Storing Data';
-      case 'deducting_credits':
-        return 'Processing Payment';
       case 'completed':
         return 'Processing Complete!';
       case 'failed':
@@ -183,8 +175,6 @@ export class UploadTrackingComponent implements OnInit, OnDestroy {
     switch (this.jobStatus.status) {
       case 'pending':
         return 'Your job is waiting in the queue to be processed';
-      case 'checking_credits':
-        return 'Verifying your account credits and permissions';
       case 'uploading':
         return 'Uploading your audio file to our servers';
       case 'transcribing':
@@ -193,10 +183,6 @@ export class UploadTrackingComponent implements OnInit, OnDestroy {
         return 'Generating semantic embeddings for search';
       case 'indexing':
         return 'Indexing content for fast retrieval';
-      case 'uploading_to_supabase':
-        return 'Storing processed data in the database';
-      case 'deducting_credits':
-        return 'Finalizing billing and credit deduction';
       case 'completed':
         return 'Your audio has been successfully processed and is now searchable';
       case 'failed':

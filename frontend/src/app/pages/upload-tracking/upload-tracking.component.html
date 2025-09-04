@@ -213,44 +213,6 @@
           </div>
         </div>
 
-        <!-- Job Details -->
-        <div
-          class="bg-gradient-to-r from-gray-50 to-blue-50 border border-gray-200 rounded-xl sm:rounded-2xl p-4 sm:p-6 mb-4 sm:mb-6"
-        >
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4 text-xs sm:text-sm">
-            <div class="break-words">
-              <span class="font-medium text-gray-700">Job ID:</span>
-              <p class="text-gray-900 font-mono break-all text-xs sm:text-sm">
-                {{ jobStatus.id }}
-              </p>
-            </div>
-            <div>
-              <span class="font-medium text-gray-700">Status:</span>
-              <p
-                class="font-semibold capitalize"
-                [ngClass]="{
-                  'text-blue-700': isProcessingStatus(),
-                  'text-green-700': jobStatus.status === 'completed',
-                  'text-red-700': jobStatus.status === 'failed'
-                }"
-              >
-                {{ getStatusDisplayName() }}
-              </p>
-            </div>
-            <div>
-              <span class="font-medium text-gray-700">Created:</span>
-              <p class="text-gray-900 text-xs sm:text-sm">
-                {{ formatDate(jobStatus.created_at) }}
-              </p>
-            </div>
-            <div>
-              <span class="font-medium text-gray-700">Last Updated:</span>
-              <p class="text-gray-900 text-xs sm:text-sm">
-                {{ formatDate(jobStatus.updated_at) }}
-              </p>
-            </div>
-          </div>
-
           <!-- Error Message -->
           <div
             *ngIf="jobStatus.error"
@@ -275,7 +237,6 @@
                 <p class="text-red-600 text-sm break-words">{{ jobStatus.error }}</p>
               </div>
             </div>
-          </div>
         </div>
 
         <!-- Action Buttons -->
