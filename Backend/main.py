@@ -6,6 +6,7 @@ import time
 from utils.analytics import track_api_usage
 from starlette.middleware.base import BaseHTTPMiddleware
 from services.auth import decode_token
+from middleware.user_status import UserStatusMiddleware
 
 # Create a middleware class for API usage tracking
 class APIUsageMiddleware(BaseHTTPMiddleware):
@@ -50,6 +51,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Add user status checking middleware (BEFORE API usage tracking)
+app.add_middleware(UserStatusMiddleware)
 
 # Add API usage tracking middleware
 app.add_middleware(APIUsageMiddleware)
