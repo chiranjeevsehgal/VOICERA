@@ -42,7 +42,6 @@ export interface DeleteAudioResponse {
 
 export interface UpdateAudioRequest {
   title: string;
-  description: string;
 }
 
 @Injectable({
