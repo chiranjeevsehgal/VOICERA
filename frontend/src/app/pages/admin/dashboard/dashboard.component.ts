@@ -7,10 +7,11 @@ import { Subject, takeUntil } from 'rxjs';
 import { UserProfile } from '../../../services/auth/profile.service';
 import { CreditManagementComponent } from '../../../components/admin/credit-management/credit-management.component';
 import { AudioManagementComponent } from '../../../components/admin/audio-management/audio-management.component';
+import { UsageLogsComponent } from '../../../components/admin/usage-logs/usage-logs.component';
 
 @Component({
   selector: 'app-dashboard',
-  imports: [CommonModule, SidebarComponent, UserManagementComponent, CreditManagementComponent, AudioManagementComponent],
+  imports: [CommonModule, SidebarComponent, UserManagementComponent, CreditManagementComponent, AudioManagementComponent, UsageLogsComponent],
   templateUrl: './dashboard.component.html',
   styles: ``
 })
@@ -42,12 +43,12 @@ export class AdminDashboardComponent implements OnInit, OnDestroy  {
     this.subscribeToProfileData(); 
   }
 
-   ngOnDestroy() {
+  ngOnDestroy() {
     this.destroy$.next();
     this.destroy$.complete();
   }
 
-   private subscribeToProfileData(): void {
+  private subscribeToProfileData(): void {
     this.adminService.userProfile$
       .pipe(takeUntil(this.destroy$))
       .subscribe((profile) => {
@@ -59,7 +60,7 @@ export class AdminDashboardComponent implements OnInit, OnDestroy  {
       });
   }
 
-    private getUserInitials(fullName: string): string {
+  private getUserInitials(fullName: string): string {
     if (!fullName) return 'A';
     const names = fullName.trim().split(' ');
     if (names.length === 1) {
@@ -90,6 +91,7 @@ export class AdminDashboardComponent implements OnInit, OnDestroy  {
       'user-management', 
       'audio-management',
       'credit-management',
+      'logs',
     ];
     return validViews.includes(view);
   }
@@ -118,8 +120,9 @@ export class AdminDashboardComponent implements OnInit, OnDestroy  {
   getPageTitle(): string {
     const titles: { [key: string]: string } = {
       'user-management': 'User Management',
-      'credit-management': 'Credit Management',
+      'credit-management': 'Credits',
       'audio-management': 'Audio Management',
+      'logs': 'Logs',
     };
     return titles[this.currentView] || 'Dashboard';
   }
@@ -128,8 +131,9 @@ export class AdminDashboardComponent implements OnInit, OnDestroy  {
   getPageDescription(): string {
     const descriptions: { [key: string]: string } = {
       'user-management': 'Manage user accounts',
-      'credit-management': 'Manage user credits based on IP',
+      'credit-management': 'Manage IP credits',
       'audio-management': 'Upload, organize and manage audio content',
+      'logs': 'View API usage metrics and endpoint counts',
     };
     return descriptions[this.currentView] || 'Manage your application';
   }
