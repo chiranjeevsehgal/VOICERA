@@ -29,6 +29,16 @@ async def login_user(
             },
             headers={"WWW-Authenticate": "Bearer"},
         )
+    if user.get("status") == "inactive":
+        return JSONResponse(
+            status_code=status.HTTP_403_FORBIDDEN,
+            content={
+                "status": False,
+                "detail": "Your account is inactive. Please contact support for assistance.",
+                "access_token": None,
+                "token_type": None
+            }
+        )
     token_data = {
         "sub": str(user["_id"]),
         "email": user["email"],

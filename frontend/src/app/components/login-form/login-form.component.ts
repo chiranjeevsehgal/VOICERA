@@ -2,11 +2,11 @@ import { Component, NgZone, OnInit } from '@angular/core';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule, AbstractControl, ValidationErrors } from '@angular/forms';
 import { MessageService } from 'primeng/api';
 import { ProgressSpinner } from 'primeng/progressspinner';
-import { Toast } from 'primeng/toast';
 import { LoginService } from '../../services/auth/login.service';
 import { environment } from '../../../environments/environment';
 import { LucideAngularModule, Eye, EyeOff } from 'lucide-angular';
 import { Router } from '@angular/router';
+import { HotToastService } from '@ngxpert/hot-toast';
 
 
 @Component({
@@ -14,13 +14,11 @@ import { Router } from '@angular/router';
   templateUrl: './login-form.component.html',
   styles: ``,
   imports: [
-    Toast,
     ReactiveFormsModule,
     ProgressSpinner,
     LucideAngularModule
   ],
   providers: [
-    MessageService
   ]
 })
 export class LoginFormComponent {
@@ -34,10 +32,10 @@ export class LoginFormComponent {
 
   constructor(
     private fb: FormBuilder,
-    private messageService: MessageService,
     private loginService: LoginService,
     private ngZone: NgZone,
-    private router: Router
+    private router: Router,
+    private toast: HotToastService
   ) {
     this.loginForm = this.fb.group({
       email: ['', [Validators.required, Validators.email]],
@@ -98,7 +96,7 @@ export class LoginFormComponent {
           error: (error) => {
             // console.log("Login Error", error);
             this.isLoading = false;
-            this.messageService.add({ severity: 'error', summary: 'Error', detail: error.error.detail, life: 3000 });
+            this.toast.error(error.error.detail);
           }
         })
       }, 3000);
