@@ -35,9 +35,22 @@ export interface AudioFilters {
   author?: string;
 }
 
+export interface DeletionSummary {
+  podcast_deleted?: boolean;
+  transcripts_deleted?: number;
+  uploads_deleted?: number;
+  transcription_stats_deleted?: number;
+  supabase_files_deleted?: string[];
+  supabase_errors?: string[];
+  pinecone_deleted?: boolean;
+  pinecone_error?: string | null;
+  pinecone_vectors_deleted?: number;
+}
+
 export interface DeleteAudioResponse {
-  status: string;
+  status?: string;
   detail: string;
+  deletion_summary?: DeletionSummary;
 }
 
 export interface UpdateAudioRequest {

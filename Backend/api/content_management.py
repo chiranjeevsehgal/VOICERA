@@ -467,8 +467,6 @@ async def delete_audio(
     
     return {
         "status": "success", 
-        "detail": f"Audio {audio_id} has been permanently deleted from all storage locations",
-        "deletion_summary": deletion_summary
     }
 
 # Uploads Management
