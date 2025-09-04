@@ -567,11 +567,14 @@ async def index_transcript(transcript_data: Dict, file_url: str, file_name: str,
             vector_id = f"{file_id}_{i}"
             meta = {
                 "file_url": supabase_url,
+                "file_id": file_id,
+                "file_name": file_name,
                 "text": txt,
                 "start_time": chunk["start_time"],
                 "end_time": chunk["end_time"],
                 "confidence": chunk.get("confidence", 0),
-                "file_name": file_name,
+                "chunk_index": i,  # Chunk index
+                "total_chunks": len(chunks)  # Total chunks for this file
             }
             if chunk.get("speaker") is not None:
                 meta["speaker"] = chunk.get("speaker")
