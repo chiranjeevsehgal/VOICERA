@@ -30,17 +30,25 @@ export class LoginPageComponent implements OnInit {
           case 'account_inactive':
             this.toast.error(
               params['message'] ||
-                'Your account is inactive. Please contact support for assistance.'
+                'Your account is inactive. Please contact support for assistance.',
+              {
+                id: 'account_inactive',
+              }
             );
             break;
           case 'auth_failed':
             this.toast.error(
-              params['message'] || 'Authentication failed. Please try again.'
+              params['message'] || 'Authentication failed. Please try again.',
+              {
+                id: 'auth_failed',
+              }
             );
             break;
           default:
             if (params['message']) {
-              this.toast.error(params['message']);
+              this.toast.error(params['message'], {
+                id: 'unknown_error',
+              });
             }
             break;
         }

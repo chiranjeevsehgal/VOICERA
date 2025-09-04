@@ -54,9 +54,12 @@ class UserStatusMiddleware(BaseHTTPMiddleware):
                     status_code=403,
                     content={
                         "status": False,
-                        "detail": "Your account has been deactivated. Please contact support for assistance.",
+                        "detail": "Your account is inactive. Please contact support for assistance.",
                         "code": "ACCOUNT_INACTIVE",
                         "action": "FORCE_LOGOUT"
+                    },
+                    headers={
+                        "Content-Type": "application/json"
                     }
                 )
             

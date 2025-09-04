@@ -43,6 +43,11 @@ app = FastAPI(
     description="Backend for VOICERA",
     version="1.0.0"
 )
+# Add user status checking middleware
+app.add_middleware(UserStatusMiddleware)
+
+# Add API usage tracking middleware
+app.add_middleware(APIUsageMiddleware)
 
 app.add_middleware(
     CORSMiddleware,
@@ -52,11 +57,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Add user status checking middleware (BEFORE API usage tracking)
-app.add_middleware(UserStatusMiddleware)
-
-# Add API usage tracking middleware
-app.add_middleware(APIUsageMiddleware)
 
 @app.get("/")
 async def root():
