@@ -686,7 +686,7 @@ async def search_transcripts(query: str, limit: int = None, filter_dict: Dict = 
     
     try:
         # RAJDEEP_TESTING
-        query_embedding = get_embedding(query, task_type="SEMANTIC_SIMILARITY")
+        query_embedding = get_embedding(query, task_type="RETRIEVAL_QUERY")
         
         # Execute search
         search_response = index.query(

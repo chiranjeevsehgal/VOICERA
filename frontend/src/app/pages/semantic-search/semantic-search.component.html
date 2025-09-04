@@ -177,17 +177,17 @@
                 <label for="minConfidence" class="text-xs text-gray-600 mb-1"
                   >Min Confidence</label
                 >
-                <select
+                <input
+                  type="range"
                   id="minConfidence"
                   [(ngModel)]="minConfidence"
                   [disabled]="loading"
-                  class="w-full sm:w-28 md:w-32 px-2 py-1.5 sm:px-3 sm:py-2 border-2 border-gray-200 rounded-lg sm:rounded-xl text-xs sm:text-sm bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 disabled:opacity-50"
-                  aria-label="Minimum confidence threshold"
-                >
-                  <option *ngFor="let c of confidenceOptions" [ngValue]="c">
-                    {{ c }}
-                  </option>
-                </select>
+                  min="0"
+                  max="0.95"
+                  step="0.01"
+                  class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider"
+                />
+                <span class="text-xs text-gray-500 mt-1">{{ minConfidence }}</span>
               </div>
 
               <!-- Min Relevance control -->
@@ -195,17 +195,17 @@
                 <label for="minRelevance" class="text-xs text-gray-600 mb-1"
                   >Min Relevance</label
                 >
-                <select
+                <input
+                  type="range"
                   id="minRelevance"
                   [(ngModel)]="minRelevance"
                   [disabled]="loading"
-                  class="w-full sm:w-28 md:w-32 px-2 py-1.5 sm:px-3 sm:py-2 border-2 border-gray-200 rounded-lg sm:rounded-xl text-xs sm:text-sm bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 disabled:opacity-50"
-                  aria-label="Minimum relevance threshold"
-                >
-                  <option *ngFor="let r of relevanceOptions" [ngValue]="r">
-                    {{ r }}
-                  </option>
-                </select>
+                  min="0"
+                  max="0.95"
+                  step="0.01"
+                  class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider"
+                />
+                <span class="text-xs text-gray-500 mt-1">{{ minRelevance }}</span>
               </div>
             </div>
           </div>
@@ -235,7 +235,8 @@
             class="text-gray-600 text-center sm:text-left"
             *ngIf="!loading && hasSearched && searchResults.length > 0"
           >
-            {{ searchResults.length }} results found
+          <!-- unique files length -->
+            {{ uniqueFilesCount }} unique files found
           </p>
           <div
             *ngIf="loading"

@@ -3,7 +3,7 @@ from typing import List, Optional, Dict, Any
 from bson import ObjectId
 from datetime import datetime
 import hashlib
-from pydantic import HttpUrl # Import HttpUrl
+from pydantic import BaseModel, HttpUrl # Import BaseModel and HttpUrl
 
 from services.auth import requires_role
 from services.database import (
@@ -17,17 +17,17 @@ from models.content import (
     PodcastsResponse,
     Upload,
     UploadsResponse,
-    PodcastBase, # Import PodcastBase for update model
 )
 from utils.logging import log_info
 
 router = APIRouter()
 
-# Pydantic models for update operations
-class PodcastUpdate(PodcastBase):
+# Pydantic model for update operations (all fields optional for partial updates)
+class PodcastUpdate(BaseModel):
     title: Optional[str] = None
     description: Optional[str] = None
     image_url: Optional[HttpUrl] = None
+    embedded_audio_url: Optional[HttpUrl] = None
     audio_url: Optional[HttpUrl] = None
     duration_seconds: Optional[float] = None
     author: Optional[str] = None
@@ -39,7 +39,7 @@ class PodcastUpdate(PodcastBase):
     views: Optional[int] = None
     likes: Optional[int] = None
     average_rating: Optional[float] = None
-    transcription_status: Optional[str] = None # Add transcription_status for updates
+    transcription_status: Optional[str] = None  # Add transcription_status for updates
 
 # Helper functions
 def sanitize_mongo_doc(doc: Dict[str, Any]) -> Dict[str, Any]:

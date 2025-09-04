@@ -834,7 +834,7 @@ class EnhancedSearch:
         # Use query-optimized embeddings for user/query texts
 
         # RAJDEEP_TESTING
-        vec = get_embedding(text, task_type="SEMANTIC_SIMILARITY")
+        vec = get_embedding(text, task_type="RETRIEVAL_QUERY")
         self._embedding_cache[text] = vec
         return vec
 

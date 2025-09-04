@@ -74,10 +74,10 @@ export class SemanticSearchComponent implements OnInit, OnDestroy, AfterViewInit
   searchQuery: string = '';
   limit: number = 10;
   limits: number[] = Array.from({ length: 10 }, (_, i) => i + 1);
-  minConfidence: number = 0.2;
-  minRelevance: number = 0.2;
-  confidenceOptions: number[] = [0.0, 0.2, 0.4, 0.5, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9];
-  relevanceOptions: number[] = [0.0, 0.2, 0.4, 0.5, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9];
+  minConfidence: number = 0.4;
+  minRelevance: number = 0.055;
+  confidenceOptions: number[] = [0.0, 0.1, 0.2, 0.3, 0.4, 0.45, 0.5, 0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95];
+  relevanceOptions: number[] = [0.0, 0.1, 0.2, 0.3, 0.4, 0.45, 0.5, 0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95];
   // Flattened results for counts/stats
   searchResults: SearchResult[] = [];
   // Grouped by audio file
@@ -233,6 +233,11 @@ export class SemanticSearchComponent implements OnInit, OnDestroy, AfterViewInit
     const minutes = Math.floor(seconds / 60);
     const remainingSeconds = Math.floor(seconds % 60);
     return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
+  }
+
+  get uniqueFilesCount(): number {
+    const uniqueUrls = new Set(this.searchResults.map(r => r.file_url || r.file_name));
+    return uniqueUrls.size;
   }
 
   get currentSegment(): SearchResult | null {
