@@ -7,8 +7,31 @@ class APIUsageStats(BaseModel):
     endpoint_counts: Dict[str, int] = {}
     user_counts: Dict[str, int] = {}
     ip_counts: Dict[str, int] = {}
+    status_counts: Dict[str, int] = {}
+    hourly_distribution: Dict[str, int] = {}
     date_range: Dict[str, datetime] = {}
     average_response_time: Optional[float] = None
+    min_response_time: Optional[float] = None
+    max_response_time: Optional[float] = None
+    # New detailed analytics
+    endpoint_details: List["EndpointDetail"] = []
+    ip_details: List["IPDetail"] = []
+
+
+class EndpointDetail(BaseModel):
+    endpoint: str
+    count: int
+    avg_response_time: Optional[float] = None
+    success_rate: Optional[float] = None
+
+
+class IPDetail(BaseModel):
+    ip: str
+    count: int
+    avg_response_time: Optional[float] = None
+    last_seen: Optional[datetime] = None
+    first_seen: Optional[datetime] = None
+    unique_endpoints: int = 0
 
 class TranscriptionStats(BaseModel):
     total_transcriptions: int = 0
@@ -49,4 +72,10 @@ class LogEntry(BaseModel):
 class LogsResponse(BaseModel):
     logs: List[LogEntry]
     total_count: int
-    levels_count: Dict[str, int] = {} 
+    levels_count: Dict[str, int] = {}
+
+# Resolve forward references for Pydantic v2 (no-op if already resolved)
+try:
+    APIUsageStats.model_rebuild()
+except Exception:
+    pass
