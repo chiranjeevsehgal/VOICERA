@@ -9,6 +9,7 @@ from dotenv import load_dotenv
 from services.auth import get_current_user
 from utils.content_tracker import create_podcast, create_transcript, update_podcast_transcription_status
 from utils.analytics import track_transcription
+from utils.logging import log_info, log_warning, log_error
 
 # Load environment variables
 load_dotenv()
@@ -163,9 +164,8 @@ async def transcribe_audio(
             json=body_params,
         )
         
-        # Log request details for debugging (remove in production)
-        print(f"Request URL: {deepgram_url}")
-        print(f"Request Body: {body_params}")
+        # Log request details for debugging
+        log_info(f"Making Deepgram API request", "transcribe", {"url": deepgram_url, "body_params": body_params})
         
         # Check if request was successful
         if response.status_code != 200:
@@ -207,7 +207,7 @@ async def transcribe_audio(
                 user_id=str(current_user.get("_id", ""))
             )
             
-            print(f"Created podcast record with ID: {podcast_id}")
+            log_info(f"Created podcast record with ID: {podcast_id}", "transcribe", {"podcast_id": podcast_id, "upload_id": request.upload_id})
             
             if podcast_id: # Only proceed if podcast was successfully created
                 # Mark podcast as transcription in progress
@@ -236,7 +236,7 @@ async def transcribe_audio(
                     confidence_score=confidence
                 )
                 
-                print(f"Created transcript record with ID: {transcript_id}")
+                log_info(f"Created transcript record with ID: {transcript_id}", "transcribe", {"transcript_id": transcript_id, "podcast_id": podcast_id})
                 
                 # Update podcast with transcription status
                 # Verify transcription status was properly updated
@@ -248,7 +248,7 @@ async def transcribe_audio(
                 
                 # If update failed, retry once with a delay
                 if not status_update:
-                    print(f"Warning: First attempt to update transcription status failed, retrying...")
+                    log_warning("First attempt to update transcription status failed, retrying", "transcribe", {"podcast_id": podcast_id})
                     import asyncio
                     await asyncio.sleep(1)  # Short delay before retry
                     await update_podcast_transcription_status(
@@ -262,14 +262,14 @@ async def transcribe_audio(
                     from bson import ObjectId
                     podcast_check = await podcasts_collection.find_one({"_id": ObjectId(podcast_id)})
                     if podcast_check and podcast_check.get("transcription_status") != "completed":
-                        print(f"Error: Failed to update transcription status for podcast {podcast_id}")
+                        log_error(f"Failed to update transcription status for podcast {podcast_id}", "transcribe", {"podcast_id": podcast_id})
                 
                 # Add the IDs to the response
                 transcription_data["podcast_id"] = podcast_id
                 transcription_data["transcript_id"] = transcript_id
             else:
                 # If podcast creation failed, log and potentially update upload status to failed
-                print(f"Error: Podcast creation failed for upload_id: {request.upload_id}. Skipping transcript creation.")
+                log_error(f"Podcast creation failed for upload_id: {request.upload_id}. Skipping transcript creation.", "transcribe", {"upload_id": request.upload_id})
                 if request.upload_id:
                     from utils.content_tracker import update_upload_status
                     await update_upload_status(
@@ -336,6 +336,6 @@ async def transcribe_audio(
                 background_tasks=background_tasks # Pass background_tasks here
             )
         except Exception as tracking_error:
-            print(f"Error tracking transcription failure: {tracking_error}")
+            log_error(f"Error tracking transcription failure: {tracking_error}", "transcribe", {"tracking_error": str(tracking_error)})
             
         raise HTTPException(status_code=500, detail=f"Error transcribing audio: {str(e)}")

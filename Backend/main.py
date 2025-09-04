@@ -3,23 +3,23 @@ from fastapi.middleware.cors import CORSMiddleware
 from api import health, transcribe, embedding, upload, llm_translation, supabase_upload, auth, ip_detection, search, credit_management, oauth, admin, content_management, otpEmailService, process_audio
 import uvicorn
 import time
+import logging
 from utils.analytics import track_api_usage
 from starlette.middleware.base import BaseHTTPMiddleware
 from services.auth import decode_token
+from utils.logging_config import setup_logging
+
+# Initialize logging before app and routers
+setup_logging()
+logger = logging.getLogger("voicera.main")
 
 # Create a middleware class for API usage tracking
 class APIUsageMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
         # Start timer
         start_time = time.time()
-        
-        # Process the request
-        response = await call_next(request)
-        
-        # Calculate response time
-        response_time = (time.time() - start_time) * 1000  # Convert to milliseconds
-        
-        # Extract user ID from authorization header if present
+
+        # Extract user ID from authorization header if present (before processing for logging)
         user_id = None
         auth_header = request.headers.get("Authorization")
         if auth_header and auth_header.startswith("Bearer "):
@@ -29,11 +29,41 @@ class APIUsageMiddleware(BaseHTTPMiddleware):
                 if payload and "sub" in payload:
                     user_id = payload["sub"]
             except Exception:
+                # Avoid failing request due to logging concerns
                 pass
-        
+
+        # Process the request with error logging
+        try:
+            response = await call_next(request)
+        except Exception as ex:
+            response_time = (time.time() - start_time) * 1000
+            logger.exception(
+                "Unhandled exception processing %s %s for user=%s after %.2fms",
+                request.method,
+                request.url.path,
+                user_id,
+                response_time,
+            )
+            raise
+
+        # Calculate response time
+        response_time = (time.time() - start_time) * 1000  # Convert to milliseconds
+
+        # Structured access log
+        logger.info(
+            "HTTP %s %s status=%s user=%s rt=%.2fms ip=%s ua=%s",
+            request.method,
+            request.url.path,
+            response.status_code,
+            user_id,
+            response_time,
+            request.client.host if request.client else None,
+            request.headers.get("user-agent"),
+        )
+
         # Track API usage asynchronously
         await track_api_usage(request, response, response_time, user_id)
-        
+
         return response
 
 # Create FastAPI application with concurrency settings

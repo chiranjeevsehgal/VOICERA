@@ -15,6 +15,7 @@ import asyncio
 from concurrent.futures import ThreadPoolExecutor
 from services.database import podcasts_collection, uploads_collection
 from utils.analytics import track_search_term, track_user_activity
+from utils.logging import log_error, log_info, log_warning
 
 router = APIRouter()
 
@@ -173,7 +174,7 @@ async def expand_query_with_llm(query: str) -> List[str]:
             return [query]
             
     except Exception as e:
-        print(f"Error in query expansion: {str(e)}")
+        log_error(f"Error in query expansion: {str(e)}", "search.expand_query_with_llm", {"query": query, "error": str(e)})
         return [query]  # Fallback to original query
 
 async def process_natural_language_query(query: str) -> Dict:
@@ -413,7 +414,7 @@ async def process_natural_language_query(query: str) -> Dict:
             }
             
     except Exception as e:
-        print(f"Error in natural language query processing: {str(e)}")
+        log_error(f"Error in natural language query processing: {str(e)}", "search.process_natural_language_query", {"query": query, "error": str(e)})
         # Return basic fallback
         key_terms = [term.lower() for term in query.lower().split() 
                      if term.lower() not in stopwords and len(term) > 2]
@@ -1337,27 +1338,23 @@ async def search_and_answer(
     """
     try:
         # Debug logging
-        print("=== SEARCH AND ANSWER REQUEST ===")
-        print(f"Search Query: {request.search_query}")
-        print(f"Result ID: {request.result_id}")
+        log_info("Search and answer request received", "search.search_and_answer", {"search_query": request.search_query, "result_id": request.result_id})
         if request.transcript:
             transcript_len = len(request.transcript)
             transcript_words = len(request.transcript.split())
-            print(f"Transcript length: {transcript_len} chars, {transcript_words} words")
-            print(f"Transcript start: {request.transcript[:100]}...")
-            print(f"Transcript end: ...{request.transcript[-100:]}")
+            log_info(f"Processing transcript with {transcript_len} chars, {transcript_words} words", "search.search_and_answer", {"transcript_length": transcript_len, "transcript_words": transcript_words})
         else:
-            print("Warning: Empty transcript received")
+            log_warning("Empty transcript received", "search.search_and_answer")
         
         config = LLMConfig_Search()
         
         if not config.api_key:
-            print("Error: LLM API key not configured")
+            log_error("LLM API key not configured", "search.search_and_answer")
             raise HTTPException(status_code=500, detail="LLM API key not configured")
             
         # Validate the transcript
         if not request.transcript or len(request.transcript.strip()) < 10:
-            print("Error: Transcript too short or empty")
+            log_error("Transcript too short or empty", "search.search_and_answer", {"transcript_length": len(request.transcript.strip()) if request.transcript else 0})
             return {
                 "result_id": request.result_id,
                 "search_query": request.search_query,
@@ -1367,7 +1364,7 @@ async def search_and_answer(
             
         # Log transcript length for debugging
         transcript_word_count = len(request.transcript.split())
-        print(f"Processing answer for '{request.search_query}' with transcript of {transcript_word_count} words")
+        log_info(f"Processing answer for '{request.search_query}' with transcript of {transcript_word_count} words", "search.search_and_answer", {"search_query": request.search_query, "transcript_word_count": transcript_word_count})
         
         # Configure the LLM
         model = genai.GenerativeModel(
@@ -1386,13 +1383,12 @@ async def search_and_answer(
             query=request.search_query
         )
         
-        print(f"Sending prompt to LLM (length: {len(formatted_prompt)} chars)")
+        log_info(f"Sending prompt to LLM (length: {len(formatted_prompt)} chars)", "search.search_and_answer", {"prompt_length": len(formatted_prompt)})
         
         # Generate the answer
         response = model.generate_content(formatted_prompt)
         
-        print(f"LLM response received (length: {len(response.text)} chars)")
-        print(f"Response start: {response.text[:100]}...")
+        log_info(f"LLM response received (length: {len(response.text)} chars)", "search.search_and_answer", {"response_length": len(response.text)})
         
         # Return the generated answer along with identifying information
         return {
@@ -1403,7 +1399,7 @@ async def search_and_answer(
         }
         
     except Exception as e:
-        print(f"Error generating answer: {str(e)}")
+        log_error(f"Error generating answer: {str(e)}", "search.search_and_answer", {"error": str(e), "search_query": request.search_query if 'request' in locals() else "unknown"})
         import traceback
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"Error generating answer: {str(e)}")

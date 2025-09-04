@@ -11,6 +11,7 @@ from together import Together
 from pinecone import Pinecone, ServerlessSpec, CloudProvider, AwsRegion
 from dotenv import load_dotenv
 import requests
+from utils.logging import log_info, log_warning, log_error
 
 # Load environment variables
 load_dotenv()
@@ -165,21 +166,21 @@ def init_pinecone():
     global pc, index
     try:
         if not PINECONE_API_KEY:
-            print("WARNING: PINECONE_API_KEY is not set. Vector search will not work.")
+            log_warning("PINECONE_API_KEY is not set. Vector search will not work.", "pinecone_service")
             return False
 
-        print(f"Initializing Pinecone with API key: {PINECONE_API_KEY[:5]}...")
+        log_info(f"Initializing Pinecone with API key: {PINECONE_API_KEY[:5]}...", "pinecone_service")
         
         # Initialize the Pinecone client
         pc = Pinecone(api_key=PINECONE_API_KEY)
         
         # List all indexes and print them
         existing_indexes = pc.list_indexes()
-        print(f"Found existing indexes: {[index.name for index in existing_indexes]}")
+        log_info(f"Found existing indexes: {[index.name for index in existing_indexes]}", "pinecone_service")
         
         # Check if our index already exists
         if PINECONE_INDEX_NAME not in [index.name for index in existing_indexes]:
-            print(f"Creating new index: {PINECONE_INDEX_NAME}")
+            log_info(f"Creating new index: {PINECONE_INDEX_NAME}", "pinecone_service")
             # Create a new index
             pc.create_index(
                 name=PINECONE_INDEX_NAME,
@@ -190,27 +191,27 @@ def init_pinecone():
                     region=AwsRegion.US_EAST_1
                 )
             )
-            print(f"Created new Pinecone index: {PINECONE_INDEX_NAME}")
+            log_info(f"Created new Pinecone index: {PINECONE_INDEX_NAME}", "pinecone_service")
             # Wait for index initialization
             time.sleep(10)
         
         # Connect to the index
         index_info = pc.describe_index(PINECONE_INDEX_NAME)
-        print(f"Index info: {index_info}")
+        log_info(f"Index info: {index_info}", "pinecone_service")
         index = pc.Index(host=index_info.host)
         
         # Get index stats
         try:
             stats = index.describe_index_stats()
-            print(f"Index stats: {stats}")
-            print(f"Total vectors in index: {stats.get('total_vector_count', 0)}")
+            log_info(f"Index stats: {stats}", "pinecone_service")
+            log_info(f"Total vectors in index: {stats.get('total_vector_count', 0)}", "pinecone_service")
         except Exception as e:
-            print(f"Error getting index stats: {str(e)}")
+            log_error(f"Error getting index stats: {str(e)}", "pinecone_service", {"error": str(e)})
         
-        print(f"Successfully connected to Pinecone index: {PINECONE_INDEX_NAME}")
+        log_info(f"Successfully connected to Pinecone index: {PINECONE_INDEX_NAME}", "pinecone_service")
         return True
     except Exception as e:
-        print(f"Error initializing Pinecone: {str(e)}")
+        log_error(f"Error initializing Pinecone: {str(e)}", "pinecone_service", {"error": str(e)})
         return False
 
 def get_embedding(text: str, task_type: Optional[str] = None) -> List[float]:
@@ -224,7 +225,7 @@ def get_embedding(text: str, task_type: Optional[str] = None) -> List[float]:
     # Provider: Together AI
     if EMBED_PROVIDER == 0:
         if not TOGETHER_API_KEY:
-            print("ERROR: TOGETHER_API_KEY is not set")
+            log_error("TOGETHER_API_KEY is not set", "pinecone_service")
             raise ValueError("TOGETHER_API_KEY is not set")
 
         global together_client
@@ -235,31 +236,30 @@ def get_embedding(text: str, task_type: Optional[str] = None) -> List[float]:
             try:
                 # Bound concurrency across threads
                 with _embedding_sem:
-                    print(f"\nGenerating embedding (attempt {attempt}) for text: {text[:100]}...")
-                    print(f"Using Together model: {EMBEDDING_MODEL}")
+                    log_info(f"Generating embedding (attempt {attempt}) for text: {text[:100]}...", "pinecone_service", {"attempt": attempt, "model": EMBEDDING_MODEL})
                     response = together_client.embeddings.create(
                         model=EMBEDDING_MODEL,
                         input=text
                     )
                 embedding = response.data[0].embedding
-                print(f"Generated embedding of dimension: {len(embedding)}")
+                log_info(f"Generated embedding of dimension: {len(embedding)}", "pinecone_service", {"dimension": len(embedding)})
                 return embedding
             except Exception as e:
                 last_err = e
                 # Exponential backoff with jitter
                 sleep_s = EMBED_RETRY_BASE_DELAY * (2 ** (attempt - 1)) + random.uniform(0, 0.3)
                 msg = str(e)
-                print(f"[WARN] Together embedding attempt {attempt} failed: {msg}. Retrying in {sleep_s:.2f}s...")
+                log_warning(f"Together embedding attempt {attempt} failed: {msg}. Retrying in {sleep_s:.2f}s...", "pinecone_service", {"attempt": attempt, "error": msg, "sleep_time": sleep_s})
                 time.sleep(sleep_s)
 
         # Exhausted retries
-        print(f"[ERROR] Failed to generate Together embedding after {EMBED_MAX_RETRIES} attempts: {last_err}")
+        log_error(f"Failed to generate Together embedding after {EMBED_MAX_RETRIES} attempts: {last_err}", "pinecone_service", {"max_retries": EMBED_MAX_RETRIES, "error": str(last_err)})
         raise last_err
 
     # Provider: Google Gemini
     elif EMBED_PROVIDER == 1:
         if not GEMINI_API_KEY:
-            print("ERROR: GEMINI_API_KEY is not set")
+            log_error("GEMINI_API_KEY is not set", "pinecone_service")
             raise ValueError("GEMINI_API_KEY is not set")
 
         url = f"https://generativelanguage.googleapis.com/v1beta/models/{GEMINI_EMBED_MODEL}:embedContent"
@@ -274,8 +274,7 @@ def get_embedding(text: str, task_type: Optional[str] = None) -> List[float]:
                 token_count = _estimate_tokens_for_gemini(text) + GEMINI_TOKEN_OVERHEAD
                 _enforce_gemini_rate_limits(token_count)
                 with _embedding_sem:
-                    print(f"\nGenerating Google embedding (attempt {attempt}) for text: {text[:100]}...")
-                    print(f"Using Google model: {GEMINI_EMBED_MODEL} with target dim {EMBEDDING_DIMENSION}")
+                    log_info(f"Generating Google embedding (attempt {attempt}) for text: {text[:100]}...", "pinecone_service", {"attempt": attempt, "model": GEMINI_EMBED_MODEL, "dimension": EMBEDDING_DIMENSION})
                     payload: Dict[str, Any] = {
                         "content": {"parts": [{"text": text}]}
                     }
@@ -291,7 +290,7 @@ def get_embedding(text: str, task_type: Optional[str] = None) -> List[float]:
                 if resp.status_code == 429:
                     retry_after = resp.headers.get("Retry-After")
                     sleep_s = float(retry_after) if retry_after and retry_after.isdigit() else EMBED_RETRY_BASE_DELAY * (2 ** (attempt - 1))
-                    print(f"[WARN] Google embedding 429. Respecting Retry-After: sleeping {sleep_s:.2f}s")
+                    log_warning(f"Google embedding 429. Respecting Retry-After: sleeping {sleep_s:.2f}s", "pinecone_service", {"sleep_time": sleep_s})
                     time.sleep(sleep_s)
                     continue
                 if resp.status_code >= 400:
@@ -313,16 +312,16 @@ def get_embedding(text: str, task_type: Optional[str] = None) -> List[float]:
                 if EMBEDDING_DIMENSION != 3072:
                     embedding = _l2_normalize([float(x) for x in embedding])
 
-                print(f"Generated Google embedding of dimension: {len(embedding)}")
+                log_info(f"Generated Google embedding of dimension: {len(embedding)}", "pinecone_service", {"dimension": len(embedding)})
                 return embedding  # type: ignore
             except Exception as e:
                 last_err = e
                 sleep_s = EMBED_RETRY_BASE_DELAY * (2 ** (attempt - 1)) + random.uniform(0, 0.3)
                 msg = str(e)
-                print(f"[WARN] Google embedding attempt {attempt} failed: {msg}. Retrying in {sleep_s:.2f}s...")
+                log_warning(f"Google embedding attempt {attempt} failed: {msg}. Retrying in {sleep_s:.2f}s...", "pinecone_service", {"attempt": attempt, "error": msg, "sleep_time": sleep_s})
                 time.sleep(sleep_s)
 
-        print(f"[ERROR] Failed to generate Google embedding after {EMBED_MAX_RETRIES} attempts: {last_err}")
+        log_error(f"Failed to generate Google embedding after {EMBED_MAX_RETRIES} attempts: {last_err}", "pinecone_service", {"max_retries": EMBED_MAX_RETRIES, "error": str(last_err)})
         raise last_err
 
     else:
@@ -363,12 +362,12 @@ def _gemini_embed_batch(texts: List[str], task_type: Optional[str] = None) -> Li
         try:
             with _embedding_sem:
                 payload = {"requests": reqs}
-                print(f"\nBatch embedding {len(texts)} items (attempt {attempt}) with model {GEMINI_EMBED_MODEL}, dim {EMBEDDING_DIMENSION}")
+                log_info(f"Batch embedding {len(texts)} items (attempt {attempt}) with model {GEMINI_EMBED_MODEL}, dim {EMBEDDING_DIMENSION}", "pinecone_service", {"batch_size": len(texts), "attempt": attempt, "model": GEMINI_EMBED_MODEL, "dimension": EMBEDDING_DIMENSION})
                 resp = requests.post(url, headers=headers, data=json.dumps(payload), timeout=60)
             if resp.status_code == 429:
                 retry_after = resp.headers.get("Retry-After")
                 sleep_s = float(retry_after) if retry_after and retry_after.isdigit() else EMBED_RETRY_BASE_DELAY * (2 ** (attempt - 1))
-                print(f"[WARN] Google batch embedding 429. Respecting Retry-After: sleeping {sleep_s:.2f}s")
+                log_warning(f"Google batch embedding 429. Respecting Retry-After: sleeping {sleep_s:.2f}s", "pinecone_service", {"sleep_time": sleep_s})
                 time.sleep(sleep_s)
                 continue
             if resp.status_code >= 400:
@@ -393,10 +392,10 @@ def _gemini_embed_batch(texts: List[str], task_type: Optional[str] = None) -> Li
         except Exception as e:
             last_err = e
             sleep_s = EMBED_RETRY_BASE_DELAY * (2 ** (attempt - 1)) + random.uniform(0, 0.3)
-            print(f"[WARN] Google batch embedding attempt {attempt} failed: {e}. Retrying in {sleep_s:.2f}s...")
+            log_warning(f"Google batch embedding attempt {attempt} failed: {e}. Retrying in {sleep_s:.2f}s...", "pinecone_service", {"attempt": attempt, "error": str(e), "sleep_time": sleep_s})
             time.sleep(sleep_s)
 
-    print(f"[ERROR] Failed Google batch embedding after {EMBED_MAX_RETRIES} attempts: {last_err}")
+    log_error(f"Failed Google batch embedding after {EMBED_MAX_RETRIES} attempts: {last_err}", "pinecone_service", {"max_retries": EMBED_MAX_RETRIES, "error": str(last_err)})
     raise last_err  # type: ignore
 
 def chunk_transcript(transcript_data: Dict) -> List[Dict]:
@@ -495,15 +494,13 @@ async def index_transcript(transcript_data: Dict, file_url: str, file_name: str,
     """
     global index
     if not index:
-        print("Pinecone index not initialized, attempting to initialize...")
+        log_warning("Pinecone index not initialized, attempting to initialize...", "pinecone_service")
         if not init_pinecone():
-            print("Failed to initialize Pinecone")
+            log_error("Failed to initialize Pinecone", "pinecone_service")
             return False
     
     try:
-        print(f"\nIndexing transcript for file: {file_name}")
-        print(f"Original File URL: {file_url}")
-        print(f"Is permanent URL: {is_permanent_url}")
+        log_info(f"Indexing transcript for file: {file_name}", "pinecone_service", {"file_name": file_name, "file_url": file_url, "is_permanent_url": is_permanent_url})
         
         # Build a stable, unique file_id using the (ideally permanent) URL to avoid collisions across same filenames
         file_key_src = (file_url or "")
@@ -511,7 +508,7 @@ async def index_transcript(transcript_data: Dict, file_url: str, file_name: str,
         file_id = hashlib.sha1(file_key_src.encode("utf-8")).hexdigest()[:12] if file_key_src else (
             hashlib.sha1(file_name.encode("utf-8")).hexdigest()[:12]
         )
-        print(f"Initial file_id (pre-supabase-lookup): {file_id}")
+        log_info(f"Initial file_id (pre-supabase-lookup): {file_id}", "pinecone_service", {"file_id": file_id})
         
         # Look up the Supabase URL from the database if not already a permanent URL
         supabase_url = file_url  # Default to the provided URL
@@ -525,22 +522,22 @@ async def index_transcript(transcript_data: Dict, file_url: str, file_name: str,
                 upload_record = await uploads_collection.find_one({"file_name": {"$regex": file_name}})
                 if upload_record and "supabase_url" in upload_record and upload_record["supabase_url"]:
                     supabase_url = upload_record["supabase_url"]
-                    print(f"Found Supabase URL in uploads collection: {supabase_url}")
+                    log_info(f"Found Supabase URL in uploads collection: {supabase_url}", "pinecone_service", {"supabase_url": supabase_url})
                 else:
                     # If not in uploads, try podcasts collection 
                     podcast_record = await podcasts_collection.find_one({"file_name": {"$regex": file_name}})
                     if podcast_record and "supabase_url" in podcast_record and podcast_record["supabase_url"]:
                         supabase_url = podcast_record["supabase_url"]
-                        print(f"Found Supabase URL in podcasts collection: {supabase_url}")
+                        log_info(f"Found Supabase URL in podcasts collection: {supabase_url}", "pinecone_service", {"supabase_url": supabase_url})
                     else:
-                        print(f"No Supabase URL found for {file_name}, using original URL")
+                        log_warning(f"No Supabase URL found for {file_name}, using original URL", "pinecone_service", {"file_name": file_name})
             except Exception as e:
-                print(f"Error looking up Supabase URL: {str(e)}")
+                log_error(f"Error looking up Supabase URL: {str(e)}", "pinecone_service", {"error": str(e), "file_name": file_name})
         
         # If we resolved a permanent URL, recompute file_id for uniqueness
         if supabase_url:
             file_id = hashlib.sha1(supabase_url.encode("utf-8")).hexdigest()[:12]
-            print(f"Resolved file_id from Supabase URL: {file_id}")
+            log_info(f"Resolved file_id from Supabase URL: {file_id}", "pinecone_service", {"file_id": file_id})
 
         # Get the complete transcript text
         complete_text = ""
@@ -551,18 +548,18 @@ async def index_transcript(transcript_data: Dict, file_url: str, file_name: str,
                 if alternatives and len(alternatives) > 0:
                     complete_text = alternatives[0].get("transcript", "")
         
-        print(f"Complete text length: {len(complete_text)}")
+        log_info(f"Complete text length: {len(complete_text)}", "pinecone_service", {"text_length": len(complete_text)})
         
         # Chunk the transcript
         chunks = chunk_transcript(transcript_data)
-        print(f"Created {len(chunks)} chunks")
+        log_info(f"Created {len(chunks)} chunks", "pinecone_service", {"chunk_count": len(chunks)})
         
         # Prepare items (id, text, metadata) for embedding
         items: List[Dict[str, Any]] = []
         for i, chunk in enumerate(chunks):
             txt = (chunk.get("text") or "").strip()
             if not txt:
-                print(f"Skipping empty text chunk at index {i}")
+                log_warning(f"Skipping empty text chunk at index {i}", "pinecone_service", {"chunk_index": i})
                 continue
             vector_id = f"{file_id}_{i}"
             meta = {
@@ -585,7 +582,7 @@ async def index_transcript(transcript_data: Dict, file_url: str, file_name: str,
         # Create vectors for each chunk (batched for Gemini)
         vectors = []
         if not items:
-            print("No non-empty chunks available, skipping Pinecone update")
+            log_warning("No non-empty chunks available, skipping Pinecone update", "pinecone_service")
             return False
 
         if EMBED_PROVIDER == 1:
@@ -609,14 +606,14 @@ async def index_transcript(transcript_data: Dict, file_url: str, file_name: str,
                 except Exception as e:
                     start_idx = i - len(cur_batch)
                     end_idx = i - 1
-                    print(f"[WARN] Batch embedding failed for items {start_idx}-{end_idx}: {e}. Falling back to single calls for this batch.")
+                    log_warning(f"Batch embedding failed for items {start_idx}-{end_idx}: {e}. Falling back to single calls for this batch.", "pinecone_service", {"start_idx": start_idx, "end_idx": end_idx, "error": str(e)})
                     embeddings = []
                     for j, b in enumerate(cur_batch):
                         try:
                             emb = get_embedding(b["text"], task_type="RETRIEVAL_DOCUMENT")
                             embeddings.append(emb)
                         except Exception as e2:
-                            print(f"[ERROR] Single embedding failed for item {start_idx + j}: {e2}. Skipping.")
+                            log_error(f"Single embedding failed for item {start_idx + j}: {e2}. Skipping.", "pinecone_service", {"item_index": start_idx + j, "error": str(e2)})
                             embeddings.append([])  # placeholder
 
                 for b, emb in zip(cur_batch, embeddings):
@@ -624,7 +621,7 @@ async def index_transcript(transcript_data: Dict, file_url: str, file_name: str,
                         continue
                     vector = {"id": b["id"], "values": emb, "metadata": b["metadata"]}
                     vectors.append(vector)
-                    print(f"Created vector {len(vectors)}/{len(items)}: {b['id']}")
+                    log_info(f"Created vector {len(vectors)}/{len(items)}: {b['id']}", "pinecone_service", {"vector_count": len(vectors), "total_items": len(items), "vector_id": b['id']})
         else:
             # Together or other: single calls
             for idx, it in enumerate(items):
@@ -632,13 +629,13 @@ async def index_transcript(transcript_data: Dict, file_url: str, file_name: str,
                     emb = get_embedding(it["text"], task_type="RETRIEVAL_DOCUMENT")
                     vector = {"id": it["id"], "values": emb, "metadata": it["metadata"]}
                     vectors.append(vector)
-                    print(f"Created vector {len(vectors)}/{len(items)}: {it['id']}")
+                    log_info(f"Created vector {len(vectors)}/{len(items)}: {it['id']}", "pinecone_service", {"vector_count": len(vectors), "total_items": len(items), "vector_id": it['id']})
                 except Exception as e:
-                    print(f"Error creating vector for item {idx}: {e}")
+                    log_error(f"Error creating vector for item {idx}: {e}", "pinecone_service", {"item_index": idx, "error": str(e)})
         
         # Skip update if no vectors were created
         if not vectors:
-            print("No vectors created, skipping Pinecone update")
+            log_warning("No vectors created, skipping Pinecone update", "pinecone_service")
             return False
             
         # Upsert vectors in batches with retries and bounded concurrency
@@ -652,26 +649,26 @@ async def index_transcript(transcript_data: Dict, file_url: str, file_name: str,
                 attempts += 1
                 try:
                     with _upsert_sem:
-                        print(f"Upserting batch {batch_no}/{total_batches} (size={len(batch)}), attempt {attempts}")
+                        log_info(f"Upserting batch {batch_no}/{total_batches} (size={len(batch)}), attempt {attempts}", "pinecone_service", {"batch_no": batch_no, "total_batches": total_batches, "batch_size": len(batch), "attempt": attempts})
                         response = index.upsert(vectors=batch)
-                        print(f"Batch {batch_no} upsert response: {response}")
+                        log_info(f"Batch {batch_no} upsert response: {response}", "pinecone_service", {"batch_no": batch_no, "response": response})
                     break
                 except Exception as e:
                     sleep_s = UPSERT_RETRY_BASE_DELAY * (2 ** (attempts - 1)) + random.uniform(0, 0.3)
-                    print(f"[WARN] Upsert batch {batch_no} failed on attempt {attempts}: {e}. Retrying in {sleep_s:.2f}s...")
+                    log_warning(f"Upsert batch {batch_no} failed on attempt {attempts}: {e}. Retrying in {sleep_s:.2f}s...", "pinecone_service", {"batch_no": batch_no, "attempt": attempts, "error": str(e), "sleep_time": sleep_s})
                     time.sleep(sleep_s)
             else:
-                print(f"[ERROR] Upsert batch {batch_no} failed after {UPSERT_MAX_RETRIES} attempts.")
+                log_error(f"Upsert batch {batch_no} failed after {UPSERT_MAX_RETRIES} attempts.", "pinecone_service", {"batch_no": batch_no, "max_retries": UPSERT_MAX_RETRIES})
                 failed_batches += 1
             
         if failed_batches == 0:
-            print(f"Successfully indexed transcript with {len(vectors)} chunks across {total_batches} batches")
+            log_info(f"Successfully indexed transcript with {len(vectors)} chunks across {total_batches} batches", "pinecone_service", {"vector_count": len(vectors), "total_batches": total_batches})
             return True
         else:
-            print(f"Indexed transcript with errors: {failed_batches}/{total_batches} batches failed")
+            log_warning(f"Indexed transcript with errors: {failed_batches}/{total_batches} batches failed", "pinecone_service", {"failed_batches": failed_batches, "total_batches": total_batches})
             return False
     except Exception as e:
-        print(f"Error indexing transcript: {str(e)}")
+        log_error(f"Error indexing transcript: {str(e)}", "pinecone_service", {"error": str(e), "file_name": file_name})
         import traceback
         traceback.print_exc()
         return False
@@ -682,9 +679,9 @@ async def search_transcripts(query: str, limit: int = None, filter_dict: Dict = 
     """
     global index
     if not index:
-        print("Pinecone index not initialized, attempting to initialize...")
+        log_warning("Pinecone index not initialized, attempting to initialize...", "pinecone_service")
         if not init_pinecone():
-            print("Failed to initialize Pinecone")
+            log_error("Failed to initialize Pinecone", "pinecone_service")
             return []
     
     try:
@@ -733,7 +730,7 @@ async def search_transcripts(query: str, limit: int = None, filter_dict: Dict = 
         
         return results
     except Exception as e:
-        print(f"Error searching transcripts: {str(e)}")
+        log_error(f"Error searching transcripts: {str(e)}", "pinecone_service", {"error": str(e), "query": query})
         import traceback
         traceback.print_exc()
         return []
@@ -792,32 +789,27 @@ def test_pinecone_connection():
     """Test Pinecone connection and index status"""
     try:
         if not init_pinecone():
-            print("Failed to initialize Pinecone")
+            log_error("Failed to initialize Pinecone", "pinecone_service")
             return
             
         # Get index stats
         stats = index.describe_index_stats()
-        print("\nPinecone Index Status:")
-        print(f"Total vectors: {stats.get('total_vector_count', 0)}")
-        print(f"Index fullness: {stats.get('index_fullness', 0)}")
-        print(f"Dimension: {stats.get('dimension', 0)}")
+        log_info("Pinecone Index Status", "pinecone_service", {"total_vectors": stats.get('total_vector_count', 0), "index_fullness": stats.get('index_fullness', 0), "dimension": stats.get('dimension', 0)})
         
         # Try a simple query
         if stats.get('total_vector_count', 0) > 0:
-            print("\nTesting simple query...")
+            log_info("Testing simple query...", "pinecone_service")
             results = index.query(
                 vector=[0.0] * EMBEDDING_DIMENSION,  # Zero vector
                 top_k=1,
                 include_metadata=True
             )
             if results and results.get('matches'):
-                print("Query successful!")
-                print(f"Found {len(results['matches'])} matches")
-                print(f"Sample match metadata: {results['matches'][0]['metadata']}")
+                log_info("Query successful!", "pinecone_service", {"match_count": len(results['matches']), "sample_metadata": results['matches'][0]['metadata']})
             else:
-                print("Query returned no results")
+                log_warning("Query returned no results", "pinecone_service")
     except Exception as e:
-        print(f"Error testing Pinecone: {str(e)}")
+        log_error(f"Error testing Pinecone: {str(e)}", "pinecone_service", {"error": str(e)})
         import traceback
         traceback.print_exc()
 

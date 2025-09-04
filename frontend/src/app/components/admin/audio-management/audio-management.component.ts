@@ -211,7 +211,7 @@ export class AudioManagementComponent implements OnInit, OnDestroy {
         this.audioElement.pause();
       }
 
-      this.audioElement = new Audio(podcast.audio_url);
+      this.audioElement = new Audio(podcast.embedded_audio_url);
       this.audioElement
         .play()
         .then(() => {

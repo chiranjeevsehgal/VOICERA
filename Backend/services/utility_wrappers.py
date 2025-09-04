@@ -14,6 +14,7 @@ import base64
 
 # Optional: specific FastAPI response type used in some helpers
 from fastapi.responses import JSONResponse
+from utils.logging import log_info, log_warning, log_error
 
 
 # --------- ASYNC HELPERS ---------
@@ -29,28 +30,28 @@ async def check_user_credits_async(ip: str, current_user: dict) -> Dict[str, Any
 
     dummy_request = DummyRequest()
 
-    # Print debug info
-    print(f"Checking credits for IP: {ip}")
+    # Log debug info
+    log_info(f"Checking credits for IP: {ip}", "utility_wrappers", {"ip": ip})
 
     try:
         response = await check_credits(dummy_request, ip, current_user)
-        print(f"Raw credit response: {response}")
+        log_info(f"Raw credit response: {response}", "utility_wrappers", {"response_type": type(response).__name__})
 
         # Handle JSONResponse objects by converting to dict
         if isinstance(response, JSONResponse):
             try:
                 response_dict = json.loads(response.body.decode('utf-8'))
-                print(f"Parsed JSONResponse: {response_dict}")
+                log_info(f"Parsed JSONResponse: {response_dict}", "utility_wrappers", {"response_dict": response_dict})
                 return response_dict
             except Exception as e:
-                print(f"Error parsing JSONResponse: {str(e)}")
+                log_error(f"Error parsing JSONResponse: {str(e)}", "utility_wrappers", {"error": str(e)})
                 # Use a high default value to prevent false "credit limit" errors
                 return {"credits_remaining": 100, "ip_address": ip, "status": "default"}
 
-        print(f"Direct dict response: {response}")
+        log_info(f"Direct dict response: {response}", "utility_wrappers", {"response": response})
         return response
     except Exception as e:
-        print(f"Exception in check_user_credits_async: {str(e)}")
+        log_error(f"Exception in check_user_credits_async: {str(e)}", "utility_wrappers", {"error": str(e), "ip": ip})
         # Return a safe default instead of failing
         return {"credits_remaining": 100, "ip_address": ip, "status": "exception_default"}
 
@@ -67,27 +68,27 @@ async def deduct_user_credit_async(ip: str, current_user: dict) -> Dict[str, Any
 
     dummy_request = DummyRequest()
 
-    # Print debug info
-    print(f"Deducting credit for IP: {ip}")
+    # Log debug info
+    log_info(f"Deducting credit for IP: {ip}", "utility_wrappers", {"ip": ip})
 
     try:
         response = await deduct_credit(dummy_request, ip, current_user)
-        print(f"Raw deduct credit response: {response}")
+        log_info(f"Raw deduct credit response: {response}", "utility_wrappers", {"response_type": type(response).__name__})
 
         # Handle JSONResponse objects by converting to dict
         if isinstance(response, JSONResponse):
             try:
                 response_dict = json.loads(response.body.decode('utf-8'))
-                print(f"Parsed JSONResponse for credit deduction: {response_dict}")
+                log_info(f"Parsed JSONResponse for credit deduction: {response_dict}", "utility_wrappers", {"response_dict": response_dict})
                 return response_dict
             except Exception as e:
-                print(f"Error parsing JSONResponse for credit deduction: {str(e)}")
+                log_error(f"Error parsing JSONResponse for credit deduction: {str(e)}", "utility_wrappers", {"error": str(e)})
                 return {"status": True, "credits_remaining": 0, "ip_address": ip, "status": "default"}
 
-        print(f"Direct dict response for credit deduction: {response}")
+        log_info(f"Direct dict response for credit deduction: {response}", "utility_wrappers", {"response": response})
         return response
     except Exception as e:
-        print(f"Exception in deduct_user_credit_async: {str(e)}")
+        log_error(f"Exception in deduct_user_credit_async: {str(e)}", "utility_wrappers", {"error": str(e), "ip": ip})
         # Return a safe default instead of failing
         return {"status": True, "credits_remaining": 0, "ip_address": ip, "status": "exception_default"}
 
@@ -131,7 +132,7 @@ async def embed_metadata_in_file_async(src_file: str, dest_file: str, metadata_j
         return dest_file
     except Exception as e:
         # If embedding fails, just return the original file
-        print(f"Error embedding metadata: {str(e)}")
+        log_error(f"Error embedding metadata: {str(e)}", "utility_wrappers", {"error": str(e), "src_file": src_file})
         return src_file
 
 
@@ -162,7 +163,7 @@ def sync_check_credits(ip: str, current_user: dict) -> Dict[str, Any]:
         access_token = None
         if current_user and "auth_token" in current_user:
             access_token = current_user.get("auth_token")
-            print(f"Using JWT token from original request")
+            log_info("Using JWT token from original request", "utility_wrappers")
 
         # If no token in enhanced user, try admin login
         if not access_token:
@@ -188,11 +189,11 @@ def sync_check_credits(ip: str, current_user: dict) -> Dict[str, Any]:
                 if login_response.status_code == 200:
                     token_data = login_response.json()
                     access_token = token_data.get("access_token")
-                    print(f"Successfully got access token via admin login")
+                    log_info("Successfully got access token via admin login", "utility_wrappers")
                 else:
-                    print(f"Admin login failed: {login_response.status_code} - {login_response.text}")
+                    log_error(f"Admin login failed: {login_response.status_code} - {login_response.text}", "utility_wrappers", {"status_code": login_response.status_code, "response": login_response.text})
             except Exception as e:
-                print(f"Error during admin login: {str(e)}")
+                log_error(f"Error during admin login: {str(e)}", "utility_wrappers", {"error": str(e)})
 
         # Set up headers
         headers = {
@@ -202,9 +203,9 @@ def sync_check_credits(ip: str, current_user: dict) -> Dict[str, Any]:
         # Add authorization if we have a token
         if access_token:
             headers["Authorization"] = f"Bearer {access_token}"
-            print(f"Using Authorization header: Bearer {access_token[:10]}...")
+            log_info(f"Using Authorization header: Bearer {access_token[:10]}...", "utility_wrappers")
         else:
-            print("WARNING: No access token available for credit API call")
+            log_warning("No access token available for credit API call", "utility_wrappers")
             return {
                 "credits_remaining": 100,  # Default high value to prevent false errors
                 "ip_address": ip,
@@ -212,14 +213,14 @@ def sync_check_credits(ip: str, current_user: dict) -> Dict[str, Any]:
             }
 
         # Make the synchronous GET request to check credit
-        print(f"Making direct HTTP request to {credit_api_url} for IP {ip}")
+        log_info(f"Making direct HTTP request to {credit_api_url} for IP {ip}", "utility_wrappers", {"url": credit_api_url, "ip": ip})
         response = requests.get(credit_api_url, headers=headers, timeout=10)
 
         # Parse and return the response
         if response.status_code == 200:
             return response.json()
         else:
-            print(f"Credit API returned status code {response.status_code}: {response.text}")
+            log_error(f"Credit API returned status code {response.status_code}: {response.text}", "utility_wrappers", {"status_code": response.status_code, "response": response.text})
 
             # Return a safe default
             return {
@@ -229,14 +230,14 @@ def sync_check_credits(ip: str, current_user: dict) -> Dict[str, Any]:
             }
 
     except requests.exceptions.Timeout:
-        print("Credit API request timed out after 10s")
+        log_warning("Credit API request timed out after 10s", "utility_wrappers")
         return {
             "credits_remaining": 100,
             "ip_address": ip,
             "status": "timeout_default",
         }
     except Exception as e:
-        print(f"Error calling credit API: {str(e)}")
+        log_error(f"Error calling credit API: {str(e)}", "utility_wrappers", {"error": str(e)})
 
         # Return a safe default
         return {
@@ -261,7 +262,7 @@ def sync_transcribe_audio(audio_url: str, options: Dict[str, Any]) -> Dict[str, 
 
         return result
     except Exception as e:
-        print(f"Error in sync_transcribe_audio: {str(e)}")
+        log_error(f"Error in sync_transcribe_audio: {str(e)}", "utility_wrappers", {"error": str(e)})
         return {"error": str(e)}
 
 
@@ -280,7 +281,7 @@ def sync_embed_metadata(src_file: str, dest_file: str, metadata_json: str) -> st
 
         return result
     except Exception as e:
-        print(f"Error in sync_embed_metadata: {str(e)}")
+        log_error(f"Error in sync_embed_metadata: {str(e)}", "utility_wrappers", {"error": str(e)})
         return src_file  # Return original file on error
 
 
@@ -299,7 +300,7 @@ def sync_upload_to_supabase(file_path: str, filename: str, user_id: str = None, 
 
         return result
     except Exception as e:
-        print(f"Error in sync_upload_to_supabase: {str(e)}")
+        log_error(f"Error in sync_upload_to_supabase: {str(e)}", "utility_wrappers", {"error": str(e)})
         return {"error": str(e), "file_name": filename}
 
 
@@ -313,7 +314,7 @@ def sync_delete_from_supabase(name_or_path: str, bucket_name: str = None) -> Dic
         loop.close()
         return result
     except Exception as e:
-        print(f"Error in sync_delete_from_supabase: {str(e)}")
+        log_error(f"Error in sync_delete_from_supabase: {str(e)}", "utility_wrappers", {"error": str(e)})
         return {"success": False, "error": str(e)}
 
 
@@ -348,7 +349,7 @@ def sync_index_transcript(transcript_data: Dict[str, Any], file_url: str, file_n
 
         return result
     except Exception as e:
-        print(f"Error in sync_index_transcript: {str(e)}")
+        log_error(f"Error in sync_index_transcript: {str(e)}", "utility_wrappers", {"error": str(e)})
         return False
 
 
@@ -389,7 +390,7 @@ def sync_update_podcast_url(podcast_id: str, supabase_url: str) -> bool:
 
         return result
     except Exception as e:
-        print(f"Error in sync_update_podcast_url: {str(e)}")
+        log_error(f"Error in sync_update_podcast_url: {str(e)}", "utility_wrappers", {"error": str(e)})
         return False
 
 
@@ -408,13 +409,13 @@ def direct_deduct_credit(ip_address: str, current_user: dict) -> Dict[str, Any]:
         credit_api_url = f"{api_base_url}/api/credit"
 
         # Print what we have in current_user for debugging
-        print(f"Current user object keys for credit API: {current_user.keys() if current_user else 'None'}")
+        log_info(f"Current user object keys for credit API: {current_user.keys() if current_user else 'None'}", "utility_wrappers", {"user_keys": list(current_user.keys()) if current_user else None})
 
         # First try to get token directly from our enhanced user object
         access_token = None
         if current_user and "auth_token" in current_user:
             access_token = current_user.get("auth_token")
-            print(f"Using JWT token from original request")
+            log_info("Using JWT token from original request", "utility_wrappers")
 
         # If no token in enhanced user, try admin login
         if not access_token:
@@ -440,13 +441,13 @@ def direct_deduct_credit(ip_address: str, current_user: dict) -> Dict[str, Any]:
                 if login_response.status_code == 200:
                     token_data = login_response.json()
                     access_token = token_data.get("access_token")
-                    print(f"Successfully got access token via admin login")
+                    log_info("Successfully got access token via admin login", "utility_wrappers")
                 else:
-                    print(f"Admin login failed: {login_response.status_code} - {login_response.text}")
+                    log_error(f"Admin login failed: {login_response.status_code} - {login_response.text}", "utility_wrappers", {"status_code": login_response.status_code, "response": login_response.text})
             except requests.exceptions.Timeout:
-                print("Admin login request timed out after 10s")
+                log_warning("Admin login request timed out after 10s", "utility_wrappers")
             except Exception as e:
-                print(f"Error during admin login: {str(e)}")
+                log_error(f"Error during admin login: {str(e)}", "utility_wrappers", {"error": str(e)})
 
         # Set up headers
         headers = {
@@ -456,9 +457,9 @@ def direct_deduct_credit(ip_address: str, current_user: dict) -> Dict[str, Any]:
         # Add authorization if we have a token
         if access_token:
             headers["Authorization"] = f"Bearer {access_token}"
-            print(f"Using Authorization header: Bearer {access_token[:10]}...")
+            log_info(f"Using Authorization header: Bearer {access_token[:10]}...", "utility_wrappers")
         else:
-            print("WARNING: No access token available for credit API call")
+            log_warning("No access token available for credit API call", "utility_wrappers")
             return {
                 "status": False,
                 "detail": "No authentication token available",
@@ -471,14 +472,14 @@ def direct_deduct_credit(ip_address: str, current_user: dict) -> Dict[str, Any]:
         }
 
         # Make the synchronous POST request to deduct credit
-        print(f"Making direct HTTP request to {credit_api_url} for IP {ip_address}")
+        log_info(f"Making direct HTTP request to {credit_api_url} for IP {ip_address}", "utility_wrappers", {"url": credit_api_url, "ip": ip_address})
         response = requests.post(credit_api_url, json=data, headers=headers, timeout=10)
 
         # Parse and return the response
         if response.status_code == 200:
             return response.json()
         else:
-            print(f"Credit API returned status code {response.status_code}: {response.text}")
+            log_error(f"Credit API returned status code {response.status_code}: {response.text}", "utility_wrappers", {"status_code": response.status_code, "response": response.text})
 
             # No more simulation - return actual error
             return {
@@ -489,14 +490,14 @@ def direct_deduct_credit(ip_address: str, current_user: dict) -> Dict[str, Any]:
             }
 
     except requests.exceptions.Timeout:
-        print("Credit API deduction request timed out after 10s")
+        log_warning("Credit API deduction request timed out after 10s", "utility_wrappers")
         return {
             "status": False,
             "detail": "Credit API timeout",
             "credits_remaining": 0,
         }
     except Exception as e:
-        print(f"Error calling credit API: {str(e)}")
+        log_error(f"Error calling credit API: {str(e)}", "utility_wrappers", {"error": str(e)})
 
         # No more simulation - return actual error
         return {

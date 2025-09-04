@@ -36,6 +36,7 @@ from utils.content_tracker import (
     sync_update_podcast_transcription_status,
 )
 from utils.analytics import _insert_transcription_stats
+from utils.logging import log_warning
 
 # Thread pool for running CPU-bound and blocking I/O operations
 thread_pool = ThreadPoolExecutor(max_workers=10)
@@ -393,9 +394,9 @@ async def process_audio_background(
             try:
                 await asyncio.wait_for(_insert_transcription_stats(stats_data), timeout=5)
             except asyncio.TimeoutError:
-                print("[WARN] _insert_transcription_stats timed out after 5s (success case)")
+                log_warning("_insert_transcription_stats timed out after 5s (success case)", "background_processor")
             except Exception as e:
-                print(f"[WARN] _insert_transcription_stats error: {e}")
+                log_warning(f"_insert_transcription_stats error: {e}", "background_processor", {"error": str(e)})
 
         except Exception as e:
             processing_time = time.time() - start_time
@@ -413,9 +414,9 @@ async def process_audio_background(
             try:
                 await asyncio.wait_for(_insert_transcription_stats(error_stats_data), timeout=5)
             except asyncio.TimeoutError:
-                print("[WARN] _insert_transcription_stats timed out after 5s (error case)")
+                log_warning("_insert_transcription_stats timed out after 5s (error case)", "background_processor")
             except Exception as e:
-                print(f"[WARN] _insert_transcription_stats error (error case): {e}")
+                log_warning(f"_insert_transcription_stats error (error case): {e}", "background_processor", {"error": str(e)})
 
             update_job_status(
                 job_id, JobStatus.FAILED, error=f"Error transcribing audio: {str(e)}"
@@ -489,13 +490,9 @@ async def process_audio_background(
                     if embedded_upload_result and "file_url" in embedded_upload_result:
                         break
                 except asyncio.TimeoutError:
-                    print(
-                        f"[WARN] Embedded upload attempt {attempt} timed out after 90s"
-                    )
+                    log_warning(f"Embedded upload attempt {attempt} timed out after 90s", "background_processor", {"attempt": attempt})
                 except Exception as inner_e:
-                    print(
-                        f"[WARN] Embedded upload attempt {attempt} failed: {inner_e}"
-                    )
+                    log_warning(f"Embedded upload attempt {attempt} failed: {inner_e}", "background_processor", {"attempt": attempt, "error": str(inner_e)})
                 if attempt < max_attempts:
                     time.sleep(delay)
                     delay *= 2
@@ -596,11 +593,9 @@ async def process_audio_background(
                             timeout=30,
                         )
                     except asyncio.TimeoutError:
-                        print(
-                            "[WARN] Deletion of original Supabase file timed out after 30s"
-                        )
+                        log_warning("Deletion of original Supabase file timed out after 30s", "background_processor")
             except Exception as del_e:
-                print(f"[WARN] Failed to delete original Supabase file: {del_e}")
+                log_warning(f"Failed to delete original Supabase file: {del_e}", "background_processor", {"error": str(del_e)})
 
             current_result = get_job_status(job_id).get("result", {}) or {}
             current_result["embedded_supabase_url"] = embedded_supabase_url
@@ -676,6 +671,6 @@ async def process_audio_background(
                     timeout=10,
                 )
             except asyncio.TimeoutError:
-                print("[WARN] Temp dir cleanup timed out after 10s")
+                log_warning("Temp dir cleanup timed out after 10s", "background_processor")
             except Exception as e:
-                print(f"[WARN] Temp dir cleanup error: {e}")
+                log_warning(f"Temp dir cleanup error: {e}", "background_processor", {"error": str(e)})

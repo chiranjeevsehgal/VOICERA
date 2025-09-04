@@ -66,7 +66,8 @@
           class="text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-black mb-4 sm:mb-6 md:mb-8 bg-gradient-to-r from-white to-blue-100 bg-clip-text text-transparent leading-tight"
         >
           AI-Powered<br />
-          <span class="text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl text-yellow-300"
+          <span
+            class="text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl text-yellow-300"
             >Semantic Search</span
           >
         </h1>
@@ -79,7 +80,9 @@
     </div>
   </section>
 
-  <main class="container mx-auto px-4 py-8 sm:py-10 md:py-12 max-w-5xl relative -mt-8 sm:-mt-10 md:-mt-12 z-20">
+  <main
+    class="container mx-auto px-4 py-8 sm:py-10 md:py-12 max-w-5xl relative -mt-8 sm:-mt-10 md:-mt-12 z-20"
+  >
     <!-- Search Card -->
     <div
       class="bg-white rounded-2xl sm:rounded-3xl shadow-xl sm:shadow-2xl p-4 sm:p-6 md:p-8 mb-8 sm:mb-10 md:mb-12 border border-gray-100"
@@ -90,7 +93,7 @@
           <div class="flex-1 relative">
             <input
               type="text"
-              placeholder="Describe what you're looking for..."
+              placeholder="Use natural language to find relevant audio content based on meaning, not just keywords..."
               [(ngModel)]="searchQuery"
               (keyup.enter)="onSearchSubmit()"
               (input)="onSearchInput()"
@@ -139,15 +142,21 @@
         </div>
 
         <!-- Row 2: Helper text + compact controls (limit, min confidence, min relevance) -->
-        <div class="flex flex-col sm:flex-row sm:items-center gap-3 sm:justify-between">
-          <p class="text-xs sm:text-sm text-gray-500 order-2 sm:order-1 text-center sm:text-left">
-            Use natural language to find relevant audio content based on meaning, not just keywords
-          </p>
+        <div
+          class="flex flex-col sm:flex-row sm:items-center gap-3 sm:justify-between"
+        >
+          <p
+            class="text-xs sm:text-sm text-gray-500 order-2 sm:order-1 text-center sm:text-left"
+          >Tweak Parameters for better results</p>
           <div class="order-1 sm:order-2 w-full sm:w-auto">
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-3 items-end">
+            <div
+              class="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-3 items-end"
+            >
               <!-- Limit control -->
               <div class="flex flex-col">
-                <label for="resultLimit" class="text-xs text-gray-600 mb-1">Limit</label>
+                <label for="resultLimit" class="text-xs text-gray-600 mb-1"
+                  >Limit</label
+                >
                 <select
                   id="resultLimit"
                   [(ngModel)]="limit"
@@ -155,13 +164,17 @@
                   class="w-full sm:w-24 md:w-28 px-2 py-1.5 sm:px-3 sm:py-2 border-2 border-gray-200 rounded-lg sm:rounded-xl text-xs sm:text-sm bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 disabled:opacity-50"
                   aria-label="Results limit"
                 >
-                  <option *ngFor="let n of limits" [ngValue]="n">{{ n }}</option>
+                  <option *ngFor="let n of limits" [ngValue]="n">
+                    {{ n }}
+                  </option>
                 </select>
               </div>
 
               <!-- Min Confidence control -->
               <div class="flex flex-col">
-                <label for="minConfidence" class="text-xs text-gray-600 mb-1">Min Confidence</label>
+                <label for="minConfidence" class="text-xs text-gray-600 mb-1"
+                  >Min Confidence</label
+                >
                 <select
                   id="minConfidence"
                   [(ngModel)]="minConfidence"
@@ -169,13 +182,17 @@
                   class="w-full sm:w-28 md:w-32 px-2 py-1.5 sm:px-3 sm:py-2 border-2 border-gray-200 rounded-lg sm:rounded-xl text-xs sm:text-sm bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 disabled:opacity-50"
                   aria-label="Minimum confidence threshold"
                 >
-                  <option *ngFor="let c of confidenceOptions" [ngValue]="c">{{ c }}</option>
+                  <option *ngFor="let c of confidenceOptions" [ngValue]="c">
+                    {{ c }}
+                  </option>
                 </select>
               </div>
 
               <!-- Min Relevance control -->
               <div class="flex flex-col">
-                <label for="minRelevance" class="text-xs text-gray-600 mb-1">Min Relevance</label>
+                <label for="minRelevance" class="text-xs text-gray-600 mb-1"
+                  >Min Relevance</label
+                >
                 <select
                   id="minRelevance"
                   [(ngModel)]="minRelevance"
@@ -183,7 +200,9 @@
                   class="w-full sm:w-28 md:w-32 px-2 py-1.5 sm:px-3 sm:py-2 border-2 border-gray-200 rounded-lg sm:rounded-xl text-xs sm:text-sm bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 disabled:opacity-50"
                   aria-label="Minimum relevance threshold"
                 >
-                  <option *ngFor="let r of relevanceOptions" [ngValue]="r">{{ r }}</option>
+                  <option *ngFor="let r of relevanceOptions" [ngValue]="r">
+                    {{ r }}
+                  </option>
                 </select>
               </div>
             </div>
@@ -195,11 +214,11 @@
     <!-- Results Section -->
     <section class="space-y-6 sm:space-y-8" *ngIf="searchQuery">
       <!-- Section Header -->
-      <div
-        class="flex flex-col gap-4"
-      >
+      <div class="flex flex-col gap-4">
         <div>
-          <h2 class="text-2xl sm:text-3xl font-bold text-gray-900 mb-2 text-center sm:text-left">
+          <h2
+            class="text-2xl sm:text-3xl font-bold text-gray-900 mb-2 text-center sm:text-left"
+          >
             {{
               loading
                 ? "AI is analyzing your query..."
@@ -216,8 +235,10 @@
           >
             {{ searchResults.length }} results found
           </p>
-          <div *ngIf="loading" class="flex items-center justify-center sm:justify-start space-x-2">
-          </div>
+          <div
+            *ngIf="loading"
+            class="flex items-center justify-center sm:justify-start space-x-2"
+          ></div>
         </div>
       </div>
 
@@ -293,7 +314,9 @@
           class="bg-white rounded-2xl sm:rounded-3xl shadow-lg p-4 sm:p-5 md:p-6 hover:shadow-xl transition-all duration-300 cursor-pointer border border-gray-100 hover:-translate-y-1"
           (click)="onGroupCardClick(group)"
         >
-          <div class="flex flex-col sm:flex-row items-start space-y-4 sm:space-y-0 sm:space-x-4 md:space-x-6">
+          <div
+            class="flex flex-col sm:flex-row items-start space-y-4 sm:space-y-0 sm:space-x-4 md:space-x-6"
+          >
             <!-- Image with audio wave decoration -->
             <div class="relative flex-shrink-0 mx-auto sm:mx-0">
               <img
@@ -315,10 +338,14 @@
             </div>
 
             <div class="flex-1 min-w-0 text-center sm:text-left">
-              <h3 class="font-bold text-lg sm:text-xl text-gray-900 mb-1 sm:mb-2 pl-4">
+              <h3
+                class="font-bold text-lg sm:text-xl text-gray-900 mb-1 sm:mb-2 pl-4"
+              >
                 {{ group.title }}
               </h3>
-              <p class="text-indigo-600 font-medium mb-3 sm:mb-4 text-sm pl-4 sm:text-base">
+              <p
+                class="text-indigo-600 font-medium mb-3 sm:mb-4 text-sm pl-4 sm:text-base"
+              >
                 {{ group.creator }}
               </p>
 
@@ -326,7 +353,9 @@
               <div
                 class="bg-gradient-to-r from-indigo-50 to-purple-50 border border-indigo-200 rounded-xl sm:rounded-2xl p-3 sm:p-4 mb-3 sm:mb-4"
               >
-                <div class="flex flex-col sm:flex-row sm:items-start space-y-2 sm:space-y-0 sm:space-x-2">
+                <div
+                  class="flex flex-col sm:flex-row sm:items-start space-y-2 sm:space-y-0 sm:space-x-2"
+                >
                   <svg
                     class="w-4 h-4 sm:w-5 sm:h-5 text-indigo-500 mt-0.5 flex-shrink-0 mx-auto sm:mx-0"
                     fill="none"
@@ -340,14 +369,18 @@
                       d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
                     ></path>
                   </svg>
-                  <p class="text-gray-700 italic leading-relaxed text-sm sm:text-base text-center sm:text-left">
+                  <p
+                    class="text-gray-700 italic leading-relaxed text-sm sm:text-base text-center sm:text-left"
+                  >
                     "{{ group.segments[0].text }}"
                   </p>
                 </div>
               </div>
 
               <!-- Metadata -->
-              <div class="flex flex-wrap items-center justify-center sm:justify-start gap-2 sm:gap-3 md:gap-4 text-xs sm:text-sm">
+              <div
+                class="flex flex-wrap items-center justify-center sm:justify-start gap-2 sm:gap-3 md:gap-4 text-xs sm:text-sm"
+              >
                 <div
                   class="flex items-center space-x-1 bg-gray-100 rounded-full px-2 py-1 sm:px-3"
                 >
@@ -373,8 +406,12 @@
                   class="flex items-center space-x-1 rounded-full px-2 py-1 sm:px-3"
                   [ngClass]="{
                     'bg-red-100': group.segments[0].confidence < 0.4,
-                    'bg-orange-100': group.segments[0].confidence >= 0.4 && group.segments[0].confidence < 0.6,
-                    'bg-yellow-100': group.segments[0].confidence >= 0.6 && group.segments[0].confidence < 0.8,
+                    'bg-orange-100':
+                      group.segments[0].confidence >= 0.4 &&
+                      group.segments[0].confidence < 0.6,
+                    'bg-yellow-100':
+                      group.segments[0].confidence >= 0.6 &&
+                      group.segments[0].confidence < 0.8,
                     'bg-green-100': group.segments[0].confidence >= 0.8
                   }"
                 >
@@ -382,8 +419,12 @@
                     class="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full"
                     [ngClass]="{
                       'bg-red-500': group.segments[0].confidence < 0.4,
-                      'bg-orange-500': group.segments[0].confidence >= 0.4 && group.segments[0].confidence < 0.6,
-                      'bg-yellow-500': group.segments[0].confidence >= 0.6 && group.segments[0].confidence < 0.8,
+                      'bg-orange-500':
+                        group.segments[0].confidence >= 0.4 &&
+                        group.segments[0].confidence < 0.6,
+                      'bg-yellow-500':
+                        group.segments[0].confidence >= 0.6 &&
+                        group.segments[0].confidence < 0.8,
                       'bg-green-500': group.segments[0].confidence >= 0.8
                     }"
                   ></div>
@@ -391,19 +432,29 @@
                     class="font-medium whitespace-nowrap"
                     [ngClass]="{
                       'text-red-700': group.segments[0].confidence < 0.4,
-                      'text-orange-700': group.segments[0].confidence >= 0.4 && group.segments[0].confidence < 0.6,
-                      'text-yellow-700': group.segments[0].confidence >= 0.6 && group.segments[0].confidence < 0.8,
+                      'text-orange-700':
+                        group.segments[0].confidence >= 0.4 &&
+                        group.segments[0].confidence < 0.6,
+                      'text-yellow-700':
+                        group.segments[0].confidence >= 0.6 &&
+                        group.segments[0].confidence < 0.8,
                       'text-green-700': group.segments[0].confidence >= 0.8
                     }"
-                    >{{ group.segments[0].confidence * 100 | number : "1.0-0" }}% Confidence</span
+                    >{{
+                      group.segments[0].confidence * 100 | number : "1.0-0"
+                    }}% Confidence</span
                   >
                 </div>
                 <div
                   class="flex items-center space-x-1 rounded-full px-2 py-1 sm:px-3"
                   [ngClass]="{
                     'bg-red-100': group.segments[0].semantic_score < 0.4,
-                    'bg-orange-100': group.segments[0].semantic_score >= 0.4 && group.segments[0].semantic_score < 0.6,
-                    'bg-yellow-100': group.segments[0].semantic_score >= 0.6 && group.segments[0].semantic_score < 0.8,
+                    'bg-orange-100':
+                      group.segments[0].semantic_score >= 0.4 &&
+                      group.segments[0].semantic_score < 0.6,
+                    'bg-yellow-100':
+                      group.segments[0].semantic_score >= 0.6 &&
+                      group.segments[0].semantic_score < 0.8,
                     'bg-green-100': group.segments[0].semantic_score >= 0.8
                   }"
                 >
@@ -411,8 +462,12 @@
                     class="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full"
                     [ngClass]="{
                       'bg-red-500': group.segments[0].semantic_score < 0.4,
-                      'bg-orange-500': group.segments[0].semantic_score >= 0.4 && group.segments[0].semantic_score < 0.6,
-                      'bg-yellow-500': group.segments[0].semantic_score >= 0.6 && group.segments[0].semantic_score < 0.8,
+                      'bg-orange-500':
+                        group.segments[0].semantic_score >= 0.4 &&
+                        group.segments[0].semantic_score < 0.6,
+                      'bg-yellow-500':
+                        group.segments[0].semantic_score >= 0.6 &&
+                        group.segments[0].semantic_score < 0.8,
                       'bg-green-500': group.segments[0].semantic_score >= 0.8
                     }"
                   ></div>
@@ -420,16 +475,28 @@
                     class="font-medium whitespace-nowrap"
                     [ngClass]="{
                       'text-red-700': group.segments[0].semantic_score < 0.4,
-                      'text-orange-700': group.segments[0].semantic_score >= 0.4 && group.segments[0].semantic_score < 0.6,
-                      'text-yellow-700': group.segments[0].semantic_score >= 0.6 && group.segments[0].semantic_score < 0.8,
+                      'text-orange-700':
+                        group.segments[0].semantic_score >= 0.4 &&
+                        group.segments[0].semantic_score < 0.6,
+                      'text-yellow-700':
+                        group.segments[0].semantic_score >= 0.6 &&
+                        group.segments[0].semantic_score < 0.8,
                       'text-green-700': group.segments[0].semantic_score >= 0.8
                     }"
-                    >{{ group.segments[0].semantic_score * 100 | number : "1.0-0" }}% Relevance</span
+                    >{{
+                      group.segments[0].semantic_score * 100 | number : "1.0-0"
+                    }}% Relevance</span
                   >
                 </div>
-                <div class="flex items-center space-x-1 bg-purple-100 rounded-full px-2 py-1 sm:px-3">
-                  <div class="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-purple-500 rounded-full"></div>
-                  <span class="text-purple-700 font-medium whitespace-nowrap">{{ group.segments.length }} Matches</span>
+                <div
+                  class="flex items-center space-x-1 bg-purple-100 rounded-full px-2 py-1 sm:px-3"
+                >
+                  <div
+                    class="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-purple-500 rounded-full"
+                  ></div>
+                  <span class="text-purple-700 font-medium whitespace-nowrap"
+                    >{{ group.segments.length }} Matches</span
+                  >
                 </div>
               </div>
             </div>
@@ -513,7 +580,9 @@
               ></div>
             </div>
           </div>
-          <h3 class="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 mb-1 sm:mb-2 px-2">
+          <h3
+            class="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 mb-1 sm:mb-2 px-2"
+          >
             {{ selectedGroup.title }}
           </h3>
           <p class="text-indigo-600 font-medium text-base sm:text-lg px-2">
@@ -526,207 +595,236 @@
           <div
             class="bg-gradient-to-r from-indigo-50 to-purple-50 border border-indigo-200 rounded-2xl sm:rounded-3xl p-4 sm:p-5 md:p-6 mb-4"
           >
-            <h4 class="font-bold text-indigo-900 mb-2 sm:mb-3 flex flex-col sm:flex-row items-center sm:items-start text-center sm:text-left">
+            <h4
+              class="font-bold text-indigo-900 mb-2 sm:mb-3 flex flex-col sm:flex-row items-center sm:items-start text-center sm:text-left"
+            >
               <svg
                 class="w-4 h-4 sm:w-5 sm:h-5 mr-0 sm:mr-2 mb-2 sm:mb-0"
-               fill="none"
-               stroke="currentColor"
-               viewBox="0 0 24 24"
-             >
-               <path
-                 stroke-linecap="round"
-                 stroke-linejoin="round"
-                 stroke-width="2"
-                 d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"
-               />
-             </svg>
-             <span class="text-sm sm:text-base">Relevant Content Found:</span>
-           </h4>
-           <p class="text-indigo-800 italic text-sm sm:text-base md:text-lg leading-relaxed text-center sm:text-left px-2 sm:px-0">
-             "{{ seg.text }}"
-           </p>
-           <div class="mt-3 sm:mt-4 flex flex-col sm:flex-row items-center justify-center sm:justify-start space-y-1 sm:space-y-0 sm:space-x-2 text-xs sm:text-sm text-indigo-600">
-             <svg
-               class="w-3 h-3 sm:w-4 sm:h-4"
-               fill="none"
-               stroke="currentColor"
-               viewBox="0 0 24 24"
-             >
-               <path
-                 stroke-linecap="round"
-                 stroke-linejoin="round"
-                 stroke-width="2"
-                 d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-               ></path>
-             </svg>
-             <span class="font-medium text-center"
-               >Timestamp: {{ formatTime(seg.start_time) }} -
-               {{ formatTime(seg.end_time) }}</span
-             >
-           </div>
-         </div>
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"
+                />
+              </svg>
+              <span class="text-sm sm:text-base">Relevant Content Found:</span>
+            </h4>
+            <p
+              class="text-indigo-800 italic text-sm sm:text-base md:text-lg leading-relaxed text-center sm:text-left px-2 sm:px-0"
+            >
+              "{{ seg.text }}"
+            </p>
+            <div
+              class="mt-3 sm:mt-4 flex flex-col sm:flex-row items-center justify-center sm:justify-start space-y-1 sm:space-y-0 sm:space-x-2 text-xs sm:text-sm text-indigo-600"
+            >
+              <svg
+                class="w-3 h-3 sm:w-4 sm:h-4"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                ></path>
+              </svg>
+              <span class="font-medium text-center"
+                >Timestamp: {{ formatTime(seg.start_time) }} -
+                {{ formatTime(seg.end_time) }}</span
+              >
+            </div>
+          </div>
 
-         <!-- Carousel Controls -->
-         <div class="flex items-center justify-between mb-4 sm:mb-6">
-           <button (click)="prevSegment()" class="px-2 py-1.5 sm:px-3 sm:py-2 rounded-lg sm:rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium transition text-xs sm:text-sm">
-             ◀ Prev
-           </button>
-           <div class="text-xs sm:text-sm text-gray-500 text-center px-2">
-             Segment {{ currentSegmentIndex + 1 }} of {{ selectedGroup!.segments.length }}
-           </div>
-           <button (click)="nextSegment()" class="px-2 py-1.5 sm:px-3 sm:py-2 rounded-lg sm:rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium transition text-xs sm:text-sm">
-             Next ▶
-           </button>
-         </div>
-       </ng-container>
+          <!-- Carousel Controls -->
+          <div class="flex items-center justify-between mb-4 sm:mb-6">
+            <button
+              (click)="prevSegment()"
+              class="px-2 py-1.5 sm:px-3 sm:py-2 rounded-lg sm:rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium transition text-xs sm:text-sm"
+            >
+              ◀ Prev
+            </button>
+            <div class="text-xs sm:text-sm text-gray-500 text-center px-2">
+              Segment {{ currentSegmentIndex + 1 }} of
+              {{ selectedGroup!.segments.length }}
+            </div>
+            <button
+              (click)="nextSegment()"
+              class="px-2 py-1.5 sm:px-3 sm:py-2 rounded-lg sm:rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium transition text-xs sm:text-sm"
+            >
+              Next ▶
+            </button>
+          </div>
+        </ng-container>
 
-       <!-- Audio Player -->
-       <div class="mb-6 sm:mb-8 bg-gray-50 rounded-2xl sm:rounded-3xl p-4 sm:p-5 md:p-6">
-         <audio #player controls class="w-full" [src]="selectedGroup.file_url" (loadedmetadata)="onAudioLoaded()">
-           Your browser does not support the audio element.
-         </audio>
-       </div>
+        <!-- Audio Player -->
+        <div
+          class="mb-6 sm:mb-8 bg-gray-50 rounded-2xl sm:rounded-3xl p-4 sm:p-5 md:p-6"
+        >
+          <audio
+            #player
+            controls
+            class="w-full"
+            [src]="selectedGroup.file_url"
+            (loadedmetadata)="onAudioLoaded()"
+          >
+            Your browser does not support the audio element.
+          </audio>
+        </div>
 
-       <!-- Search Metadata -->
-       <div class="grid grid-cols-2 gap-3 sm:gap-4 md:gap-6">
-         <div
-           class="bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200 rounded-xl sm:rounded-2xl p-3 sm:p-4 text-center"
-         >
-           <div
-             class="w-8 h-8 sm:w-10 sm:h-10 bg-green-500 rounded-full mx-auto mb-2 flex items-center justify-center"
-           >
-             <svg
-               class="w-4 h-4 sm:w-5 sm:h-5 text-white"
-               fill="none"
-               stroke="currentColor"
-               viewBox="0 0 24 24"
-             >
-               <path
-                 stroke-linecap="round"
-                 stroke-linejoin="round"
-                 stroke-width="2"
-                 d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-               ></path>
-             </svg>
-           </div>
-           <span class="text-xs sm:text-sm font-medium text-green-700 block"
-             >Confidence</span
-           >
-           <ng-container *ngIf="currentSegment as seg">
-             <p class="text-lg sm:text-xl md:text-2xl font-bold text-green-800">
-               {{ seg.confidence * 100 | number : "1.1-1" }}%
-             </p>
-           </ng-container>
-         </div>
+        <!-- Search Metadata -->
+        <div class="grid grid-cols-2 gap-3 sm:gap-4 md:gap-6">
+          <div
+            class="bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200 rounded-xl sm:rounded-2xl p-3 sm:p-4 text-center"
+          >
+            <div
+              class="w-8 h-8 sm:w-10 sm:h-10 bg-green-500 rounded-full mx-auto mb-2 flex items-center justify-center"
+            >
+              <svg
+                class="w-4 h-4 sm:w-5 sm:h-5 text-white"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                ></path>
+              </svg>
+            </div>
+            <span class="text-xs sm:text-sm font-medium text-green-700 block"
+              >Confidence</span
+            >
+            <ng-container *ngIf="currentSegment as seg">
+              <p
+                class="text-lg sm:text-xl md:text-2xl font-bold text-green-800"
+              >
+                {{ seg.confidence * 100 | number : "1.1-1" }}%
+              </p>
+            </ng-container>
+          </div>
 
-         <div
-           class="bg-gradient-to-br from-blue-50 to-cyan-50 border border-blue-200 rounded-xl sm:rounded-2xl p-3 sm:p-4 text-center"
-         >
-           <div
-             class="w-8 h-8 sm:w-10 sm:h-10 bg-blue-500 rounded-full mx-auto mb-2 flex items-center justify-center"
-           >
-             <svg
-               class="w-4 h-4 sm:w-5 sm:h-5 text-white"
-               fill="none"
-               stroke="currentColor"
-               viewBox="0 0 24 24"
-             >
-               <path
-                 stroke-linecap="round"
-                 stroke-linejoin="round"
-                 stroke-width="2"
-                 d="M13 10V3L4 14h7v7l9-11h-7z"
-               ></path>
-             </svg>
-           </div>
-           <span class="text-xs sm:text-sm font-medium text-blue-700 block"
-             >Semantic Score</span
-           >
-           <ng-container *ngIf="currentSegment as seg">
-             <p class="text-lg sm:text-xl md:text-2xl font-bold text-blue-800">
-               {{ seg.semantic_score * 100 | number : "1.1-1" }}%
-             </p>
-           </ng-container>
-         </div>
+          <div
+            class="bg-gradient-to-br from-blue-50 to-cyan-50 border border-blue-200 rounded-xl sm:rounded-2xl p-3 sm:p-4 text-center"
+          >
+            <div
+              class="w-8 h-8 sm:w-10 sm:h-10 bg-blue-500 rounded-full mx-auto mb-2 flex items-center justify-center"
+            >
+              <svg
+                class="w-4 h-4 sm:w-5 sm:h-5 text-white"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M13 10V3L4 14h7v7l9-11h-7z"
+                ></path>
+              </svg>
+            </div>
+            <span class="text-xs sm:text-sm font-medium text-blue-700 block"
+              >Semantic Score</span
+            >
+            <ng-container *ngIf="currentSegment as seg">
+              <p class="text-lg sm:text-xl md:text-2xl font-bold text-blue-800">
+                {{ seg.semantic_score * 100 | number : "1.1-1" }}%
+              </p>
+            </ng-container>
+          </div>
 
-         <div
-           class="bg-gradient-to-br from-purple-50 to-pink-50 border border-purple-200 rounded-xl sm:rounded-2xl p-3 sm:p-4 text-center"
-         >
-           <div
-             class="w-8 h-8 sm:w-10 sm:h-10 bg-purple-500 rounded-full mx-auto mb-2 flex items-center justify-center"
-           >
-             <svg
-               class="w-4 h-4 sm:w-5 sm:h-5 text-white"
-               fill="none"
-               stroke="currentColor"
-               viewBox="0 0 24 24"
-             >
-               <path
-                 stroke-linecap="round"
-                 stroke-linejoin="round"
-                 stroke-width="2"
-                 d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z"
-               ></path>
-             </svg>
-           </div>
-           <span class="text-xs sm:text-sm font-medium text-purple-700 block"
-             >Combined Score</span
-           >
-           <ng-container *ngIf="currentSegment as seg">
-             <p class="text-lg sm:text-xl md:text-2xl font-bold text-purple-800">
-               {{ seg.combined_score * 100 | number : "1.1-1" }}%
-             </p>
-           </ng-container>
-         </div>
+          <div
+            class="bg-gradient-to-br from-purple-50 to-pink-50 border border-purple-200 rounded-xl sm:rounded-2xl p-3 sm:p-4 text-center"
+          >
+            <div
+              class="w-8 h-8 sm:w-10 sm:h-10 bg-purple-500 rounded-full mx-auto mb-2 flex items-center justify-center"
+            >
+              <svg
+                class="w-4 h-4 sm:w-5 sm:h-5 text-white"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z"
+                ></path>
+              </svg>
+            </div>
+            <span class="text-xs sm:text-sm font-medium text-purple-700 block"
+              >Combined Score</span
+            >
+            <ng-container *ngIf="currentSegment as seg">
+              <p
+                class="text-lg sm:text-xl md:text-2xl font-bold text-purple-800"
+              >
+                {{ seg.combined_score * 100 | number : "1.1-1" }}%
+              </p>
+            </ng-container>
+          </div>
 
-         <div
-           class="bg-gradient-to-br from-orange-50 to-red-50 border border-orange-200 rounded-xl sm:rounded-2xl p-3 sm:p-4 text-center"
-         >
-           <div
-             class="w-8 h-8 sm:w-10 sm:h-10 bg-orange-500 rounded-full mx-auto mb-2 flex items-center justify-center"
-           >
-             <svg
-               class="w-4 h-4 sm:w-5 sm:h-5 text-white"
-               fill="none"
-               stroke="currentColor"
-               viewBox="0 0 24 24"
-             >
-               <path
-                 stroke-linecap="round"
-                 stroke-linejoin="round"
-                 stroke-width="2"
-                 d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2H9a2 2 0 00-2 2z"
-               ></path>
-             </svg>
-           </div>
-           <span class="text-xs sm:text-sm font-medium text-orange-700 block"
-             >Technical Score</span
-           >
-           <ng-container *ngIf="currentSegment as seg">
-             <p class="text-lg sm:text-xl md:text-2xl font-bold text-orange-800">
-               {{ seg.technical_score | number : "1.1-1" }}
-             </p>
-           </ng-container>
-         </div>
-       </div>
-     </div>
+          <div
+            class="bg-gradient-to-br from-orange-50 to-red-50 border border-orange-200 rounded-xl sm:rounded-2xl p-3 sm:p-4 text-center"
+          >
+            <div
+              class="w-8 h-8 sm:w-10 sm:h-10 bg-orange-500 rounded-full mx-auto mb-2 flex items-center justify-center"
+            >
+              <svg
+                class="w-4 h-4 sm:w-5 sm:h-5 text-white"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2H9a2 2 0 00-2 2z"
+                ></path>
+              </svg>
+            </div>
+            <span class="text-xs sm:text-sm font-medium text-orange-700 block"
+              >Technical Score</span
+            >
+            <ng-container *ngIf="currentSegment as seg">
+              <p
+                class="text-lg sm:text-xl md:text-2xl font-bold text-orange-800"
+              >
+                {{ seg.technical_score | number : "1.1-1" }}
+              </p>
+            </ng-container>
+          </div>
+        </div>
+      </div>
 
-     <!-- Footer -->
-     <div class="flex flex-col sm:flex-row justify-end space-y-2 sm:space-y-0 sm:space-x-4 p-4 sm:p-6 md:p-8 border-t border-gray-100">
-       <button
-         (click)="onModalClose()"
-         class="w-full sm:w-auto px-4 py-2.5 sm:px-6 sm:py-3 text-gray-600 hover:text-gray-800 rounded-xl sm:rounded-2xl hover:bg-gray-100 transition-all duration-300 font-medium text-sm sm:text-base"
-       >
-         Close
-       </button>
-       <a
-         [href]="selectedGroup.file_url"
-         download
-         class="w-full sm:w-auto px-4 py-2.5 sm:px-6 sm:py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl sm:rounded-2xl font-semibold hover:from-indigo-700 hover:to-purple-700 transition-all duration-300 shadow-lg hover:shadow-xl hover:-translate-y-1 text-center text-sm sm:text-base"
-       >
-         Download Audio
-       </a>
-     </div>
-   </div>
- </div>
+      <!-- Footer -->
+      <div
+        class="flex flex-col sm:flex-row justify-end space-y-2 sm:space-y-0 sm:space-x-4 p-4 sm:p-6 md:p-8 border-t border-gray-100"
+      >
+        <button
+          (click)="onModalClose()"
+          class="w-full sm:w-auto px-4 py-2.5 sm:px-6 sm:py-3 text-gray-600 hover:text-gray-800 rounded-xl sm:rounded-2xl hover:bg-gray-100 transition-all duration-300 font-medium text-sm sm:text-base"
+        >
+          Close
+        </button>
+        <a
+          [href]="selectedGroup.file_url"
+          download
+          class="w-full sm:w-auto px-4 py-2.5 sm:px-6 sm:py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl sm:rounded-2xl font-semibold hover:from-indigo-700 hover:to-purple-700 transition-all duration-300 shadow-lg hover:shadow-xl hover:-translate-y-1 text-center text-sm sm:text-base"
+        >
+          Download Audio
+        </a>
+      </div>
+    </div>
+  </div>
 </div>

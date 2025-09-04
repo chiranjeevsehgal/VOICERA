@@ -2,6 +2,7 @@ import os
 import smtplib
 from email.message import EmailMessage
 from pathlib import Path
+from utils.logging import log_info, log_warning, log_error
 
 # Load HTML template
 TEMPLATE_PATH = Path(__file__).parent.parent / "utils" / "reset_password.html"
@@ -29,5 +30,5 @@ def send_email(to: str, otp: str) -> bool:
             server.send_message(msg)
         return True
     except Exception as e:
-        print(f"Failed to send email: {str(e)}")
+        log_error(f"Failed to send email: {str(e)}", "send_email", {"error": str(e), "recipient": to})
         return False

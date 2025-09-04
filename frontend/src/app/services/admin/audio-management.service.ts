@@ -8,11 +8,11 @@ export interface Podcast {
   title: string;
   description: string;
   image_url: string | null;
-  audio_url: string;
+  embedded_audio_url: string;
   duration_seconds: number;
   author: string;
   published_date: string;
-  tags: string[];
+  tags: string[] | null;
   language: string;
   created_at: string;
   updated_at: string;

@@ -3,6 +3,14 @@ from services.database import logs_collection
 import asyncio
 from typing import Dict, Any, Optional
 from fastapi import BackgroundTasks
+import logging
+from utils.logging_config import setup_logging
+
+# Ensure centralized logging is configured; safe to call multiple times
+if not getattr(logging.getLogger(), "_voicera_logging_configured", False):
+    setup_logging()
+
+logger = logging.getLogger("voicera.app")
 
 async def add_log_entry(
     level: str,
@@ -31,42 +39,52 @@ async def add_log_entry(
     }
     
     try:
+        # Best-effort: store logs in Mongo for querying dashboards
         await logs_collection.insert_one(log_entry)
     except Exception as e:
-        # Fallback to print if DB insert fails
-        print(f"WARNING: Failed to add log entry: {e}")
-        print(f"LOG: [{level.upper()}] {message} - {source}")
+        # Don't lose the log; capture via Python logging
+        logger.warning("Failed to add log entry to DB: %s", e)
+        _emit_to_python_logger(level, message, source, context)
+
+def _emit_to_python_logger(level: str, message: str, source: str, context: Optional[Dict[str, Any]] = None) -> None:
+    extra = {"source": source, **(context or {})}
+    # Append context to message for flat-file readability
+    if context:
+        message = f"{message} | context={context}"
+    lvl = (level or "info").lower()
+    if lvl == "debug":
+        logger.debug(message, extra=extra)
+    elif lvl == "warning":
+        logger.warning(message, extra=extra)
+    elif lvl == "error":
+        logger.error(message, extra=extra)
+    else:
+        logger.info(message, extra=extra)
 
 def log_info(message: str, source: str, context: Optional[Dict[str, Any]] = None, background_tasks: Optional[BackgroundTasks] = None):
     """Log an info-level message"""
     if background_tasks is not None:
         background_tasks.add_task(add_log_entry, "info", message, source, context)
     else:
-        # Instead of creating a task that might be destroyed, just print the log
-        print(f"INFO: {message} - {source}")
-        # We could also use a global task registry to keep track of tasks
-        # but for simplicity, we'll just print the log message
+        _emit_to_python_logger("info", message, source, context)
 
 def log_warning(message: str, source: str, context: Optional[Dict[str, Any]] = None, background_tasks: Optional[BackgroundTasks] = None):
     """Log a warning-level message"""
     if background_tasks is not None:
         background_tasks.add_task(add_log_entry, "warning", message, source, context)
     else:
-        # Instead of creating a task that might be destroyed, just print the log
-        print(f"WARNING: {message} - {source}")
+        _emit_to_python_logger("warning", message, source, context)
 
 def log_error(message: str, source: str, context: Optional[Dict[str, Any]] = None, background_tasks: Optional[BackgroundTasks] = None):
     """Log an error-level message"""
     if background_tasks is not None:
         background_tasks.add_task(add_log_entry, "error", message, source, context)
     else:
-        # Instead of creating a task that might be destroyed, just print the log
-        print(f"ERROR: {message} - {source}")
+        _emit_to_python_logger("error", message, source, context)
 
 def log_debug(message: str, source: str, context: Optional[Dict[str, Any]] = None, background_tasks: Optional[BackgroundTasks] = None):
     """Log a debug-level message"""
     if background_tasks is not None:
         background_tasks.add_task(add_log_entry, "debug", message, source, context)
     else:
-        # Instead of creating a task that might be destroyed, just print the log
-        print(f"DEBUG: {message} - {source}")
+        _emit_to_python_logger("debug", message, source, context)
