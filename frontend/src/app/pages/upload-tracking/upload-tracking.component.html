@@ -321,15 +321,15 @@
             class="w-full bg-gray-200 rounded-full h-4 sm:h-5 overflow-hidden shadow-inner"
           >
             <div
-  class="h-4 sm:h-5 rounded-full transition-all duration-700 ease-out relative"
-  [ngClass]="getProgressColor()"
-  [style.width]="jobStatus.progress + '%'"
->
-  <div
-    *ngIf="isProcessingStatus()"
-    class="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent animate-shimmer"
-  ></div>
-</div>
+              class="h-4 sm:h-5 rounded-full transition-all duration-700 ease-out relative"
+              [ngClass]="getProgressColor()"
+              [style.width]="jobStatus.progress + '%'"
+            >
+              <div
+                *ngIf="isProcessingStatus()"
+                class="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent animate-shimmer"
+              ></div>
+            </div>
           </div>
         </div>
 
