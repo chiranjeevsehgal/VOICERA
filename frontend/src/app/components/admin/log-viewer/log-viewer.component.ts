@@ -88,7 +88,7 @@ export class LogViewerComponent implements OnInit {
   }
 
   goBack(): void {
-    this.router.navigate(['/admin/application-logs']);
+    this.router.navigate(['/admin/dashboard']);
   }
 
   downloadLog(): void {
