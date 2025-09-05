@@ -505,6 +505,21 @@
                 </div>
               </div>
             </div>
+
+            <!-- Navigate to AI Answer button -->
+            <div class="w-full sm:w-auto sm:ml-auto mt-2 sm:mt-0 flex sm:block justify-center">
+              <button
+                (click)="goToAiAnswer(group, $event)"
+                class="inline-flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-3 rounded-xl shadow-sm transition-colors"
+                title="Open AI Answer"
+                aria-label="Open AI Answer"
+              >
+                <span class="hidden sm:inline">AI Answer</span>
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                </svg>
+              </button>
+            </div>
           </div>
         </div>
       </div>
