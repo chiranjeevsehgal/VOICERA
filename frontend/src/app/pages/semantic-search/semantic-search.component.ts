@@ -1,4 +1,5 @@
 import { Component, OnInit, OnDestroy, ElementRef, ViewChild, AfterViewInit } from '@angular/core';
+import { Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { Subscription } from 'rxjs';
 import { HeaderComponent } from '../../components/header/header.component';
@@ -101,7 +102,8 @@ export class SemanticSearchComponent implements OnInit, OnDestroy, AfterViewInit
 
   constructor(
     private semanticSearchService: SemanticSearchService,
-    private messageService: MessageService
+    private messageService: MessageService,
+    private router: Router
   ) {}
 
   ngOnInit(): void {}
@@ -208,6 +210,21 @@ export class SemanticSearchComponent implements OnInit, OnDestroy, AfterViewInit
     this.currentSegmentIndex = 0;
     // Defer to allow modal to render and #player to be available
     setTimeout(() => this.seekToCurrentSegment(), 0);
+  }
+
+  goToAiAnswer(group: SemanticPodcastGroup, event?: Event): void {
+    // Prevent opening the modal when clicking the arrow icon
+    if (event) {
+      event.stopPropagation();
+      event.preventDefault();
+    }
+    this.router.navigateByUrl('/ai-answer', {
+      state: {
+        searchQuery: this.searchQuery,
+        fileUrl: group.file_url,
+        title: group.title,
+      },
+    });
   }
 
   onModalClose(): void {

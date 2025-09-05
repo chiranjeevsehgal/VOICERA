@@ -16,16 +16,16 @@ from services.database import (
     api_usage_collection,
     transcription_stats_collection,
     search_trends_collection,
-    user_activity_collection,
-    logs_collection
+    user_activity_collection
 )
 from models.analytics import (
     APIUsageStats,
     TranscriptionStats,
     SearchTrendsResponse,
     UserActivityData,
-    LogsResponse,
-    LogEntry
+    LogFile,
+    LogFilesResponse,
+    LogContentResponse
 )
 
 router = APIRouter(prefix='/admin')
@@ -1173,68 +1173,120 @@ async def get_user_activity(
     
     return stats
 
-@router.get("/logs", response_model=LogsResponse, status_code=status.HTTP_200_OK)
-async def get_application_logs(
-    current_user: Dict[str, Any] = Depends(requires_role("admin")),
-    level: Optional[str] = Query(None, description="Filter logs by level (info, warning, error, debug)"),
-    source: Optional[str] = Query(None, description="Filter logs by source/component"),
-    start_date: Optional[datetime] = Query(None, description="Start date for logs"),
-    end_date: Optional[datetime] = Query(None, description="End date for logs"),
-    limit: int = Query(100, ge=10, le=1000, description="Maximum number of logs to return"),
-    skip: int = Query(0, ge=0, description="Number of logs to skip for pagination")
+
+@router.get("/log-files", response_model=LogFilesResponse, status_code=status.HTTP_200_OK)
+async def list_log_files(
+    current_user: Dict[str, Any] = Depends(requires_role("admin"))
 ):
     """
-    Access application logs for troubleshooting.
-    Returns filtered logs with pagination support.
+    List all log files in the logs directory, sorted by date (newest first).
     Only accessible to administrators.
     """
-    # Build the filter query
-    filter_query = {}
+    logs_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "logs")
     
-    if level:
-        filter_query["level"] = level
+    if not os.path.exists(logs_dir):
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Logs directory not found"
+        )
     
-    if source:
-        filter_query["source"] = source
+    log_files = []
     
-    if start_date or end_date:
-        date_filter = {}
-        if start_date:
-            date_filter["$gte"] = start_date
-        if end_date:
-            date_filter["$lte"] = end_date
-        filter_query["timestamp"] = date_filter
+    try:
+        for filename in os.listdir(logs_dir):
+            if filename.endswith('.log'):
+                file_path = os.path.join(logs_dir, filename)
+                file_stat = os.stat(file_path)
+                
+                # Extract date from filename (assuming format: YYYY-MM-DD.log)
+                date_part = filename.replace('.log', '')
+                
+                log_file = LogFile(
+                    filename=filename,
+                    size=file_stat.st_size,
+                    last_modified=datetime.fromtimestamp(file_stat.st_mtime),
+                    date=date_part
+                )
+                log_files.append(log_file)
+        
+        # Sort by date (newest first)
+        log_files.sort(key=lambda x: x.date, reverse=True)
+        
+        return LogFilesResponse(
+            log_files=log_files,
+            total_count=len(log_files)
+        )
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error reading logs directory: {str(e)}"
+        )
+
+@router.get("/log-files/{filename}", response_model=LogContentResponse, status_code=status.HTTP_200_OK)
+async def get_log_file_content(
+    filename: str = Path(..., description="Name of the log file to read"),
+    current_user: Dict[str, Any] = Depends(requires_role("admin")),
+    lines: Optional[int] = Query(None, ge=1, le=10000, description="Number of lines to read from the end of file"),
+    search: Optional[str] = Query(None, description="Search for specific text in the log file")
+):
+    """
+    Read the contents of a specific log file.
+    Optionally filter by number of lines or search for specific text.
+    Only accessible to administrators.
+    """
+    logs_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "logs")
+    file_path = os.path.join(logs_dir, filename)
     
-    # Get levels count for statistics
-    levels_pipeline = [
-        {"$match": filter_query},
-        {"$group": {
-            "_id": "$level",
-            "count": {"$sum": 1}
-        }}
-    ]
+    # Security check: ensure the filename doesn't contain path traversal
+    if '..' in filename or '/' in filename or '\\' in filename:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid filename"
+        )
     
-    levels_result = await logs_collection.aggregate(levels_pipeline).to_list(length=10)
-    levels_count = {item["_id"]: item["count"] for item in levels_result}
+    if not os.path.exists(file_path):
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Log file '{filename}' not found"
+        )
     
-    # Get total count for pagination
-    total_count = await logs_collection.count_documents(filter_query)
-    
-    # Get the logs with pagination
-    cursor = logs_collection.find(filter_query)
-    cursor = cursor.sort("timestamp", -1)  # Sort by newest first
-    cursor = cursor.skip(skip).limit(limit)
-    
-    logs = await cursor.to_list(length=limit)
-    
-    # Construct the response
-    response = LogsResponse(
-        logs=logs,
-        total_count=total_count,
-        levels_count=levels_count
-    )
-    
-    return response 
+    try:
+        file_stat = os.stat(file_path)
+        
+        with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
+            if lines:
+                # Read last N lines
+                all_lines = f.readlines()
+                content_lines = all_lines[-lines:] if len(all_lines) > lines else all_lines
+                content = ''.join(content_lines)
+                total_lines = len(all_lines)
+            else:
+                # Read entire file
+                content = f.read()
+                total_lines = len(content.splitlines())
+            
+            # Apply search filter if provided
+            if search:
+                filtered_lines = []
+                for line in content.splitlines():
+                    if search.lower() in line.lower():
+                        filtered_lines.append(line)
+                content = '\n'.join(filtered_lines)
+        
+        return LogContentResponse(
+            filename=filename,
+            content=content,
+            size=file_stat.st_size,
+            last_modified=datetime.fromtimestamp(file_stat.st_mtime),
+            total_lines=total_lines
+        )
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error reading log file: {str(e)}"
+        ) 
 
 @router.delete("/cleanup/audio-uploads", status_code=status.HTTP_200_OK)
 async def cleanup_audio_uploads(
