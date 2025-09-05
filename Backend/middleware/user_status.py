@@ -69,15 +69,6 @@ class UserStatusMiddleware(BaseHTTPMiddleware):
             
         except Exception as e:
             logger.error(f"Error in UserStatusMiddleware: {str(e)}")
-            # If there's an error getting user info, return unauthorized
-            return JSONResponse(
-                status_code=401,
-                content={
-                    "status": False,
-                    "detail": "Authentication failed",
-                    "code": "AUTH_ERROR"
-                }
-            )
         
         return await call_next(request)
     

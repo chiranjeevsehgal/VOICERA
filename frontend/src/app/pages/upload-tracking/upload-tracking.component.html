@@ -77,252 +77,258 @@
     </div>
   </section>
 
-  <main class="container mx-auto px-4 py-6 sm:py-8 md:py-12 max-w-xs sm:max-w-2xl md:max-w-4xl relative -mt-6 sm:-mt-8 md:-mt-12 z-20">
-    <!-- Job ID Input Card -->
-    <div
-      class="bg-white rounded-2xl sm:rounded-3xl shadow-xl sm:shadow-2xl p-4 sm:p-6 md:p-8 mb-6 sm:mb-8 md:mb-12 border border-gray-100"
-      *ngIf="!jobStatus"
-    >
-      <div class="max-w-full sm:max-w-xl md:max-w-2xl mx-auto">
-        <h3 class="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 mb-4 sm:mb-6 text-center">
-          Enter Job ID
-        </h3>
-        <div class="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-3">
-          <div class="flex-1 relative">
+  <!-- Main Content with Better Positioning -->
+  <main class="container mx-auto px-4 py-6 sm:py-8 md:py-12 max-w-sm sm:max-w-3xl md:max-w-5xl relative -mt-8 sm:-mt-12 md:-mt-16 z-20">
+    
+    <!--  Job ID Input Card -->
+    <div class="bg-white/95 backdrop-blur-sm rounded-2xl sm:rounded-3xl shadow-xl sm:shadow-2xl p-6 sm:p-8 md:p-10 mb-8 sm:mb-10 md:mb-14 border border-gray-100/50" *ngIf="!jobStatus">
+      <div class="max-w-full sm:max-w-2xl md:max-w-3xl mx-auto text-center">
+        
+        <!-- Card Header -->
+        <div class="mb-6 sm:mb-8">
+          <div class="w-16 sm:w-20 h-16 sm:h-20 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-2xl mx-auto mb-4 sm:mb-6 flex items-center justify-center shadow-lg">
+            <svg class="w-8 sm:w-10 h-8 sm:h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+          </div>
+          <h3 class="text-xl sm:text-2xl md:text-3xl font-bold bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent mb-2">
+            Enter Job ID
+          </h3>
+          <p class="text-gray-600 text-sm sm:text-base">
+            Enter your processing job ID to track its current status
+          </p>
+        </div>
+        
+        <!--  Input Section -->
+        <div class="space-y-4 sm:space-y-0 sm:flex sm:space-x-4">
+          <div class="flex-1 relative group">
+            <div class="absolute inset-y-0 left-0 pl-4 sm:pl-6 flex items-center pointer-events-none">
+              <svg class="w-5 h-5 text-gray-400 group-focus-within:text-indigo-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+              </svg>
+            </div>
             <input
               type="text"
               placeholder="Enter your job ID..."
               [(ngModel)]="jobId"
               (keyup.enter)="checkStatus()"
-              class="w-full px-4 sm:px-6 py-3 sm:py-4 border-2 border-gray-200 rounded-xl sm:rounded-2xl text-base sm:text-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-gray-900 bg-gray-50 hover:bg-white transition-all duration-300"
+              class="w-full pl-12 sm:pl-14 pr-4 sm:pr-6 py-4 sm:py-5 border-2 border-gray-200 rounded-xl sm:rounded-2xl text-base sm:text-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-gray-900 bg-gray-50/50 hover:bg-white hover:shadow-md transition-all duration-300 font-medium"
             />
           </div>
           <button
             (click)="checkStatus()"
             [disabled]="!jobId.trim() || loading"
-            class="px-4 sm:px-6 md:px-8 py-3 sm:py-4 bg-gradient-to-r from-indigo-600 cursor-pointer to-purple-600 text-white rounded-xl sm:rounded-2xl font-semibold hover:from-indigo-700 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 shadow-lg hover:shadow-xl hover:-translate-y-1 text-sm sm:text-base"
+            class="px-6 sm:px-8 md:px-10 py-4 sm:py-5 bg-gradient-to-r from-indigo-600 to-purple-600 cursor-pointer text-white rounded-xl sm:rounded-2xl font-semibold hover:from-indigo-700 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 shadow-lg hover:shadow-xl hover:-translate-y-1 text-base sm:text-lg min-w-[140px] sm:min-w-[160px]"
           >
-            <span *ngIf="!loading">Check Status</span>
-            <span *ngIf="loading">Checking...</span>
+            <span *ngIf="!loading" class="flex items-center justify-center">
+              Check Status
+              <svg class="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+              </svg>
+            </span>
+            <span *ngIf="loading" class="flex items-center justify-center">
+              <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              Checking...
+            </span>
           </button>
         </div>
       </div>
     </div>
 
-    <!-- Job Status Card -->
-    <div
-      *ngIf="jobStatus"
-      class="bg-white rounded-2xl sm:rounded-3xl shadow-xl sm:shadow-2xl p-4 sm:p-6 md:p-8 mb-6 sm:mb-8 md:mb-12 border border-gray-100"
-    >
-      <div class="text-center mb-6 sm:mb-8">
-        <!-- Status Icon -->
-        <div
-          class="w-16 sm:w-20 h-16 sm:h-20 mx-auto mb-4 sm:mb-6 rounded-full flex items-center justify-center"
-          [ngClass]="{
-            'bg-gradient-to-r from-blue-500 to-cyan-500': isProcessingStatus(),
-            'bg-gradient-to-r from-green-500 to-emerald-500':
-              jobStatus.status === 'completed',
-            'bg-gradient-to-r from-red-500 to-pink-500':
-              jobStatus.status === 'failed'
-          }"
-        >
-          <svg
-            *ngIf="isProcessingStatus()"
-            class="w-8 sm:w-10 h-8 sm:h-10 text-white animate-spin"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-            />
-          </svg>
-          <svg
-            *ngIf="jobStatus.status === 'completed'"
-            class="w-8 sm:w-10 h-8 sm:h-10 text-white"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M5 13l4 4L19 7"
-            />
-          </svg>
-          <svg
-            *ngIf="jobStatus.status === 'failed'"
-            class="w-8 sm:w-10 h-8 sm:h-10 text-white"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-            />
-          </svg>
+    <!--  Job Status Card -->
+    <div *ngIf="jobStatus" class="bg-white/95 backdrop-blur-sm rounded-2xl sm:rounded-3xl shadow-xl sm:shadow-2xl p-6 sm:p-8 md:p-10 mb-8 sm:mb-10 md:mb-14 border border-gray-100/50">
+      
+      <!-- Status Header -->
+      <div class="text-center mb-8 sm:mb-10">
+        <!--  Status Icon with Animation -->
+        <div class="relative mb-6 sm:mb-8">
+          <div class="w-20 sm:w-24 md:w-28 h-20 sm:h-24 md:h-28 mx-auto rounded-full flex items-center justify-center relative overflow-hidden"
+               [ngClass]="{
+                 'bg-gradient-to-r from-blue-500 to-cyan-500': isProcessingStatus(),
+                 'bg-gradient-to-r from-green-500 to-emerald-500': jobStatus.status === 'completed',
+                 'bg-gradient-to-r from-red-500 to-pink-500': jobStatus.status === 'failed'
+               }">
+            
+            <!-- Animated ring for processing -->
+            <div *ngIf="isProcessingStatus()" class="absolute inset-0 rounded-full border-4 border-white/30 animate-ping"></div>
+            <div *ngIf="isProcessingStatus()" class="absolute inset-2 rounded-full border-2 border-white/50 animate-pulse"></div>
+            
+            <!-- Icons -->
+            <svg *ngIf="isProcessingStatus()" class="w-10 sm:w-12 md:w-14 h-10 sm:h-12 md:h-14 text-white animate-spin z-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+            <svg *ngIf="jobStatus.status === 'completed'" class="w-10 sm:w-12 md:w-14 h-10 sm:h-12 md:h-14 text-white z-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+            </svg>
+            <svg *ngIf="jobStatus.status === 'failed'" class="w-10 sm:w-12 md:w-14 h-10 sm:h-12 md:h-14 text-white z-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
         </div>
 
         <!-- Status Title -->
-        <h3
-          class="text-xl sm:text-2xl md:text-3xl font-bold mb-2"
-          [ngClass]="{
-            'bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent':
-              isProcessingStatus(),
-            'bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent':
-              jobStatus.status === 'completed',
-            'bg-gradient-to-r from-red-600 to-pink-600 bg-clip-text text-transparent':
-              jobStatus.status === 'failed'
-          }"
-        >
+        <h3 class="text-2xl sm:text-3xl md:text-4xl font-black mb-3 sm:mb-4"
+            [ngClass]="{
+              'bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent': isProcessingStatus(),
+              'bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent': jobStatus.status === 'completed',
+              'bg-gradient-to-r from-red-600 to-pink-600 bg-clip-text text-transparent': jobStatus.status === 'failed'
+            }">
           {{ getStatusTitle() }}
         </h3>
 
         <!-- Status Description -->
-        <p class="text-gray-600 mb-4 sm:mb-6 text-sm sm:text-base px-2">{{ getStatusDescription() }}</p>
+        <p class="text-gray-600 mb-6 sm:mb-8 text-base sm:text-lg px-4 leading-relaxed max-w-2xl mx-auto">
+          {{ getStatusDescription() }}
+        </p>
 
-        <!-- Progress Bar -->
-        <div *ngIf="jobStatus.progress > 0" class="mb-4 sm:mb-6">
-          <div class="flex justify-between text-xs sm:text-sm text-gray-600 mb-2">
-            <span>Progress</span>
-            <span>{{ jobStatus.progress }}%</span>
+        <!--  Progress Bar -->
+        <div *ngIf="jobStatus.progress > 0" class="mb-6 sm:mb-8 max-w-2xl mx-auto">
+          <div class="flex justify-between items-center text-sm sm:text-base text-gray-600 mb-3 sm:mb-4">
+            <span class="font-medium">Progress</span>
+            <div class="flex items-center space-x-2">
+              <span class="text-lg sm:text-xl font-bold"
+                    [ngClass]="{
+                      'text-blue-600': isProcessingStatus(),
+                      'text-green-600': jobStatus.status === 'completed',
+                      'text-red-600': jobStatus.status === 'failed'
+                    }">
+                {{ jobStatus.progress }}%
+              </span>
+            </div>
           </div>
-          <div class="w-full bg-gray-200 rounded-full h-3 sm:h-4 overflow-hidden">
-            <div
-              class="h-3 sm:h-4 rounded-full transition-all duration-500 ease-out relative bg-gradient-to-r"
-              [ngClass]="{
-                'from-blue-500 to-indigo-600': isProcessingStatus(),
-                'from-green-500 to-emerald-600':
-                  jobStatus.status === 'completed',
-                'from-red-500 to-pink-600': jobStatus.status === 'failed'
-              }"
-              [style.width]="jobStatus.progress + '%'"
-            >
-              <div
-                *ngIf="isProcessingStatus()"
-                class="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-shimmer"
-              ></div>
+          <div class="w-full bg-gray-200 rounded-full h-4 sm:h-5 overflow-hidden shadow-inner">
+            <div class="h-4 sm:h-5 rounded-full transition-all duration-700 ease-out relative"
+                 [ngClass]="{
+                   'bg-gradient-to-r from-blue-500 via-cyan-500 to-indigo-600': isProcessingStatus(),
+                   'bg-gradient-to-r from-green-500 via-emerald-500 to-green-600': jobStatus.status === 'completed',
+                   'bg-gradient-to-r from-red-500 via-pink-500 to-red-600': jobStatus.status === 'failed'
+                 }"
+                 [style.width]="jobStatus.progress + '%'">
+              <div *ngIf="isProcessingStatus()" class="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent animate-shimmer"></div>
             </div>
           </div>
         </div>
 
-          <!-- Error Message -->
-          <div
-            *ngIf="jobStatus.error"
-            class="mt-4 p-3 sm:p-4 bg-red-50 border border-red-200 rounded-lg"
-          >
-            <div class="flex items-start space-x-2">
-              <svg
-                class="w-4 sm:w-5 h-4 sm:h-5 text-red-500 mt-0.5 flex-shrink-0"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                />
-              </svg>
-              <div class="min-w-0">
-                <p class="text-red-700 font-medium text-sm">Error Details:</p>
-                <p class="text-red-600 text-sm break-words">{{ jobStatus.error }}</p>
+        <!--  Error Message -->
+        <div *ngIf="jobStatus.error" class="mt-6 sm:mt-8 p-4 sm:p-6 bg-gradient-to-r from-red-50 to-pink-50 border border-red-200 rounded-xl sm:rounded-2xl max-w-2xl mx-auto">
+          <div class="flex items-start space-x-3">
+            <div class="flex-shrink-0">
+              <div class="w-8 h-8 bg-red-500 rounded-full flex items-center justify-center">
+                <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
               </div>
             </div>
+            <div class="min-w-0 flex-1">
+              <p class="text-red-800 font-semibold text-sm sm:text-base mb-1">Error Details:</p>
+              <p class="text-red-700 text-sm sm:text-base break-words leading-relaxed">{{ jobStatus.error }}</p>
+            </div>
+          </div>
         </div>
 
-        <!-- Action Buttons -->
-        <div class="flex flex-col sm:flex-row justify-center space-y-3 sm:space-y-0 sm:space-x-4">
+        <!--  Action Buttons -->
+        <div class="flex flex-col sm:flex-row justify-center items-center space-y-3 sm:space-y-0 sm:space-x-4 mt-8 sm:mt-10">
           <button
             (click)="checkStatus()"
             [disabled]="loading"
-            class="px-4 sm:px-6 py-3 bg-gradient-to-r cursor-pointer from-blue-600 to-indigo-600 text-white rounded-xl sm:rounded-2xl font-semibold hover:from-blue-700 hover:to-indigo-700 disabled:opacity-50 transition-all duration-300 shadow-lg hover:shadow-xl hover:-translate-y-1 text-sm sm:text-base"
+            class="w-full sm:w-auto px-6 sm:px-8 py-3 sm:py-4 bg-gradient-to-r cursor-pointer from-blue-600 to-indigo-600 text-white rounded-xl sm:rounded-2xl font-semibold hover:from-blue-700 hover:to-indigo-700 disabled:opacity-50 transition-all duration-300 shadow-lg hover:shadow-xl hover:-translate-y-1 text-sm sm:text-base min-w-[160px]"
           >
-            <span *ngIf="!loading">Refresh Status</span>
-            <span *ngIf="loading">Refreshing...</span>
+            <span *ngIf="!loading" class="flex items-center justify-center">
+              <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+              Refresh Status
+            </span>
+            <span *ngIf="loading" class="flex items-center justify-center">
+              <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              Refreshing...
+            </span>
           </button>
 
           <button
             (click)="trackAnother()"
-            class="px-4 sm:px-6 py-3 bg-gradient-to-r cursor-pointer from-gray-600 to-slate-600 text-white rounded-xl sm:rounded-2xl font-semibold hover:from-gray-700 hover:to-slate-700 transition-all duration-300 shadow-lg hover:shadow-xl hover:-translate-y-1 text-sm sm:text-base"
+            class="w-full sm:w-auto px-6 sm:px-8 py-3 sm:py-4 bg-gradient-to-r cursor-pointer from-gray-600 to-slate-600 text-white rounded-xl sm:rounded-2xl font-semibold hover:from-gray-700 hover:to-slate-700 transition-all duration-300 shadow-lg hover:shadow-xl hover:-translate-y-1 text-sm sm:text-base min-w-[160px]"
           >
-            Track Another
+            <span class="flex items-center justify-center">
+              <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+              </svg>
+              Track Another
+            </span>
           </button>
 
           <a
             *ngIf="jobStatus.status === 'completed'"
             href="/ai-search"
-            class="px-4 sm:px-6 py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-xl sm:rounded-2xl font-semibold hover:from-green-700 hover:to-emerald-700 transition-all duration-300 shadow-lg hover:shadow-xl hover:-translate-y-1 text-sm sm:text-base text-center"
+            class="w-full sm:w-auto px-6 sm:px-8 py-3 sm:py-4 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-xl sm:rounded-2xl font-semibold hover:from-green-700 hover:to-emerald-700 transition-all duration-300 shadow-lg hover:shadow-xl hover:-translate-y-1 text-sm sm:text-base text-center min-w-[160px]"
           >
-            Search Audio
+            <span class="flex items-center justify-center">
+              <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+              Search Audio
+            </span>
           </a>
         </div>
       </div>
     </div>
 
-    <!-- Auto-refresh toggle -->
-    <div
-      *ngIf="jobStatus && isProcessingStatus()"
-      class="bg-white rounded-2xl sm:rounded-3xl shadow-lg border border-gray-100 p-4 sm:p-6 text-center"
-    >
-      <label class="inline-flex items-center cursor-pointer">
-        <input
-          type="checkbox"
-          [(ngModel)]="autoRefresh"
-          (change)="toggleAutoRefresh()"
-          class="sr-only peer"
-        />
-        <div
-          class="relative w-9 sm:w-11 h-5 sm:h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 sm:after:h-5 after:w-4 sm:after:w-5 after:transition-all peer-checked:bg-blue-600"
-        ></div>
-        <span class="ml-3 text-gray-700 font-medium text-sm sm:text-base"
-          >Auto-refresh every 10 seconds</span
-        >
-      </label>
+    <!--  Auto-refresh Toggle -->
+    <div *ngIf="jobStatus && isProcessingStatus()" class="bg-white/95 backdrop-blur-sm rounded-2xl sm:rounded-3xl shadow-lg border border-gray-100/50 p-6 sm:p-8 text-center mb-8 sm:mb-10">
+      <div class="max-w-md mx-auto">
+        <div class="flex items-center justify-center space-x-4">
+          <div class="flex-shrink-0">
+            <svg class="w-6 h-6 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
+          <label class="inline-flex items-center cursor-pointer">
+            <input
+              type="checkbox"
+              [(ngModel)]="autoRefresh"
+              (change)="toggleAutoRefresh()"
+              class="sr-only peer"
+            />
+            <div class="relative w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-gradient-to-r peer-checked:from-blue-600 peer-checked:to-indigo-600"></div>
+            <span class="ml-4 text-gray-700 font-medium text-base">
+              Auto-refresh every 10 seconds
+            </span>
+          </label>
+        </div>
+        <p class="text-sm text-gray-500 mt-2">
+          Automatically check for status updates while processing
+        </p>
+      </div>
     </div>
 
-    <!-- Error State -->
-    <div
-      *ngIf="errorMessage"
-      class="bg-white rounded-2xl sm:rounded-3xl shadow-lg border border-red-200 p-6 sm:p-8"
-    >
-      <div class="text-center">
-        <div
-          class="w-16 sm:w-20 h-16 sm:h-20 bg-gradient-to-r from-red-500 to-pink-500 rounded-full mx-auto mb-4 sm:mb-6 flex items-center justify-center"
-        >
-          <svg
-            class="w-8 sm:w-10 h-8 sm:h-10 text-white"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-            />
+    <!--  Error State -->
+    <div *ngIf="errorMessage" class="bg-white/95 backdrop-blur-sm rounded-2xl sm:rounded-3xl shadow-lg border border-red-200/50 p-8 sm:p-10">
+      <div class="text-center max-w-md mx-auto">
+        <div class="w-20 sm:w-24 h-20 sm:h-24 bg-gradient-to-r from-red-500 to-pink-500 rounded-full mx-auto mb-6 sm:mb-8 flex items-center justify-center shadow-lg">
+          <svg class="w-10 sm:w-12 h-10 sm:h-12 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
         </div>
-        <h3
-          class="text-xl sm:text-2xl font-bold bg-gradient-to-r from-red-600 to-pink-600 bg-clip-text text-transparent mb-4"
-        >
+        <h3 class="text-xl sm:text-2xl md:text-3xl font-bold bg-gradient-to-r from-red-600 to-pink-600 bg-clip-text text-transparent mb-4 sm:mb-6">
           Error Checking Status
         </h3>
-        <p class="text-gray-600 mb-4 sm:mb-6 text-sm sm:text-base px-2">{{ errorMessage }}</p>
+        <p class="text-gray-600 mb-6 sm:mb-8 text-base sm:text-lg leading-relaxed">{{ errorMessage }}</p>
         <button
           (click)="retryCheck()"
-          class="px-4 sm:px-6 py-3 bg-gradient-to-r from-red-600 to-pink-600 cursor-pointer text-white rounded-xl sm:rounded-2xl font-semibold hover:from-red-700 hover:to-pink-700 transition-all duration-300 shadow-lg hover:shadow-xl hover:-translate-y-1 text-sm sm:text-base"
+          class="px-8 sm:px-10 py-4 bg-gradient-to-r from-red-600 to-pink-600 cursor-pointer text-white rounded-xl sm:rounded-2xl font-semibold hover:from-red-700 hover:to-pink-700 transition-all duration-300 shadow-lg hover:shadow-xl hover:-translate-y-1 text-base"
         >
-          Try Again
+          <span class="flex items-center justify-center">
+            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+            Try Again
+          </span>
         </button>
       </div>
     </div>

@@ -37,7 +37,9 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
 
 function handleTokenExpiration(router: Router, toast: HotToastService): void {
   // Show  toast notification
-  toast.error('Your session has expired. Please sign in again.');
+  toast.error('Your session has expired. Please sign in again.', {
+        id: 'session_expired',
+  });
 
   // Remove from localStorage
   localStorage.removeItem('vEra_auth_token');
