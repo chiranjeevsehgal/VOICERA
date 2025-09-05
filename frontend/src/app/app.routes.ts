@@ -9,6 +9,8 @@ import { ForgotPasswordPageComponent } from './pages/forgot-password-page/forgot
 import { AuthCallbackComponent } from './utils/auth-callback/auth-callback.component';
 import { AdminLoginPageComponent } from './pages/admin/login-page/login-page.component';
 import { AdminDashboardComponent } from './pages/admin/dashboard/dashboard.component';
+import { ApplicationLogsComponent } from './components/admin/application-logs/application-logs.component';
+import { LogViewerComponent } from './components/admin/log-viewer/log-viewer.component';
 import { SemanticSearchComponent } from './pages/semantic-search/semantic-search.component';
 import { UploadComponent } from './pages/upload/upload.component';
 import { UploadTrackingComponent } from './pages/upload-tracking/upload-tracking.component';
@@ -38,6 +40,8 @@ export const routes: Routes = [
             { path: '', redirectTo: 'login', pathMatch: 'full' },
             { path: 'login', component: AdminLoginPageComponent },
             { path: 'dashboard', component: AdminDashboardComponent },
+            { path: 'application-logs', component: ApplicationLogsComponent },
+            { path: 'application-logs/:filename', component: LogViewerComponent },
         ]
     },
     {path: "**", component: PageNotFound},

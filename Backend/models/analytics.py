@@ -69,6 +69,23 @@ class LogEntry(BaseModel):
     source: str
     context: Dict[str, Any] = {}
 
+class LogFile(BaseModel):
+    filename: str
+    size: int
+    last_modified: datetime
+    date: str  # YYYY-MM-DD format extracted from filename
+
+class LogFilesResponse(BaseModel):
+    log_files: List[LogFile]
+    total_count: int
+
+class LogContentResponse(BaseModel):
+    filename: str
+    content: str
+    size: int
+    last_modified: datetime
+    total_lines: int
+
 class LogsResponse(BaseModel):
     logs: List[LogEntry]
     total_count: int
