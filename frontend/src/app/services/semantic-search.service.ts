@@ -89,9 +89,16 @@ export class SemanticSearchService {
   }
 
   /**
-   * Calls the backend Search & Answer API with a transcript
+   * Calls the backend Search & Answer API with a transcript.
+   * Accepts optional chat history to provide conversational context.
    */
-  searchAndAnswer(payload: { search_query: string; result_id: string; transcript: string; }): Observable<{ result_id: string; search_query: string; answer: string; model?: string; }> {
+  searchAndAnswer(payload: {
+    search_query: string;
+    result_id: string;
+    transcript: string;
+    history?: { role: 'user' | 'assistant' | 'system'; content: string }[];
+    context?: string;
+  }): Observable<{ result_id: string; search_query: string; answer: string; model?: string; }> {
     const token = localStorage.getItem('vEra_auth_token') || this.authToken || '';
     const headers = new HttpHeaders({
       Authorization: `Bearer ${token}`,

@@ -1344,6 +1344,9 @@ class SearchAndAnswerRequest(BaseModel):
     search_query: str 
     result_id: str
     transcript: str
+    # Optional conversational context from the frontend chat UI
+    history: Optional[List[Dict[str, str]]] = None
+    context: Optional[str] = None
 
 @router.post(
     "/search-and-answer",
@@ -1406,16 +1409,39 @@ async def search_and_answer(
             }
         )
         
-        # Format the prompt with the transcript and query
+        # Base prompt with transcript and current query
         formatted_prompt = config.answer_generation_prompt.format(
             transcript=request.transcript,
             query=request.search_query
         )
+
+        # Append conversation history and optional context (if provided)
+        history_block = ""
+        if request.history:
+            try:
+                # Limit to last 10 messages to control prompt size
+                recent = request.history[-10:]
+                history_lines = []
+                for m in recent:
+                    role = (m.get('role') or 'user').strip()
+                    content = (m.get('content') or '').strip()
+                    if content:
+                        history_lines.append(f"{role}: {content}")
+                if history_lines:
+                    history_block = "\n\nConversation history (for coherence, do not add facts not in transcript):\n" + "\n".join(history_lines)
+            except Exception as e:
+                log_warning(f"Failed to format history for prompt: {str(e)}", "search.search_and_answer")
+
+        context_block = ""
+        if request.context:
+            context_block = f"\n\nAdditional context from UI: {request.context}"
+
+        full_prompt = formatted_prompt + history_block + context_block
         
-        log_info(f"Sending prompt to LLM (length: {len(formatted_prompt)} chars)", "search.search_and_answer", {"prompt_length": len(formatted_prompt)})
+        log_info(f"Sending prompt to LLM (length: {len(full_prompt)} chars)", "search.search_and_answer", {"prompt_length": len(full_prompt)})
         
         # Generate the answer
-        response = model.generate_content(formatted_prompt)
+        response = model.generate_content(full_prompt)
         
         log_info(f"LLM response received (length: {len(response.text)} chars)", "search.search_and_answer", {"response_length": len(response.text)})
         
