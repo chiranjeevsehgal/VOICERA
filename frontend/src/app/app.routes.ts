@@ -7,7 +7,6 @@ import { authGuard } from './guards/auth.guard';
 import { redirectGuard } from './guards/redirect.guard';
 import { ForgotPasswordPageComponent } from './pages/forgot-password-page/forgot-password-page.component';
 import { AuthCallbackComponent } from './utils/auth-callback/auth-callback.component';
-import { AdminLoginPageComponent } from './pages/admin/login-page/login-page.component';
 import { AdminDashboardComponent } from './pages/admin/dashboard/dashboard.component';
 import { ApplicationLogsComponent } from './components/admin/application-logs/application-logs.component';
 import { LogViewerComponent } from './components/admin/log-viewer/log-viewer.component';
@@ -38,7 +37,6 @@ export const routes: Routes = [
         ],
         children: [
             { path: '', redirectTo: 'login', pathMatch: 'full' },
-            { path: 'login', component: AdminLoginPageComponent },
             { path: 'dashboard', component: AdminDashboardComponent },
             { path: 'application-logs', component: ApplicationLogsComponent },
             { path: 'application-logs/:filename', component: LogViewerComponent },
