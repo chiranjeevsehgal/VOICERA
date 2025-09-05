@@ -8,10 +8,11 @@ import { UserProfile } from '../../../services/auth/profile.service';
 import { CreditManagementComponent } from '../../../components/admin/credit-management/credit-management.component';
 import { AudioManagementComponent } from '../../../components/admin/audio-management/audio-management.component';
 import { UsageLogsComponent } from '../../../components/admin/usage-logs/usage-logs.component';
+import { ApplicationLogsComponent } from '../../../components/admin/application-logs/application-logs.component';
 
 @Component({
   selector: 'app-dashboard',
-  imports: [CommonModule, SidebarComponent, UserManagementComponent, CreditManagementComponent, AudioManagementComponent, UsageLogsComponent],
+  imports: [CommonModule, SidebarComponent, UserManagementComponent, CreditManagementComponent, AudioManagementComponent, UsageLogsComponent, ApplicationLogsComponent],
   templateUrl: './dashboard.component.html',
   styles: ``
 })
@@ -92,6 +93,7 @@ export class AdminDashboardComponent implements OnInit, OnDestroy  {
       'audio-management',
       'credit-management',
       'logs',
+      'application-logs',
     ];
     return validViews.includes(view);
   }
@@ -122,7 +124,8 @@ export class AdminDashboardComponent implements OnInit, OnDestroy  {
       'user-management': 'User Management',
       'credit-management': 'Credits',
       'audio-management': 'Audio Management',
-      'logs': 'Logs',
+      'logs': 'Usage Logs',
+      'application-logs': 'Application Logs',
     };
     return titles[this.currentView] || 'Dashboard';
   }
@@ -134,6 +137,7 @@ export class AdminDashboardComponent implements OnInit, OnDestroy  {
       'credit-management': 'Manage IP credits',
       'audio-management': 'Upload, organize and manage audio content',
       'logs': 'View API usage metrics and endpoint counts',
+      'application-logs': 'View and search application log files',
     };
     return descriptions[this.currentView] || 'Manage your application';
   }

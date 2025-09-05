@@ -1104,23 +1104,52 @@ async def search(
         tech_scorer = TechnicalTermsScorer()
         
         for result in results:
-            # Get Supabase URL if available instead of tmpfiles.org URL
-            file_url = result.get("file_url", "")
-            
-            # Check if this is a tmpfiles.org URL and try to find a Supabase URL
-            if "tmpfiles.org" in file_url:
-                # First check if there's a tmp_url in the result that might be a temporary URL
-                if result.get("tmp_url") and "tmpfiles.org" in result.get("tmp_url"):
-                    # If we have a tmp_url field, it means file_url should be the permanent URL
-                    if "tmpfiles.org" not in file_url:
-                        # Keep the permanent URL, no need to search
-                        pass
+            # Always check for embedded_audio_url from podcasts collection
+            file_name = result.get("file_name", "")
+            if file_name:
+                try:
+                    # Check podcasts collection for embedded_audio_url using multiple search strategies
+                    base_name = file_name.replace('.mp3', '').replace('.wav', '').replace('.m4a', '')
+                    
+                    # Try multiple query patterns to find the podcast
+                    podcast = None
+                    
+                    # First try exact file_name match
+                    podcast = await podcasts_collection.find_one({"file_name": {"$regex": file_name, "$options": "i"}})
+                    
+                    # If not found, try matching against title field
+                    if not podcast:
+                        # Create a flexible pattern from the base filename
+                        title_pattern = base_name.replace('_', '.*').replace('-', '.*')
+                        podcast = await podcasts_collection.find_one({"title": {"$regex": title_pattern, "$options": "i"}})
+                    
+                    # If still not found, try partial matches on raw_audio_url or embedded_audio_url
+                    if not podcast:
+                        podcast = await podcasts_collection.find_one({
+                            "$or": [
+                                {"raw_audio_url": {"$regex": base_name, "$options": "i"}},
+                                {"embedded_audio_url": {"$regex": base_name, "$options": "i"}}
+                            ]
+                        })
+                    
+                    if podcast and "embedded_audio_url" in podcast and podcast["embedded_audio_url"]:
+                        # Store original URL as tmp_url if it's different
+                        original_url = result.get("file_url", "")
+                        if original_url != podcast["embedded_audio_url"]:
+                            result["tmp_url"] = original_url
+                        result["file_url"] = podcast["embedded_audio_url"]
+                        logger.info(f"Updated file_url for {file_name} to embedded_audio_url")
                     else:
-                        # Both URLs are temporary, search for permanent URL
+                        # Fallback to find_permanent_url for tmpfiles.org URLs
+                        file_url = result.get("file_url", "")
+                        if "tmpfiles.org" in file_url:
+                            await find_permanent_url(result)
+                except Exception as e:
+                    logger.error(f"Error updating file_url for {file_name}: {str(e)}")
+                    # Fallback to find_permanent_url for tmpfiles.org URLs
+                    file_url = result.get("file_url", "")
+                    if "tmpfiles.org" in file_url:
                         await find_permanent_url(result)
-                else:
-                    # No tmp_url field, search for permanent URL
-                    await find_permanent_url(result)
             
             # Use existing technical and keyword scores if present; otherwise compute minimal fallback
             technical_score = result.get("technical_score")
@@ -1315,6 +1344,9 @@ class SearchAndAnswerRequest(BaseModel):
     search_query: str 
     result_id: str
     transcript: str
+    # Optional conversational context from the frontend chat UI
+    history: Optional[List[Dict[str, str]]] = None
+    context: Optional[str] = None
 
 @router.post(
     "/search-and-answer",
@@ -1377,16 +1409,39 @@ async def search_and_answer(
             }
         )
         
-        # Format the prompt with the transcript and query
+        # Base prompt with transcript and current query
         formatted_prompt = config.answer_generation_prompt.format(
             transcript=request.transcript,
             query=request.search_query
         )
+
+        # Append conversation history and optional context (if provided)
+        history_block = ""
+        if request.history:
+            try:
+                # Limit to last 10 messages to control prompt size
+                recent = request.history[-10:]
+                history_lines = []
+                for m in recent:
+                    role = (m.get('role') or 'user').strip()
+                    content = (m.get('content') or '').strip()
+                    if content:
+                        history_lines.append(f"{role}: {content}")
+                if history_lines:
+                    history_block = "\n\nConversation history (for coherence, do not add facts not in transcript):\n" + "\n".join(history_lines)
+            except Exception as e:
+                log_warning(f"Failed to format history for prompt: {str(e)}", "search.search_and_answer")
+
+        context_block = ""
+        if request.context:
+            context_block = f"\n\nAdditional context from UI: {request.context}"
+
+        full_prompt = formatted_prompt + history_block + context_block
         
-        log_info(f"Sending prompt to LLM (length: {len(formatted_prompt)} chars)", "search.search_and_answer", {"prompt_length": len(formatted_prompt)})
+        log_info(f"Sending prompt to LLM (length: {len(full_prompt)} chars)", "search.search_and_answer", {"prompt_length": len(full_prompt)})
         
         # Generate the answer
-        response = model.generate_content(formatted_prompt)
+        response = model.generate_content(full_prompt)
         
         log_info(f"LLM response received (length: {len(response.text)} chars)", "search.search_and_answer", {"response_length": len(response.text)})
         
@@ -1432,10 +1487,10 @@ async def find_permanent_url(result: Dict) -> None:
         return
         
     try:
-        # First check podcasts collection
+        # First check podcasts collection for embedded_audio_url
         podcast = await podcasts_collection.find_one({"file_name": {"$regex": file_name}})
-        if podcast and "supabase_url" in podcast and podcast["supabase_url"]:
-            result["file_url"] = podcast["supabase_url"]
+        if podcast and "embedded_audio_url" in podcast and podcast["embedded_audio_url"]:
+            result["file_url"] = podcast["embedded_audio_url"]
             # Store the temporary URL as tmp_url if not already present
             if not result.get("tmp_url"):
                 result["tmp_url"] = file_url
