@@ -178,6 +178,19 @@
 
         <!-- Actions Row -->
         <div class="flex items-center justify-end mt-3 space-x-2">
+          <!-- Playing animation (mobile) - reserved space to avoid layout shift -->
+          <span class="inline-flex items-center" style="width: 24px; height: 24px">
+            <dotlottie-wc
+              src="https://lottie.host/145e2d05-36b6-424f-901e-b51c57906e78/C001cjJaRa.lottie"
+              style="width: 24px; height: 24px"
+              speed="1"
+              autoplay
+              loop
+              aria-hidden="true"
+              [class.invisible]="currentlyPlaying !== podcast.id"
+            ></dotlottie-wc>
+          </span>
+
           <button
             (click)="togglePlayPause(podcast)"
             class="px-3 py-2 bg-indigo-50 cursor-pointer text-indigo-600 rounded-lg hover:bg-indigo-100 transition-colors duration-200 text-sm font-medium flex items-center space-x-1"
@@ -308,7 +321,20 @@
             <td
               class="px-4 xl:px-6 py-4 whitespace-nowrap text-right text-sm font-medium"
             >
-              <div class="flex items-center justify-end space-x-2">
+              <div class="flex items-center justify-end space-x-3">
+                <!-- Playing animation (desktop) - reserved space to avoid layout shift -->
+                <span class="inline-flex items-center" style="width: 48px; height: 48px">
+                  <dotlottie-wc
+                    src="https://lottie.host/145e2d05-36b6-424f-901e-b51c57906e78/C001cjJaRa.lottie"
+                    style="width: 48px; height: 48px"
+                    speed="1"
+                    autoplay
+                    loop
+                    aria-hidden="true"
+                    [class.invisible]="currentlyPlaying !== podcast.id"
+                  ></dotlottie-wc>
+                </span>
+
                 <button
                   (click)="togglePlayPause(podcast)"
                   class="text-indigo-600 cursor-pointer hover:text-indigo-900 p-1.5 lg:p-2 rounded-lg hover:bg-indigo-50 transition-colors duration-200"
