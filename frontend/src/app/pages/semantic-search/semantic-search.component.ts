@@ -72,7 +72,7 @@ class Trainer {
 })
 export class SemanticSearchComponent implements OnInit, OnDestroy, AfterViewInit {
   searchQuery: string = '';
-  limit: number = 10;
+  limit: number = 3;
   limits: number[] = Array.from({ length: 10 }, (_, i) => i + 1);
   minConfidence: number = 0.4;
   minRelevance: number = 0.055;

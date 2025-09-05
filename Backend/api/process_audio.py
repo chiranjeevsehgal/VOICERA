@@ -1,4 +1,14 @@
-from fastapi import APIRouter, UploadFile, File, Form, HTTPException, status, Depends, Request, BackgroundTasks
+from fastapi import (
+    APIRouter,
+    UploadFile,
+    File,
+    Form,
+    HTTPException,
+    status,
+    Depends,
+    Request,
+    BackgroundTasks,
+)
 from fastapi.responses import JSONResponse
 from typing import Optional, Dict, Any, List
 import json
@@ -7,9 +17,7 @@ import asyncio
 
 from services.auth import get_current_user, requires_role
 from services.ip_utils import get_ip_for_request
-from services.job_tracker import (
-    create_job, get_job_status, clean_old_jobs
-)
+from services.job_tracker import create_job, get_job_status, clean_old_jobs
 from api.upload import AUDIO_MIME_TYPES
 
 # Import the background processor entrypoint
@@ -65,7 +73,9 @@ async def process_audio(
     # Extract JWT for internal calls
     auth_header = request.headers.get("Authorization", "")
     jwt_token = (
-        auth_header.replace("Bearer ", "") if auth_header.startswith("Bearer ") else None
+        auth_header.replace("Bearer ", "")
+        if auth_header.startswith("Bearer ")
+        else None
     )
 
     enhanced_user = dict(current_user)
@@ -130,12 +140,12 @@ async def process_audio_bulk(
         if not isinstance(transcription_opts, dict):
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="transcription_options must be a valid JSON object"
+                detail="transcription_options must be a valid JSON object",
             )
     except json.JSONDecodeError as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Invalid JSON in transcription_options: {str(e)}"
+            detail=f"Invalid JSON in transcription_options: {str(e)}",
         )
 
     filename_map: Dict[str, str] = {}
@@ -145,17 +155,19 @@ async def process_audio_bulk(
             if not isinstance(filename_map, dict):
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="custom_filenames must be a valid JSON object"
+                    detail="custom_filenames must be a valid JSON object",
                 )
     except json.JSONDecodeError as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Invalid JSON in custom_filenames: {str(e)}"
+            detail=f"Invalid JSON in custom_filenames: {str(e)}",
         )
 
     auth_header = request.headers.get("Authorization", "")
     jwt_token = (
-        auth_header.replace("Bearer ", "") if auth_header.startswith("Bearer ") else None
+        auth_header.replace("Bearer ", "")
+        if auth_header.startswith("Bearer ")
+        else None
     )
     enhanced_user = dict(current_user)
     if jwt_token:
@@ -171,10 +183,12 @@ async def process_audio_bulk(
         try:
             # Validate file type
             if file.content_type not in AUDIO_MIME_TYPES:
-                failed_files.append({
-                    "file": file.filename,
-                    "error": f"Unsupported file type: {file.content_type}"
-                })
+                failed_files.append(
+                    {
+                        "file": file.filename,
+                        "error": f"Unsupported file type: {file.content_type}",
+                    }
+                )
                 continue
 
             # Read file content and reset pointer for each file
@@ -183,23 +197,27 @@ async def process_audio_bulk(
                 # If file is empty after read, try to seek to beginning and read again
                 await file.seek(0)
                 file_content = await file.read()
-            
+
             # Always reset file pointer after reading
             await file.seek(0)
 
             # Validate file size
             if len(file_content) > MAX_FILE_SIZE_BYTES:
-                failed_files.append({
-                    "file": file.filename,
-                    "error": f"File exceeds {MAX_FILE_SIZE_MB}MB limit"
-                })
+                failed_files.append(
+                    {
+                        "file": file.filename,
+                        "error": f"File exceeds {MAX_FILE_SIZE_MB}MB limit",
+                    }
+                )
                 continue
 
             if len(file_content) == 0:
-                failed_files.append({
-                    "file": file.filename,
-                    "error": "File is empty or could not be read"
-                })
+                failed_files.append(
+                    {
+                        "file": file.filename,
+                        "error": "File is empty or could not be read",
+                    }
+                )
                 continue
 
             # Get custom filename if provided
@@ -237,10 +255,9 @@ async def process_audio_bulk(
             job_items.append({"file": file.filename, "job_id": job_id})
 
         except Exception as e:
-            failed_files.append({
-                "file": file.filename,
-                "error": f"Processing error: {str(e)}"
-            })
+            failed_files.append(
+                {"file": file.filename, "error": f"Processing error: {str(e)}"}
+            )
             continue
 
     # If no files were successfully queued, return error
@@ -249,8 +266,8 @@ async def process_audio_bulk(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail={
                 "message": "No files could be processed",
-                "failed_files": failed_files
-            }
+                "failed_files": failed_files,
+            },
         )
 
     response = {
@@ -262,7 +279,9 @@ async def process_audio_bulk(
     # Include failed files in response if any
     if failed_files:
         response["failed_files"] = failed_files
-        response["message"] = f"Bulk processing started for {len(job_items)} files. {len(failed_files)} files failed validation."
+        response["message"] = (
+            f"Bulk processing started for {len(job_items)} files. {len(failed_files)} files failed validation."
+        )
 
     return response
 
