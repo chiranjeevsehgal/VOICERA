@@ -15,24 +15,27 @@
                     <div class="grid gap-2">
                         <label for="full_name" class="text-sm font-medium">Full Name</label>
                         <input id="full_name" type="text" formControlName="full_name" placeholder="John Doe" required
-                            class="flex h-10 w-full rounded-md border border-gray-200 bg-white px-3 py-2 text-sm file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-gray-500 disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-gray-950" />
+                            autocomplete="name"
+                            class="flex h-10 w-full rounded-md border border-gray-200 bg-white px-3 py-2 text-sm file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-gray-500 disabled:cursor-not-allowed disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500" />
                     </div>
 
                     <div class="grid gap-2">
                         <label for="email" class="text-sm font-medium">Email</label>
                         <input id="email" type="email" formControlName="email" placeholder="m@example.com" required
-                            class="flex h-10 w-full rounded-md border border-gray-200 bg-white px-3 py-2 text-sm file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-gray-500 disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-gray-950" />
+                            autocomplete="email"
+                            class="flex h-10 w-full rounded-md border border-gray-200 bg-white px-3 py-2 text-sm file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-gray-500 disabled:cursor-not-allowed disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500" />
                     </div>
 
                     <div class="grid gap-2">
                         <label for="password" class="text-sm font-medium">Password</label>
                         <input id="password" type="password" formControlName="password"
                             placeholder="Create a secure password" required
-                            class="flex h-10 w-full rounded-md border border-gray-200 bg-white px-3 py-2 text-sm file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-gray-500 disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-gray-950" />
+                            autocomplete="new-password" aria-describedby="password-help"
+                            class="flex h-10 w-full rounded-md border border-gray-200 bg-white px-3 py-2 text-sm file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-gray-500 disabled:cursor-not-allowed disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500" />
                         @if (registerForm.get('password')?.hasError('weakPassword') &&
                         registerForm.get('password')?.touched)
                         {
-                        <div class="text-red-400 text-xs">
+                        <div id="password-help" class="text-red-600 text-xs" role="alert">
                             Password must be at least 8 characters long and include uppercase, lowercase, number, and
                             special
                             character.
@@ -41,7 +44,7 @@
                     </div>
 
                     <button type="submit" [disabled]="!registerForm.valid"
-                        class="cursor-pointer inline-flex items-center justify-center whitespace-nowrap rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-gray-50 shadow transition-colors hover:bg-gray-900/90 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-gray-950 disabled:pointer-events-none disabled:opacity-50 w-full">
+                        class="cursor-pointer inline-flex items-center justify-center whitespace-nowrap rounded-md bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 text-sm font-medium shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:pointer-events-none disabled:opacity-50 w-full">
                         @if (isLoading) {
                         <p-progress-spinner strokeWidth="2" fill="transparent" animationDuration=".5s"
                             [style]="{ width: '20px', height: '20px' }" />
@@ -56,7 +59,7 @@
                     </div>
 
                     <button type="button"
-                        class="cursor-pointer inline-flex items-center justify-center whitespace-nowrap rounded-md border border-gray-200 bg-white px-4 py-2 text-sm font-medium shadow-sm transition-colors hover:bg-gray-100 hover:text-gray-900 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-gray-950 disabled:pointer-events-none disabled:opacity-50 w-full">
+                        class="cursor-pointer inline-flex items-center justify-center whitespace-nowrap rounded-md border border-gray-200 bg-white px-4 py-2 text-sm font-medium shadow-sm transition-colors hover:bg-gray-100 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:pointer-events-none disabled:opacity-50 w-full">
                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="h-5 w-5">
                             <path
                                 d="M12.48 10.92v3.28h7.84c-.24 1.84-.853 3.187-1.787 4.133-1.147 1.147-2.933 2.4-6.053 2.4-4.827 0-8.6-3.893-8.6-8.72s3.773-8.72 8.6-8.72c2.6 0 4.507 1.027 5.907 2.347l2.307-2.307C18.747 1.44 16.133 0 12.48 0 5.867 0 .307 5.387.307 12s5.56 12 12.173 12c3.573 0 6.267-1.173 8.373-3.36 2.16-2.16 2.84-5.213 2.84-7.667 0-.76-.053-1.467-.173-2.053H12.48z"
@@ -64,8 +67,6 @@
                         </svg>
                         <span class="sr-only">Sign up with Google</span>
                     </button>
-
-
 
                     <div class="text-center text-sm">
                         Already have an account?

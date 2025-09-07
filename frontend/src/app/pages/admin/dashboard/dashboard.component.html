@@ -3,6 +3,8 @@
 >
   <!-- Sidebar Component -->
   <app-sidebar
+    id="admin-sidebar"
+    aria-label="Admin sidebar navigation"
     [isOpen]="isSidebarOpen"
     [isMobile]="isMobile"
     [currentView]="currentView"
@@ -20,7 +22,7 @@
   >
     <!-- Top Header with Hamburger Menu -->
     <header
-      class="bg-white shadow-sm border-b border-gray-100 sticky top-0 z-30 items-center"
+      class="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-30 items-center"
     >
       <div
         class="flex items-center justify-between px-4 sm:px-6 lg:px-8 h-16 sm:h-20"
@@ -29,26 +31,30 @@
         <div class="flex items-center space-x-4">
           <!-- Hamburger Menu (Mobile + Desktop Toggle) -->
           <button
+            type="button"
             (click)="toggleSidebar()"
-            class="lg:hidden w-10 h-10 cursor-pointer rounded-xl bg-gray-100 hover:bg-gradient-to-r hover:from-indigo-50 hover:to-purple-50 flex items-center justify-center transition-all duration-200 hover:shadow-md border border-gray-200 hover:border-indigo-200 group"
+            class="lg:hidden w-10 h-10 cursor-pointer rounded-xl bg-white flex items-center justify-center transition-colors border border-gray-200 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-sm hover:shadow-md"
+            [attr.aria-expanded]="isSidebarOpen"
+            [attr.aria-controls]="'admin-sidebar'"
+            aria-label="Toggle sidebar"
           >
             <div class="space-y-1.5">
               <div
-                class="w-5 h-0.5 bg-gray-600 group-hover:bg-indigo-600 transition-all duration-200 transform origin-center"
+                class="w-5 h-0.5 bg-gray-700 transition-all duration-200 transform origin-center"
                 [ngClass]="{
                   'rotate-45 translate-y-2': isSidebarOpen && isMobile,
                   'rotate-0': !isSidebarOpen || !isMobile
                 }"
               ></div>
               <div
-                class="w-5 h-0.5 bg-gray-600 group-hover:bg-indigo-600 transition-all duration-200"
+                class="w-5 h-0.5 bg-gray-700 transition-all duration-200"
                 [ngClass]="{
                   'opacity-0': isSidebarOpen && isMobile,
                   'opacity-100': !isSidebarOpen || !isMobile
                 }"
               ></div>
               <div
-                class="w-5 h-0.5 bg-gray-600 group-hover:bg-indigo-600 transition-all duration-200 transform origin-center"
+                class="w-5 h-0.5 bg-gray-700 transition-all duration-200 transform origin-center"
                 [ngClass]="{
                   '-rotate-45 -translate-y-2': isSidebarOpen && isMobile,
                   'rotate-0': !isSidebarOpen || !isMobile
@@ -111,12 +117,12 @@
     </header>
 
     <!-- Replace the placeholder content section with this -->
-    <main class="flex-1 overflow-auto">
+    <main class="flex-1 overflow-auto" role="main">
       <!-- Content Area -->
       <div class="px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
         <!-- Dynamic Content Based on Selected View -->
         <div
-          class="bg-white rounded-2xl sm:rounded-3xl shadow-sm border border-gray-100 p-6 sm:p-8"
+          class="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 sm:p-8"
         >
           <!-- Dashboard Overview -->
           <!-- <app-dashboard-overview *ngIf="currentView === 'dashboard'"></app-dashboard-overview> -->

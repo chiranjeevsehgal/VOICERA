@@ -7,6 +7,7 @@ import {
   ElementRef,
 } from '@angular/core';
 import { Router } from '@angular/router';
+import { RouterModule } from '@angular/router';
 import {
   ProfileService,
   UserProfile,
@@ -17,7 +18,7 @@ import { FormsModule } from '@angular/forms';
 
 @Component({
   selector: 'app-header',
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, RouterModule],
   templateUrl: './header.component.html',
   styles: ``,
 })

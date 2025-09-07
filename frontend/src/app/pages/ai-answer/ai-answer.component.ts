@@ -96,6 +96,12 @@ export class AiAnswerComponent implements OnInit {
     this.pushUserAndSend(prompt);
   }
 
+  onEnterKey(event: Event): void {
+    // Submit on Enter from textarea and prevent inserting a newline
+    this.send();
+    event.preventDefault();
+  }
+
   private pushUserAndSend(prompt: string): void {
     this.messages.push({ role: 'user', content: prompt });
     this.scrollToBottom();

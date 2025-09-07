@@ -1,9 +1,25 @@
-<section class="mb-10 flex px-6 justify-center">
-    <div class="flex flex-wrap gap-2">
+<section class="px-6 mb-10 flex justify-center" role="region" aria-labelledby="trending-title">
+  <h2 id="trending-title" class="sr-only">Trending searches</h2>
+
+  @if (trendingItems.length > 0) {
+    <nav aria-label="Trending searches">
+      <ul class="flex flex-wrap gap-2">
         @for (item of trendingItems; track $index) {
-        <button class="px-3 py-1.5 bg-gray-100 rounded-full text-sm hover:bg-gray-200 transition-colors text-black hover:cursor-pointer">
-            {{ item }}
-        </button>
+          <li>
+            <button
+              type="button"
+              class="px-3 py-1.5 bg-gray-100 rounded-full text-sm text-gray-900 hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer"
+              [attr.aria-label]="'Search for ' + item"
+            >
+              {{ item }}
+            </button>
+          </li>
         }
+      </ul>
+    </nav>
+  } @else {
+    <div class="flex items-center justify-center rounded-md border border-gray-200 bg-white py-4 px-4 text-sm text-gray-500">
+      No trending searches right now.
     </div>
+  }
 </section>
