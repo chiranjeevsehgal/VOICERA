@@ -9,71 +9,32 @@
 
   <!-- Hero Section with Abstract Designs -->
   <section
-    class="bg-gradient-to-br from-indigo-600 via-purple-600 to-blue-700 text-white pt-8 pb-12 px-4 sm:pt-12 sm:pb-16 md:pt-16 md:pb-24 sm:px-6 relative overflow-hidden"
+    class="bg-gradient-to-b from-indigo-700 via-indigo-800 to-indigo-900 text-white pt-12 sm:pt-16 md:pt-20 pb-12 sm:pb-16 md:pb-20 px-4 sm:px-6 relative overflow-hidden"
   >
-    <!-- Dynamic Background Elements -->
-    <div class="absolute inset-0 opacity-10">
-      <!-- Animated Gradient Orbs -->
-      <div
-        class="absolute top-5 left-5 w-32 h-32 sm:top-10 sm:left-10 sm:w-48 sm:h-48 md:w-64 md:h-64 rounded-full bg-gradient-to-r from-pink-400 to-yellow-400 blur-2xl sm:blur-3xl animate-pulse"
-      ></div>
-      <div
-        class="absolute bottom-10 right-10 w-48 h-48 sm:bottom-15 sm:right-15 sm:w-64 sm:h-64 md:bottom-20 md:right-20 md:w-80 md:h-80 rounded-full bg-gradient-to-r from-cyan-400 to-blue-400 blur-2xl sm:blur-3xl animate-pulse"
-        style="animation-delay: 1s"
-      ></div>
-      <div
-        class="absolute top-1/4 left-1/3 w-24 h-24 sm:top-1/3 sm:left-1/2 sm:w-36 sm:h-36 md:w-48 md:h-48 rounded-full bg-gradient-to-r from-green-400 to-blue-400 blur-2xl sm:blur-3xl animate-pulse"
-        style="animation-delay: 2s"
-      ></div>
-    </div>
+    <!-- Animated background gradient -->
+    <div class="absolute inset-0 bg-gradient-to-br from-indigo-600/20 via-purple-600/20 to-indigo-800/20 animate-pulse" style="animation-duration: 6s;"></div>
+    
+    <!-- Floating elements -->
+    <div class="absolute top-1/4 left-1/4 w-32 h-32 bg-white/5 rounded-full animate-bounce" style="animation-delay: 0.5s; animation-duration: 3s;"></div>
+    <div class="absolute top-1/3 right-1/4 w-24 h-24 bg-indigo-300/10 rounded-full animate-pulse" style="animation-delay: 1s; animation-duration: 5s;"></div>
+    <div class="absolute bottom-1/4 left-1/3 w-16 h-16 bg-purple-300/10 rounded-full animate-bounce" style="animation-delay: 2s; animation-duration: 4s;"></div>
+    <div class="absolute top-1/2 right-1/3 w-20 h-20 bg-white/5 rounded-full animate-pulse" style="animation-delay: 1.5s; animation-duration: 6s;"></div>
+    <div class="absolute top-1/6 right-1/6 w-12 h-12 bg-indigo-400/5 rounded-full animate-bounce" style="animation-delay: 3s; animation-duration: 4.5s;"></div>
+    <div class="absolute bottom-1/3 right-1/6 w-18 h-18 bg-purple-400/5 rounded-full animate-pulse" style="animation-delay: 2.5s; animation-duration: 5.5s;"></div>
 
-    <!-- Floating Audio Waves -->
-    <div
-      class="absolute bottom-0 left-0 w-full flex justify-center items-end h-16 sm:h-24 md:h-32 opacity-20"
-    >
-      <div class="flex items-end space-x-0.5 sm:space-x-1">
-        <ng-container
-          *ngFor="
-            let h of [
-              2, 4, 6, 3, 7, 5, 8, 6, 3, 1, 5, 7, 4, 2, 6, 8, 3, 1, 4, 2
-            ];
-            let i = index
-          "
-        >
-          <div
-            class="w-1 sm:w-1.5 rounded-full bg-white animate-bounce"
-            [ngStyle]="{ height: h + 'rem', 'animation-delay': i * 0.1 + 's' }"
-          ></div>
-        </ng-container>
-      </div>
-    </div>
-
-    <!-- Geometric Shapes -->
-    <div
-      class="absolute top-10 right-10 w-3 h-3 sm:top-15 sm:right-15 sm:w-4 sm:h-4 md:top-20 md:right-20 bg-white opacity-20 rotate-45"
-    ></div>
-    <div
-      class="absolute top-20 right-20 w-4 h-4 sm:top-30 sm:right-30 sm:w-5 sm:h-5 md:top-40 md:right-40 md:w-6 md:h-6 border-2 border-white opacity-20 rounded-full"
-    ></div>
-    <div
-      class="absolute bottom-20 left-10 w-5 h-5 sm:bottom-30 sm:left-15 sm:w-6 sm:h-6 md:bottom-40 md:left-20 md:w-8 md:h-8 bg-white opacity-10 transform rotate-12"
-    ></div>
+    <!-- Minimal hero: ornaments removed for clean, focused look -->
 
     <!-- Content -->
     <div class="container mx-auto text-center max-w-4xl relative z-10 px-4">
       <div class="animate-fade-in-up">
         <h1
-          class="text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-black mb-4 sm:mb-6 md:mb-8 bg-gradient-to-r from-white to-blue-100 bg-clip-text text-transparent leading-tight"
+          class="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold tracking-tight mb-3 sm:mb-4 md:mb-6 leading-tight text-white drop-shadow-lg"
+          style="animation-delay: 0.2s; text-shadow: 0 0 20px rgba(255,255,255,0.3);"
         >
           AI-Powered<br />
-          <span
-            class="text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl text-yellow-300"
-            >Semantic Search</span
-          >
+          <span class="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-semibold text-indigo-100 animate-fade-in-up drop-shadow-md" style="animation-delay: 0.6s; text-shadow: 0 0 15px rgba(255,255,255,0.2);">Semantic Search</span>
         </h1>
-        <p
-          class="text-base sm:text-lg md:text-xl lg:text-2xl mb-12 sm:mb-16 md:mb-20 lg:mb-24 text-blue-100 max-w-2xl mx-auto font-light px-4"
-        >
+        <p class="text-base sm:text-lg md:text-xl mb-8 sm:mb-10 md:mb-12 text-indigo-100 max-w-2xl mx-auto font-light animate-fade-in-up drop-shadow-sm" style="animation-delay: 1s; text-shadow: 0 0 10px rgba(255,255,255,0.1);">
           Natural language search that understands meaning, not just keywords
         </p>
       </div>
@@ -81,29 +42,35 @@
   </section>
 
   <main
-    class="container mx-auto px-4 py-8 sm:py-10 md:py-12 max-w-5xl relative -mt-8 sm:-mt-10 md:-mt-12 z-20"
+    class="container mx-auto px-4 py-8 sm:py-10 md:py-12 max-w-9xl relative -mt-8 sm:-mt-10 md:-mt-12 z-20"
   >
     <!-- Search Card -->
     <div
-      class="bg-white rounded-2xl sm:rounded-3xl shadow-xl sm:shadow-2xl p-4 sm:p-6 md:p-8 mb-8 sm:mb-10 md:mb-12 border border-gray-100"
+      class="bg-white rounded-2xl shadow-sm p-5 sm:p-6 md:p-8 mb-8 sm:mb-10 md:mb-12 border border-gray-200"
+      role="search" aria-label="Semantic search" [attr.aria-busy]="loading ? 'true' : null"
     >
       <div class="max-w-full space-y-3 sm:space-y-4">
         <!-- Row 1: Input + Search button -->
         <div class="flex flex-col gap-3 items-stretch">
           <div class="flex-1 relative">
+            <label for="semantic-search-input" class="sr-only">Search query</label>
             <input
-              type="text"
+              type="search"
               placeholder="Use natural language to find relevant audio content based on meaning, not just keywords..."
               [(ngModel)]="searchQuery"
               (keyup.enter)="onSearchSubmit()"
               (input)="onSearchInput()"
-              class="w-full px-4 py-3 sm:px-5 sm:py-3.5 md:px-6 md:py-4 pr-10 sm:pr-12 border-2 border-gray-200 rounded-xl sm:rounded-2xl text-sm sm:text-base md:text-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-gray-900 bg-gray-50 hover:bg-white transition-all duration-300"
+              (keydown.escape)="onSearchClear()"
+              id="semantic-search-input"
+              aria-label="Search query"
+              class="w-full px-4 py-3 sm:px-5 sm:py-3.5 md:px-6 md:py-4 pr-12 border border-gray-200 rounded-xl text-sm sm:text-base md:text-lg text-gray-900 placeholder:opacity-50 bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors"
             />
             <!-- Clear button -->
             <!-- <button
               *ngIf="searchQuery && !loading"
               (click)="onSearchClear()"
-              class="absolute right-3 sm:right-4 top-1/2 cursor-pointer -translate-y-1/2 text-gray-400 hover:text-indigo-600 transition-colors duration-300"
+              type="button"
+              class="absolute right-3 sm:right-4 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 rounded-full p-1 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-white transition"
               aria-label="Clear search"
             >
               <svg
@@ -134,7 +101,7 @@
           <button
             (click)="onSearchSubmit()"
             [disabled]="!searchQuery.trim() || loading"
-            class="w-full px-6 py-3 sm:px-7 sm:py-3.5 md:px-8 md:py-4 bg-gradient-to-r from-indigo-600 cursor-pointer to-purple-600 text-white rounded-xl sm:rounded-2xl font-semibold hover:from-indigo-700 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 shadow-lg hover:shadow-xl hover:-translate-y-1 text-sm sm:text-base"
+            class="w-full px-6 py-3 sm:px-7 sm:py-3.5 md:px-8 md:py-4 bg-indigo-600 cursor-pointer text-white rounded-xl font-semibold hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors shadow-sm hover:shadow-md text-sm sm:text-base"
           >
             <span *ngIf="!loading">Search</span>
             <span *ngIf="loading">Searching...</span>
@@ -163,7 +130,7 @@
                   id="resultLimit"
                   [(ngModel)]="limit"
                   [disabled]="loading"
-                  class="w-full sm:w-24 md:w-28 px-2 py-1.5 sm:px-3 sm:py-2 border-2 border-gray-200 rounded-lg sm:rounded-xl text-xs sm:text-sm bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 disabled:opacity-50"
+                  class="w-full sm:w-24 md:w-28 px-2 py-1.5 sm:px-3 sm:py-2 border border-gray-200 rounded-xl text-xs sm:text-sm bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 disabled:opacity-50"
                   aria-label="Results limit"
                 >
                   <option *ngFor="let n of limits" [ngValue]="n">
@@ -174,9 +141,7 @@
 
               <!-- Min Confidence control -->
               <div class="flex flex-col">
-                <label for="minConfidence" class="text-xs text-gray-600 mb-1"
-                  >Min Confidence</label
-                >
+                <label for="minConfidence" class="text-xs text-gray-600 mb-1">Confidence Threshold</label>
                 <input
                   type="range"
                   id="minConfidence"
@@ -185,18 +150,14 @@
                   min="0"
                   max="0.95"
                   step="0.01"
-                  class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider"
+                  class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
                 />
-                <span class="text-xs text-gray-500 mt-1">{{
-                  minConfidence
-                }}</span>
+                <span class="text-xs text-gray-500 mt-1">{{ minConfidence }}</span>
               </div>
 
               <!-- Min Relevance control -->
               <div class="flex flex-col">
-                <label for="minRelevance" class="text-xs text-gray-600 mb-1"
-                  >Min Relevance</label
-                >
+                <label for="minRelevance" class="text-xs text-gray-600 mb-1">Relevance Threshold</label>
                 <input
                   type="range"
                   id="minRelevance"
@@ -205,7 +166,7 @@
                   min="0"
                   max="0.95"
                   step="0.01"
-                  class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider"
+                  class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
                 />
                 <span class="text-xs text-gray-500 mt-1">{{
                   minRelevance
@@ -223,7 +184,7 @@
       <div class="flex flex-col gap-4">
         <div>
           <h2
-            class="text-2xl sm:text-3xl font-bold text-gray-900 mb-2 text-center sm:text-left"
+            class="text-2xl md:text-3xl font-semibold tracking-tight text-gray-900 mb-2 text-center sm:text-left"
           >
             {{
               loading
@@ -236,11 +197,11 @@
             }}
           </h2>
           <p
-            class="text-gray-600 text-center sm:text-left"
+            class="text-sm md:text-base text-gray-500 text-center sm:text-left"
             *ngIf="!loading && hasSearched && searchResults.length > 0"
           >
             <!-- unique files length -->
-            {{ uniqueFilesCount }} unique files found
+            {{ uniqueFilesCount }} files found
           </p>
           <div
             *ngIf="loading"
@@ -252,17 +213,19 @@
       <!-- Loading state with Perceptron Animation -->
       <div
         *ngIf="loading"
-        class="text-center py-12 sm:py-16 md:py-20 bg-white rounded-2xl sm:rounded-3xl shadow-lg border border-gray-100"
+        class="text-center py-12 sm:py-16 md:py-20 bg-white rounded-2xl shadow-sm border border-gray-200"
+        role="status" aria-live="polite" aria-busy="true"
       >
-        <!-- Perceptron Neural Network Animation -->
+        <!-- Spinner Orbits Animation -->
         <div class="mb-6 sm:mb-8 flex justify-center">
-          <canvas
-            #perceptronCanvas
-            class="rounded-xl border border-gray-200 shadow-inner bg-slate-50"
-            width="700"
-            height="600"
-            style="max-width: 100%; height: 100%"
-          ></canvas>
+          <div class="spinner-box">
+            <div class="blue-orbit leo"></div>
+            <div class="green-orbit leo"></div>
+            <div class="red-orbit leo"></div>
+            <div class="white-orbit w1 leo"></div>
+            <div class="white-orbit w2 leo"></div>
+            <div class="white-orbit w3 leo"></div>
+          </div>
         </div>
         <div class="max-w-md mx-auto px-4">
           <div
@@ -276,7 +239,7 @@
         *ngIf="
           hasSearched && !loading && searchQuery && searchResults.length === 0
         "
-        class="text-center py-12 sm:py-16 md:py-20 bg-white rounded-2xl sm:rounded-3xl shadow-lg border border-gray-100"
+        class="text-center py-12 sm:py-16 md:py-20 bg-white rounded-2xl shadow-sm border border-gray-200"
       >
         <div class="max-w-md mx-auto px-4">
           <div
@@ -297,17 +260,17 @@
             </svg>
           </div>
           <h3
-            class="text-xl sm:text-2xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent mb-3 sm:mb-4"
+            class="text-xl md:text-2xl font-semibold text-gray-900 mb-3 sm:mb-4"
           >
             No Results Found
           </h3>
-          <p class="text-gray-600 mb-2 text-sm sm:text-base">
+          <p class="text-sm md:text-base text-gray-500 mb-2">
             No audio content found for "<span
               class="font-semibold text-indigo-600"
               >{{ searchQuery }}</span
             >"
           </p>
-          <p class="text-gray-500 text-xs sm:text-sm mb-4 sm:mb-6">
+          <p class="text-xs sm:text-sm text-gray-500 mb-4 sm:mb-6">
             Try rephrasing your query or using different terms
           </p>
         </div>
@@ -320,81 +283,77 @@
       >
         <div
           *ngFor="let group of groupedResults"
-          class="bg-white rounded-2xl sm:rounded-3xl shadow-lg p-4 sm:p-5 md:p-6 hover:shadow-xl transition-all duration-300 cursor-pointer border border-gray-100 hover:-translate-y-1"
+          class="bg-white rounded-xl border border-gray-200 p-4 sm:p-5 transition-colors cursor-pointer hover:bg-gray-50 hover:border-gray-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-1"
           (click)="onGroupCardClick(group)"
+          tabindex="0"
+          role="button"
+          [attr.aria-label]="'Open results for ' + group.title"
+          (keydown.enter)="onGroupCardClick(group)"
+          (keydown.space)="onGroupCardClick(group); $event.preventDefault()"
         >
-          <div
-            class="flex flex-col sm:flex-row items-start space-y-4 sm:space-y-0 sm:space-x-4 md:space-x-6"
-          >
-            <!-- Image with audio wave decoration -->
-            <div class="relative flex-shrink-0 mx-auto sm:mx-0">
+          <div class="flex items-start gap-4">
+            <!-- Image -->
+            <!-- <div class="relative flex-shrink-0 mx-auto sm:mx-0">
               <img
                 [src]="group.imageUrl"
                 [alt]="group.title"
-                class="w-16 h-16 sm:w-18 sm:h-18 md:w-20 md:h-20 rounded-xl sm:rounded-2xl object-cover"
+                class="w-16 h-16 md:w-20 md:h-20 rounded-lg object-cover"
               />
-              <div
-                class="absolute -bottom-1 -right-1 w-5 h-5 sm:w-6 sm:h-6 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full flex items-center justify-center"
-              >
-                <svg
-                  class="w-2.5 h-2.5 sm:w-3 sm:h-3 text-white"
-                  fill="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path d="M8 5v14l11-7z" />
-                </svg>
-              </div>
-            </div>
+            </div> -->
 
-            <div class="flex-1 min-w-0 text-center sm:text-left">
-              <h3
-                class="font-bold text-lg sm:text-xl text-gray-900 mb-1 sm:mb-2 pl-4"
-              >
-                {{ group.title }}
-              </h3>
-              <p
-                class="text-indigo-600 font-medium mb-3 sm:mb-4 text-sm pl-4 sm:text-base"
-              >
-                {{ group.creator }}
-              </p>
+            <!-- Content -->
+            <div class="flex-1 min-w-0">
+              <div class="flex items-start gap-2">
+                <div class="flex-1 min-w-0">
+                  <h3 class="text-base md:text-lg font-semibold text-gray-900 truncate">
+                    {{ group.title }}
+                  </h3>
+                  <p class="text-sm text-gray-500">{{ group.creator }}</p>
+                </div>
 
-              <!-- Relevant excerpt -->
-              <div
-                class="bg-gradient-to-r from-indigo-50 to-purple-50 border border-indigo-200 rounded-xl sm:rounded-2xl p-3 sm:p-4 mb-3 sm:mb-4"
-              >
-                <div
-                  class="flex flex-col sm:flex-row sm:items-start space-y-2 sm:space-y-0 sm:space-x-2"
+                <!-- AI Answer button -->
+                <button
+                  (click)="$event.stopPropagation(); goToAiAnswer(group, $event)"
+                  class="inline-flex items-center justify-center rounded-lg border border-gray-200 px-3 py-2 text-gray-700 hover:bg-gray-100 hover:text-gray-900 focus:outline-none cursor-pointer"
+                  title="AI Answer"
+                  aria-label="AI Answer"
                 >
                   <svg
-                    class="w-4 h-4 sm:w-5 sm:h-5 text-indigo-500 mt-0.5 flex-shrink-0 mx-auto sm:mx-0"
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="20"
+                    height="20"
+                    viewBox="0 0 24 24"
                     fill="none"
                     stroke="currentColor"
-                    viewBox="0 0 24 24"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    class="lucide lucide-brain"
                   >
-                    <path
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      stroke-width="2"
-                      d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
-                    ></path>
+                    <path d="M12 18V5" />
+                    <path d="M15 13a4.17 4.17 0 0 1-3-4 4.17 4.17 0 0 1-3 4" />
+                    <path d="M17.598 6.5A3 3 0 1 0 12 5a3 3 0 1 0-5.598 1.5" />
+                    <path d="M17.997 5.125a4 4 0 0 1 2.526 5.77" />
+                    <path d="M18 18a4 4 0 0 0 2-7.464" />
+                    <path d="M19.967 17.483A4 4 0 1 1 12 18a4 4 0 1 1-7.967-.517" />
+                    <path d="M6 18a4 4 0 0 1-2-7.464" />
+                    <path d="M6.003 5.125a4 4 0 0 0-2.526 5.77" />
                   </svg>
-                  <p
-                    class="text-gray-700 italic leading-relaxed text-sm sm:text-base text-center sm:text-left"
-                  >
-                    "{{ group.segments[0].text }}"
-                  </p>
-                </div>
+                  <span class="ml-1.5 text-sm">AI Chat</span>
+                </button>
               </div>
 
-              <!-- Metadata -->
-              <div
-                class="flex flex-wrap items-center justify-center sm:justify-start gap-2 sm:gap-3 md:gap-4 text-xs sm:text-sm"
-              >
-                <div
-                  class="flex items-center space-x-1 bg-gray-100 rounded-full px-2 py-1 sm:px-3"
-                >
+              <!-- Relevant excerpt -->
+              <p class="text-sm text-gray-600 italic mt-2">
+                "{{ group.segments[0].text }}"
+              </p>
+
+              <!-- Condensed metadata -->
+              <div class="mt-3 flex flex-wrap items-center gap-2 text-xs sm:text-sm">
+                <!-- Time chip -->
+                <span class="inline-flex items-center gap-1 rounded-full bg-gray-100 text-gray-700 px-2 py-0.5">
                   <svg
-                    class="w-3 h-3 sm:w-4 sm:h-4 text-gray-500"
+                    class="w-3.5 h-3.5 text-gray-500"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -406,146 +365,59 @@
                       d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
                     ></path>
                   </svg>
-                  <span class="text-gray-600 whitespace-nowrap"
-                    >{{ formatTime(group.segments[0].start_time) }} -
-                    {{ formatTime(group.segments[0].end_time) }}</span
-                  >
-                </div>
-                <div
-                  class="flex items-center space-x-1 rounded-full px-2 py-1 sm:px-3"
+                  <span>{{ formatTime(group.segments[0].start_time) }} - {{ formatTime(group.segments[0].end_time) }}</span>
+                </span>
+
+                <!-- Confidence chip -->
+                <span
+                  class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 ring-1"
                   [ngClass]="{
-                    'bg-red-100': group.segments[0].confidence < 0.4,
-                    'bg-orange-100':
-                      group.segments[0].confidence >= 0.4 &&
-                      group.segments[0].confidence < 0.6,
-                    'bg-yellow-100':
-                      group.segments[0].confidence >= 0.6 &&
-                      group.segments[0].confidence < 0.8,
-                    'bg-green-100': group.segments[0].confidence >= 0.8
+                    'bg-red-50 text-red-700 ring-red-100': group.segments[0].confidence < 0.4,
+                    'bg-orange-50 text-orange-700 ring-orange-100': group.segments[0].confidence >= 0.4 && group.segments[0].confidence < 0.6,
+                    'bg-yellow-50 text-yellow-700 ring-yellow-100': group.segments[0].confidence >= 0.6 && group.segments[0].confidence < 0.8,
+                    'bg-green-50 text-green-700 ring-green-100': group.segments[0].confidence >= 0.8
                   }"
                 >
-                  <div
-                    class="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full"
+                  <span
+                    class="w-1.5 h-1.5 rounded-full"
                     [ngClass]="{
                       'bg-red-500': group.segments[0].confidence < 0.4,
-                      'bg-orange-500':
-                        group.segments[0].confidence >= 0.4 &&
-                        group.segments[0].confidence < 0.6,
-                      'bg-yellow-500':
-                        group.segments[0].confidence >= 0.6 &&
-                        group.segments[0].confidence < 0.8,
+                      'bg-orange-500': group.segments[0].confidence >= 0.4 && group.segments[0].confidence < 0.6,
+                      'bg-yellow-500': group.segments[0].confidence >= 0.6 && group.segments[0].confidence < 0.8,
                       'bg-green-500': group.segments[0].confidence >= 0.8
                     }"
-                  ></div>
-                  <span
-                    class="font-medium whitespace-nowrap"
-                    [ngClass]="{
-                      'text-red-700': group.segments[0].confidence < 0.4,
-                      'text-orange-700':
-                        group.segments[0].confidence >= 0.4 &&
-                        group.segments[0].confidence < 0.6,
-                      'text-yellow-700':
-                        group.segments[0].confidence >= 0.6 &&
-                        group.segments[0].confidence < 0.8,
-                      'text-green-700': group.segments[0].confidence >= 0.8
-                    }"
-                    >{{
-                      group.segments[0].confidence * 100 | number : "1.0-0"
-                    }}% Confidence</span
-                  >
-                </div>
-                <div
-                  class="flex items-center space-x-1 rounded-full px-2 py-1 sm:px-3"
+                  ></span>
+                  <span>{{ group.segments[0].confidence * 100 | number : '1.0-0' }}% conf</span>
+                </span>
+
+                <!-- Relevance chip -->
+                <span
+                  class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 ring-1"
                   [ngClass]="{
-                    'bg-red-100': group.segments[0].semantic_score < 0.4,
-                    'bg-orange-100':
-                      group.segments[0].semantic_score >= 0.4 &&
-                      group.segments[0].semantic_score < 0.6,
-                    'bg-yellow-100':
-                      group.segments[0].semantic_score >= 0.6 &&
-                      group.segments[0].semantic_score < 0.8,
-                    'bg-green-100': group.segments[0].semantic_score >= 0.8
+                    'bg-red-50 text-red-700 ring-red-100': group.segments[0].semantic_score < 0.4,
+                    'bg-orange-50 text-orange-700 ring-orange-100': group.segments[0].semantic_score >= 0.4 && group.segments[0].semantic_score < 0.6,
+                    'bg-yellow-50 text-yellow-700 ring-yellow-100': group.segments[0].semantic_score >= 0.6 && group.segments[0].semantic_score < 0.8,
+                    'bg-green-50 text-green-700 ring-green-100': group.segments[0].semantic_score >= 0.8
                   }"
                 >
-                  <div
-                    class="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full"
+                  <span
+                    class="w-1.5 h-1.5 rounded-full"
                     [ngClass]="{
                       'bg-red-500': group.segments[0].semantic_score < 0.4,
-                      'bg-orange-500':
-                        group.segments[0].semantic_score >= 0.4 &&
-                        group.segments[0].semantic_score < 0.6,
-                      'bg-yellow-500':
-                        group.segments[0].semantic_score >= 0.6 &&
-                        group.segments[0].semantic_score < 0.8,
+                      'bg-orange-500': group.segments[0].semantic_score >= 0.4 && group.segments[0].semantic_score < 0.6,
+                      'bg-yellow-500': group.segments[0].semantic_score >= 0.6 && group.segments[0].semantic_score < 0.8,
                       'bg-green-500': group.segments[0].semantic_score >= 0.8
                     }"
-                  ></div>
-                  <span
-                    class="font-medium whitespace-nowrap"
-                    [ngClass]="{
-                      'text-red-700': group.segments[0].semantic_score < 0.4,
-                      'text-orange-700':
-                        group.segments[0].semantic_score >= 0.4 &&
-                        group.segments[0].semantic_score < 0.6,
-                      'text-yellow-700':
-                        group.segments[0].semantic_score >= 0.6 &&
-                        group.segments[0].semantic_score < 0.8,
-                      'text-green-700': group.segments[0].semantic_score >= 0.8
-                    }"
-                    >{{
-                      group.segments[0].semantic_score * 100 | number : "1.0-0"
-                    }}% Relevance</span
-                  >
-                </div>
-                <div
-                  class="flex items-center space-x-1 bg-purple-100 rounded-full px-2 py-1 sm:px-3"
-                >
-                  <div
-                    class="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-purple-500 rounded-full"
-                  ></div>
-                  <span class="text-purple-700 font-medium whitespace-nowrap"
-                    >{{ group.segments.length }} Matches</span
-                  >
-                </div>
-              </div>
-            </div>
+                  ></span>
+                  <span>{{ group.segments[0].semantic_score * 100 | number : '1.0-0' }}% rel</span>
+                </span>
 
-            <!-- Navigate to AI Answer button -->
-            <div
-              class="w-full sm:w-auto sm:ml-auto mt-2 sm:mt-0 flex sm:block justify-center"
-            >
-              <button
-                (click)="goToAiAnswer(group, $event)"
-                class="inline-flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-3 rounded-xl shadow-sm transition-colors"
-                title="AI Answer"
-                aria-label="AI Answer"
-              >
-                <!-- <span class="hidden sm:inline">AI Answer</span> -->
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="24"
-                  height="24"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  class="lucide lucide-brain-icon lucide-brain"
-                  cursor="pointer"
-                >
-                  <path d="M12 18V5" />
-                  <path d="M15 13a4.17 4.17 0 0 1-3-4 4.17 4.17 0 0 1-3 4" />
-                  <path d="M17.598 6.5A3 3 0 1 0 12 5a3 3 0 1 0-5.598 1.5" />
-                  <path d="M17.997 5.125a4 4 0 0 1 2.526 5.77" />
-                  <path d="M18 18a4 4 0 0 0 2-7.464" />
-                  <path
-                    d="M19.967 17.483A4 4 0 1 1 12 18a4 4 0 1 1-7.967-.517"
-                  />
-                  <path d="M6 18a4 4 0 0 1-2-7.464" />
-                  <path d="M6.003 5.125a4 4 0 0 0-2.526 5.77" />
-                </svg>
-              </button>
+                <!-- Matches chip -->
+                <span class="inline-flex items-center gap-1 rounded-full bg-purple-50 text-purple-700 ring-1 ring-purple-100 px-2 py-0.5">
+                  <span class="w-1.5 h-1.5 rounded-full bg-purple-500"></span>
+                  <span>{{ group.segments.length }} matches</span>
+                </span>
+              </div>
             </div>
           </div>
         </div>
@@ -558,23 +430,28 @@
     *ngIf="selectedGroup"
     class="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm bg-black/20 p-4"
     (click)="onModalClose()"
+    tabindex="-1"
+    (keydown.escape)="onModalClose()"
   >
     <div
-      class="bg-white rounded-2xl sm:rounded-3xl shadow-2xl w-full max-w-xs sm:max-w-md md:max-w-lg lg:max-w-2xl max-h-[100vh] overflow-y-auto border border-gray-100"
+      class="bg-white rounded-2xl shadow-lg w-full max-w-xs sm:max-w-md md:max-w-lg lg:max-w-2xl max-h-[100vh] overflow-y-auto border border-gray-200"
       (click)="$event.stopPropagation()"
+      role="dialog" aria-modal="true" aria-labelledby="semantic-modal-title"
     >
       <!-- Header -->
       <div
         class="flex items-center justify-between p-4 sm:p-6 md:p-8 border-b border-gray-100"
       >
         <h2
-          class="text-lg sm:text-xl md:text-2xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent"
+          id="semantic-modal-title"
+          class="text-lg sm:text-xl md:text-2xl font-semibold text-gray-900"
         >
           AI Search Result
         </h2>
         <button
           (click)="onModalClose()"
-          class="w-8 h-8 sm:w-10 sm:h-10 bg-gray-100 rounded-full flex items-center justify-center text-gray-400 hover:text-gray-600 hover:bg-gray-200 transition-all duration-300"
+          type="button" aria-label="Close dialog"
+          class="w-8 h-8 sm:w-10 sm:h-10 bg-gray-100 rounded-full flex items-center justify-center text-gray-400 hover:text-gray-600 hover:bg-gray-200 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-indigo-500"
         >
           <svg
             class="w-4 h-4 sm:w-5 sm:h-5"
@@ -596,37 +473,13 @@
       <div class="p-4 sm:p-6 md:p-8">
         <!-- Audio Info -->
         <div class="text-center mb-6 sm:mb-8">
-          <div class="relative inline-block mb-4 sm:mb-6">
+          <!-- <div class="relative inline-block mb-4 sm:mb-6">
             <img
               [src]="selectedGroup.imageUrl"
               [alt]="selectedGroup.title"
               class="w-24 h-24 sm:w-32 sm:h-32 md:w-40 md:h-40 rounded-2xl sm:rounded-3xl object-cover shadow-lg mx-auto"
             />
-            <!-- Audio wave decoration on image -->
-            <div
-              class="absolute -bottom-1 sm:-bottom-2 left-1/2 transform -translate-x-1/2 flex items-end space-x-0.5 sm:space-x-1 opacity-60"
-            >
-              <div
-                class="w-0.5 h-2 sm:w-1 sm:h-3 bg-indigo-500 rounded-full animate-pulse"
-              ></div>
-              <div
-                class="w-0.5 h-3 sm:w-1 sm:h-5 bg-purple-500 rounded-full animate-pulse"
-                style="animation-delay: 0.1s"
-              ></div>
-              <div
-                class="w-0.5 h-2.5 sm:w-1 sm:h-4 bg-indigo-500 rounded-full animate-pulse"
-                style="animation-delay: 0.2s"
-              ></div>
-              <div
-                class="w-0.5 h-4 sm:w-1 sm:h-6 bg-purple-500 rounded-full animate-pulse"
-                style="animation-delay: 0.3s"
-              ></div>
-              <div
-                class="w-0.5 h-2 sm:w-1 sm:h-3 bg-indigo-500 rounded-full animate-pulse"
-                style="animation-delay: 0.4s"
-              ></div>
-            </div>
-          </div>
+          </div> -->
           <h3
             class="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 mb-1 sm:mb-2 px-2"
           >
@@ -640,7 +493,7 @@
         <!-- Relevant Excerpt and Segment Navigation -->
         <ng-container *ngIf="currentSegment as seg">
           <div
-            class="bg-gradient-to-r from-indigo-50 to-purple-50 border border-indigo-200 rounded-2xl sm:rounded-3xl p-4 sm:p-5 md:p-6 mb-4"
+            class="bg-gray-50 border border-gray-200 rounded-2xl sm:rounded-3xl p-4 sm:p-5 md:p-6 mb-4"
           >
             <h4
               class="font-bold text-indigo-900 mb-2 sm:mb-3 flex flex-col sm:flex-row items-center sm:items-start text-center sm:text-left"

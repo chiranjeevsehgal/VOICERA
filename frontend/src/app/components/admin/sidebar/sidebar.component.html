@@ -13,7 +13,9 @@
 
 <!-- Sidebar -->
 <nav
-  class="fixed top-0 left-0 h-full bg-white shadow-2xl z-50 transform transition-all duration-300 ease-in-out border-r border-gray-100 overflow-hidden flex flex-col"
+  role="navigation"
+  aria-label="Admin sidebar"
+  class="fixed top-0 left-0 h-full bg-white shadow-sm z-50 transform transition-all duration-300 ease-in-out border-r border-gray-200 overflow-hidden flex flex-col"
   [ngClass]="{
     'translate-x-0': isOpen || !isMobile,
     '-translate-x-full': !isOpen && isMobile,
@@ -23,26 +25,14 @@
 >
   <!-- Sidebar Header -->
   <div
-    class="h-16 sm:h-20 flex items-center justify-between px-4 sm:px-6 border-b border-gray-100 bg-gradient-to-r from-indigo-600 via-purple-600 to-blue-700 relative overflow-hidden flex-shrink-0"
+    class="h-16 sm:h-20 flex items-center justify-between px-4 sm:px-6 border-b border-gray-200 bg-white relative flex-shrink-0"
   >
-    <!-- Background Pattern -->
-    <div class="absolute inset-0 opacity-10">
-      <div
-        class="absolute top-0 right-0 w-32 h-32 bg-white rounded-full transform translate-x-16 -translate-y-16"
-      ></div>
-      <div
-        class="absolute bottom-0 left-0 w-24 h-24 bg-white rounded-full transform -translate-x-12 translate-y-12"
-      ></div>
-    </div>
-
     <div class="flex items-center space-x-3 relative z-10">
       <!-- Logo Icon -->
-      <img src="logo.svg" />
-      <div class="text-white">
-        <h1 class="text-lg sm:text-xl font-black tracking-tight">VOICERA</h1>
-        <p class="text-xs sm:text-sm text-white/80 font-medium">
-          Admin Dashboard
-        </p>
+      <img src="logo.svg" alt="VOICERA" class="w-6 h-6" />
+      <div class="text-gray-900">
+        <h1 class="text-lg sm:text-xl font-bold tracking-tight">VOICERA</h1>
+        <p class="text-xs sm:text-sm text-gray-500 font-medium">Admin Dashboard</p>
       </div>
     </div>
 
@@ -50,7 +40,7 @@
     <button
       *ngIf="isMobile"
       (click)="closeSidebar()"
-      class="w-8 h-8 bg-white/20 backdrop-blur-sm rounded-lg cursor-pointer flex items-center justify-center text-white hover:bg-white/30 transition-all duration-200 border border-white/30 hover:scale-105 relative z-10"
+      class="w-8 h-8 bg-white rounded-lg cursor-pointer flex items-center justify-center text-gray-600 hover:bg-gray-50 transition-colors border border-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 relative z-10"
     >
       <svg
         class="w-5 h-5"
@@ -76,27 +66,20 @@
       <ng-container *ngFor="let item of sidebarItems; trackBy: trackByFn">
         <button
           (click)="selectItem(item.id)"
-          class="w-full group flex cursor-pointer items-center px-3 sm:px-4 py-2.5 sm:py-3 text-sm sm:text-base font-medium rounded-xl transition-all duration-200 text-left relative overflow-hidden hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:ring-offset-2"
+          class="w-full group flex cursor-pointer items-center px-3 sm:px-4 py-2.5 sm:py-3 text-sm sm:text-base font-medium rounded-xl transition-colors duration-200 text-left focus:outline-none focus:ring-2 focus:ring-indigo-500 border border-transparent"
           [ngClass]="{
-            'bg-gradient-to-r from-indigo-500 to-purple-500 text-white shadow-lg transform scale-[1.02] shadow-indigo-500/25':
-              item.active,
-            'text-gray-600 hover:text-indigo-600 hover:bg-gradient-to-r hover:from-indigo-50 hover:to-purple-50 hover:border-indigo-200':
-              !item.active
+            'bg-indigo-600 text-white': item.active,
+            'text-gray-700 hover:text-indigo-700 hover:bg-gray-50': !item.active
           }"
+          [attr.aria-current]="item.active ? 'page' : null"
         >
-          <!-- Active Background Glow -->
-          <div
-            *ngIf="item.active"
-            class="absolute inset-0 bg-gradient-to-r from-indigo-400/20 to-purple-400/20 rounded-xl blur-sm"
-          ></div>
-
           <!-- Icon Container -->
-          <div class="flex-shrink-0 mr-3 relative z-10">
+          <div class="flex-shrink-0 mr-3">
             <div
-              class="w-5 h-5 sm:w-6 sm:h-6 flex items-center justify-center rounded-lg transition-all duration-200 group-hover:scale-110"
+              class="w-5 h-5 sm:w-6 sm:h-6 flex items-center justify-center rounded-lg"
               [ngClass]="{
-                'text-white drop-shadow-sm': item.active,
-                'text-gray-400 group-hover:text-indigo-500': !item.active
+                'text-white': item.active,
+                'text-gray-400 group-hover:text-indigo-600': !item.active
               }"
             >
               <ng-container *ngIf="item.icon; else iconByName">
@@ -116,37 +99,21 @@
           </div>
 
           <!-- Label -->
-          <span
-            class="flex-1 truncate relative z-10 font-semibold group-hover:translate-x-1 transition-transform duration-200"
-          >
+          <span class="flex-1 truncate font-semibold">
             {{ item.label }}
           </span>
 
           <!-- Badge -->
           <div
             *ngIf="item.badge"
-            class="ml-2 px-2 py-0.5 text-xs font-bold rounded-full transition-all duration-200 relative z-10 min-w-[20px] text-center shadow-sm"
+            class="ml-2 px-2 py-0.5 text-xs font-bold rounded-full transition-colors min-w-[20px] text-center"
             [ngClass]="{
-              'bg-white/20 text-white backdrop-blur-sm border border-white/30':
-                item.active,
-              'bg-indigo-100 text-indigo-700 group-hover:bg-indigo-200 border border-indigo-200':
-                !item.active
+              'bg-white/30 text-white': item.active,
+              'bg-indigo-100 text-indigo-700 group-hover:bg-indigo-200': !item.active
             }"
           >
             {{ item.badge }}
           </div>
-
-          <!-- Active Indicator -->
-          <div
-            *ngIf="item.active"
-            class="ml-2 w-2 h-2 bg-white rounded-full animate-pulse shadow-sm relative z-10"
-          ></div>
-
-          <!-- Hover Effect Line -->
-          <div
-            *ngIf="!item.active"
-            class="absolute left-0 top-1/2 w-1 h-0 bg-gradient-to-b from-indigo-500 to-purple-500 rounded-r-full transition-all duration-200 group-hover:h-8 transform -translate-y-1/2"
-          ></div>
         </button>
       </ng-container>
     </div>
@@ -154,15 +121,15 @@
 
   <!-- Sidebar Footer -->
   <div
-    class="border-t border-gray-100 p-4 sm:p-6 bg-gradient-to-br from-gray-50/50 to-indigo-50/50 flex-shrink-0 mt-auto"
+    class="border-t border-gray-200 p-4 sm:p-6 bg-white flex-shrink-0 mt-auto"
   >
     <!-- Logout Button -->
     <button
       (click)="onSignOut()"
-      class="w-full px-4 py-2.5 cursor-pointer text-sm font-medium text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all duration-200 flex items-center justify-center space-x-2 border border-gray-200 hover:border-red-200 hover:shadow-md group"
+      class="w-full px-4 py-2.5 cursor-pointer text-sm font-medium text-gray-700 bg-white rounded-xl transition-colors duration-200 flex items-center justify-center space-x-2 border border-gray-200 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500"
     >
       <svg
-        class="w-4 h-4 transition-transform duration-200 group-hover:scale-110"
+        class="w-4 h-4"
         fill="none"
         stroke="currentColor"
         viewBox="0 0 24 24"

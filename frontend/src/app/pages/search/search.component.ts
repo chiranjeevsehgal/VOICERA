@@ -17,6 +17,7 @@ import { Podcast, PodcastService } from '../../services/podcast.service';
 import { HeaderComponent } from '../../components/header/header.component';
 import { SerachSectionComponent } from '../../components/search-section/search-section.component';
 import { PodcastGridComponent } from '../../components/podcast-grid/podcast-grid.component';
+import { PodcastListComponent } from '../../components/podcast-list/podcast-list.component';
 import { MessageService } from 'primeng/api';
 import { AudioModalComponent } from '../../components/audio-modal/audio-modal.component';
 import { CommonModule } from '@angular/common';
@@ -31,12 +32,14 @@ import { CommonModule } from '@angular/common';
     SerachSectionComponent,
     AudioModalComponent,
     PodcastGridComponent,
+    PodcastListComponent,
   ],
   providers: [MessageService],
 })
 export class SearchComponent implements OnInit, OnDestroy, AfterViewInit {
   podcasts: any[] = [];
   filteredPodcasts: Podcast[] = [];
+  viewMode: 'grid' | 'list' = 'grid';
   searchQuery: string = '';
   selectedPodcast: Podcast | null = null;
   isModalVisible = false;
@@ -159,6 +162,10 @@ export class SearchComponent implements OnInit, OnDestroy, AfterViewInit {
   private loadNextPage(): void {
     if (!this.hasNext || this.loadingMore) return;
     this.loadPage(this.page + 1);
+  }
+
+  setViewMode(mode: 'grid' | 'list'): void {
+    this.viewMode = mode;
   }
 
   onSearchChange(query: string): void {

@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnDestroy, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { HttpClientModule } from '@angular/common/http';
 import { FormsModule } from '@angular/forms';
@@ -13,7 +13,7 @@ import { LogsService, LogContentResponse } from '../../../services/admin/logs.se
   templateUrl: './log-viewer.component.html',
   styles: ``
 })
-export class LogViewerComponent implements OnInit {
+export class LogViewerComponent implements OnInit, OnDestroy {
   loading = false;
   refreshing = false;
   error = '';
@@ -27,9 +27,14 @@ export class LogViewerComponent implements OnInit {
   showFilters = false;
   
   // Display options
-  wrapLines = false;
+  wrapLines = true;
   showLineNumbers = true;
   fontSize = 'text-sm';
+  
+  // Auto-refresh
+  autoRefreshEnabled = false;
+  private autoRefreshId?: number;
+  private readonly autoRefreshMs = 3000;
   
   constructor(
     private route: ActivatedRoute,
@@ -44,6 +49,10 @@ export class LogViewerComponent implements OnInit {
         this.loadLogContent();
       }
     });
+  }
+
+  ngOnDestroy(): void {
+    this.stopAutoRefresh();
   }
 
   loadLogContent(): void {
@@ -69,6 +78,7 @@ export class LogViewerComponent implements OnInit {
   }
 
   refresh(): void {
+    if (this.refreshing) return; // prevent overlapping
     this.refreshing = true;
     this.loadLogContent();
   }
@@ -85,6 +95,35 @@ export class LogViewerComponent implements OnInit {
 
   toggleFilters(): void {
     this.showFilters = !this.showFilters;
+  }
+
+  // Auto-refresh controls
+  toggleAutoRefresh(): void {
+    this.autoRefreshEnabled = !this.autoRefreshEnabled;
+    if (this.autoRefreshEnabled) {
+      // Do an immediate refresh, then schedule
+      this.refresh();
+      this.startAutoRefresh();
+    } else {
+      this.stopAutoRefresh();
+    }
+  }
+
+  private startAutoRefresh(): void {
+    this.stopAutoRefresh();
+    this.autoRefreshId = window.setInterval(() => {
+      // Avoid overlapping refreshes
+      if (!this.refreshing) {
+        this.refresh();
+      }
+    }, this.autoRefreshMs);
+  }
+
+  private stopAutoRefresh(): void {
+    if (this.autoRefreshId) {
+      window.clearInterval(this.autoRefreshId);
+      this.autoRefreshId = undefined;
+    }
   }
 
   goBack(): void {

@@ -160,7 +160,7 @@ export class PodcastService {
           title: title.replace(/\.mp3$/i, ''),
           creator,
           imageUrl:
-            "https://media.istockphoto.com/id/1244097573/vector/headphones-minimal-icon-with-sound-waves.jpg?s=612x612&w=0&k=20&c=OvARZEMYt_CM9M9-oJmMZ3O-HtEB-CAKqpGZPSA1acM=",
+            "https://steptodown.com/istock-downloader/images/steptodown.com440945.jpg",
           audioFile: file,
         };
       });

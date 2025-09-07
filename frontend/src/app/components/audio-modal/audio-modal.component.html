@@ -1,24 +1,20 @@
 <div
   *ngIf="isVisible"
-  class="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-lg bg-gradient-to-br from-indigo-900/30 via-purple-900/20 to-blue-900/30 p-2 sm:p-4"
+  class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-2 sm:p-4"
   (click)="onBackdropClick($event)"
 >
   <div
-    class="bg-white rounded-2xl sm:rounded-3xl shadow-2xl max-w-xs sm:max-w-lg md:max-w-xl lg:max-w-2xl w-full max-h-[95vh] overflow-y-auto border border-gray-100 relative"
+    class="bg-white rounded-2xl sm:rounded-3xl shadow-lg max-w-xs sm:max-w-lg md:max-w-xl lg:max-w-2xl w-full max-h-[95vh] overflow-y-auto border border-gray-200 relative"
+    role="dialog" aria-modal="true" aria-labelledby="audio-modal-title"
     (click)="$event.stopPropagation()"
   >
-    <!-- Abstract Background Elements -->
-    <div class="absolute inset-0 opacity-5 pointer-events-none">
-      <div class="absolute top-0 right-0 w-16 sm:w-32 h-16 sm:h-32 rounded-full bg-gradient-to-r from-indigo-400 to-purple-400 blur-xl sm:blur-2xl"></div>
-      <div class="absolute bottom-0 left-0 w-20 sm:w-40 h-20 sm:h-40 rounded-full bg-gradient-to-r from-blue-400 to-cyan-400 blur-2xl sm:blur-3xl"></div>
-    </div>
 
     <!-- Header -->
-    <div class="flex items-center justify-between p-4 sm:p-6 border-b border-gray-100 relative z-10">
-      <h2 class="text-lg sm:text-xl md:text-2xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">Audio Details</h2>
+    <div class="flex items-center justify-between p-4 sm:p-6 border-b border-gray-200 relative z-10">
+      <h2 id="audio-modal-title" class="text-lg sm:text-xl md:text-2xl font-bold text-gray-900">Audio Details</h2>
       <button
         (click)="closeModal()"
-        class="text-gray-400 cursor-pointer hover:text-indigo-600 transition-all duration-300 hover:rotate-90 hover:scale-110 p-1 sm:p-2 rounded-full hover:bg-indigo-50"
+        class="text-gray-600 cursor-pointer hover:text-gray-900 p-1 sm:p-2 rounded-full hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
         aria-label="Close modal"
       >
         <svg
@@ -47,14 +43,6 @@
             [alt]="podcast.title"
             class="w-24 sm:w-28 md:w-32 h-24 sm:h-28 md:h-32 rounded-xl sm:rounded-2xl object-cover shadow-lg"
           />
-          <!-- Audio wave decoration -->
-          <div class="absolute -bottom-1 sm:-bottom-2 left-1/2 transform -translate-x-1/2 flex items-end space-x-0.5 sm:space-x-1 opacity-60">
-            <div class="w-0.5 sm:w-1 h-1 sm:h-2 bg-gradient-to-t from-indigo-400 to-purple-400 rounded-full"></div>
-            <div class="w-0.5 sm:w-1 h-2 sm:h-4 bg-gradient-to-t from-indigo-400 to-purple-400 rounded-full"></div>
-            <div class="w-0.5 sm:w-1 h-1.5 sm:h-3 bg-gradient-to-t from-indigo-400 to-purple-400 rounded-full"></div>
-            <div class="w-0.5 sm:w-1 h-2.5 sm:h-5 bg-gradient-to-t from-indigo-400 to-purple-400 rounded-full"></div>
-            <div class="w-0.5 sm:w-1 h-1 sm:h-2 bg-gradient-to-t from-indigo-400 to-purple-400 rounded-full"></div>
-          </div>
         </div>
       </div>
       
@@ -66,12 +54,12 @@
       </div>
 
       <!-- Audio Player -->
-      <div class="mb-4 sm:mb-6 p-3 sm:p-4 bg-gradient-to-r from-slate-50 to-blue-50 rounded-xl sm:rounded-2xl">
+      <div class="mb-4 sm:mb-6 p-3 sm:p-4 bg-gray-50 rounded-xl sm:rounded-2xl">
         <audio
           #audioPlayer
           controls
           class="w-full rounded-lg sm:rounded-xl"
-          [src]="podcast.audioFile?.embedded_audio_url || podcast.audioFile?.user_data?.file_url"
+          [src]="podcast.audioFile.embedded_audio_url"
           (timeupdate)="onTimeUpdate()"
           (loadedmetadata)="onLoadedMetadata()"
           (play)="isPlaying = true"
@@ -85,27 +73,15 @@
       <!-- Audio Details Grid (Including Owner) -->
       <div class="grid grid-cols-1 sm:grid-cols-1 lg:grid-cols-1 xl:grid-cols-3 gap-3 sm:gap-4 mb-4 sm:mb-6">
         
-        <div class="bg-gradient-to-br from-indigo-50 to-purple-50 p-3 sm:p-4 rounded-xl sm:rounded-2xl border border-indigo-100">
+        <div class="bg-white p-3 sm:p-4 rounded-xl sm:rounded-2xl border border-gray-200">
           <div class="flex items-center justify-center mb-1 sm:mb-2">
-            <div class="w-1.5 sm:w-2 h-1.5 sm:h-2 bg-gradient-to-r from-indigo-400 to-purple-400 rounded-full mr-2"></div>
             <span class="font-semibold text-gray-700 text-xs sm:text-sm">Duration</span>
           </div>
           <p class="text-gray-600 font-medium text-xs sm:text-sm text-center">{{ formatTime(duration) }}</p>
         </div>
         
-        <!-- <div *ngIf="podcast?.audioFile?.metadata?.size" class="bg-gradient-to-br from-blue-50 to-cyan-50 p-3 sm:p-4 rounded-xl sm:rounded-2xl border border-blue-100">
+        <div class="bg-white p-3 sm:p-4 rounded-xl sm:rounded-2xl border border-gray-200">
           <div class="flex items-center justify-center mb-1 sm:mb-2">
-            <div class="w-1.5 sm:w-2 h-1.5 sm:h-2 bg-gradient-to-r from-blue-400 to-cyan-400 rounded-full mr-2"></div>
-            <span class="font-semibold text-gray-700 text-xs sm:text-sm">Size</span>
-          </div>
-          <p class="text-gray-600 font-medium text-xs sm:text-sm text-center">
-            {{ formatFileSize(podcast?.audioFile?.metadata?.size) }}
-          </p>
-        </div> -->
-        
-        <div class="bg-gradient-to-br from-green-50 to-emerald-50 p-3 sm:p-4 rounded-xl sm:rounded-2xl border border-green-100">
-          <div class="flex items-center justify-center mb-1 sm:mb-2">
-            <div class="w-1.5 sm:w-2 h-1.5 sm:h-2 bg-gradient-to-r from-green-400 to-emerald-400 rounded-full mr-2"></div>
             <span class="font-semibold text-gray-700 text-xs sm:text-sm">Uploaded</span>
           </div>
           <p class="text-gray-600 font-medium text-xs sm:text-sm text-center">
@@ -113,9 +89,8 @@
           </p>
         </div>
 
-        <div class="bg-gradient-to-br from-yellow-50 to-orange-50 p-3 sm:p-4 rounded-xl sm:rounded-2xl border border-yellow-100">
+        <div class="bg-white p-3 sm:p-4 rounded-xl sm:rounded-2xl border border-gray-200">
           <div class="flex items-center justify-center mb-1 sm:mb-2">
-            <div class="w-1.5 sm:w-2 h-1.5 sm:h-2 bg-gradient-to-r from-yellow-400 to-orange-400 rounded-full mr-2"></div>
             <span class="font-semibold text-gray-700 text-xs sm:text-sm">Uploaded by</span>
           </div>
           <p class="text-gray-600 font-medium text-xs sm:text-sm text-center">
@@ -126,16 +101,15 @@
 
       <!-- Transcript Card -->
       <div class="mb-4 sm:mb-6">
-        <div class="bg-gradient-to-br from-slate-50 to-blue-50 rounded-xl sm:rounded-2xl border border-slate-200 p-4 sm:p-5">
+        <div class="bg-white rounded-xl sm:rounded-2xl border border-gray-200 p-4 sm:p-5">
           <div class="flex items-center justify-between mb-3">
             <div class="flex items-center">
-              <div class="w-2 h-2 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full mr-2"></div>
               <h4 class="text-sm sm:text-base font-semibold text-gray-800">Transcript</h4>
             </div>
           </div>
 
           <!-- Loading state -->
-          <div *ngIf="transcriptLoading" class="flex items-center text-indigo-600 text-sm">
+          <div *ngIf="transcriptLoading" class="flex items-center text-indigo-600 text-sm" role="status" aria-live="polite" aria-busy="true">
             <svg class="animate-spin h-4 w-4 mr-2" viewBox="0 0 24 24">
               <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
               <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd" />
@@ -144,7 +118,7 @@
           </div>
 
           <!-- Error state -->
-          <div *ngIf="!transcriptLoading && transcriptError" class="text-red-600 text-sm">
+          <div *ngIf="!transcriptLoading && transcriptError" class="text-red-600 text-sm" role="alert">
             {{ transcriptError }}
           </div>
 
@@ -154,7 +128,7 @@
           </div>
 
           <!-- Content state: word-level highlighting -->
-          <div *ngIf="!transcriptLoading && !transcriptError && words && words.length > 0" #transcriptScroll class="bg-white border border-slate-200 rounded-lg p-3 max-h-60 overflow-y-auto text-sm leading-relaxed text-gray-800">
+          <div *ngIf="!transcriptLoading && !transcriptError && words && words.length > 0" #transcriptScroll class="bg-white border border-gray-200 rounded-lg p-3 max-h-60 overflow-y-auto text-sm leading-relaxed text-gray-800">
             <span
               *ngFor="let w of words; let i = index"
               (click)="onWordClick(w)"
@@ -170,7 +144,7 @@
           </div>
 
           <!-- Content state: fallback plain transcript text -->
-          <div *ngIf="!transcriptLoading && !transcriptError && (!words || words.length === 0) && transcript && transcript.trim() !== ''" class="bg-white border border-slate-200 rounded-lg p-3 max-h-60 overflow-y-auto text-sm leading-relaxed text-gray-800">
+          <div *ngIf="!transcriptLoading && !transcriptError && (!words || words.length === 0) && transcript && transcript.trim() !== ''" class="bg-white border border-gray-200 rounded-lg p-3 max-h-60 overflow-y-auto text-sm leading-relaxed text-gray-800">
             {{ transcript }}
           </div>
         </div>
@@ -178,14 +152,14 @@
     </div>
 
     <!-- Footer -->
-    <div *ngIf="podcast" class="flex justify-center sm:justify-end p-4 sm:p-6 border-t border-gray-100 relative z-10">
+    <div *ngIf="podcast" class="flex justify-center sm:justify-end p-4 sm:p-6 border-t border-gray-200 relative z-10">
       <a
-        [href]="podcast.audioFile?.embedded_audio_url || podcast.audioFile?.user_data?.file_url"
+        [href]="podcast.audioFile.embedded_audio_url"
         download
-        class="group px-4 sm:px-6 py-2 sm:py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl sm:rounded-2xl font-semibold hover:from-indigo-700 hover:to-purple-700 transition-all duration-300 flex items-center shadow-lg hover:shadow-xl hover:-translate-y-1 text-sm sm:text-base"
+        class="group px-4 sm:px-6 py-2 sm:py-3 bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-white rounded-xl sm:rounded-2xl font-semibold transition-colors flex items-center shadow-sm hover:shadow-md text-sm sm:text-base"
       >
         <span>Download</span>
-        <svg class="w-4 h-4 sm:w-5 sm:h-5 ml-2 group-hover:translate-y-1 transition-transform" fill="currentColor" viewBox="0 0 20 20">
+        <svg class="w-4 h-4 sm:w-5 sm:h-5 ml-2 group-hover:translate-y-0.5 transition-transform" fill="currentColor" viewBox="0 0 20 20">
           <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd" />
         </svg>
       </a>

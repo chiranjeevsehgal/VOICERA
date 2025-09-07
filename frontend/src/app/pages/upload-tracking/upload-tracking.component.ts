@@ -112,7 +112,7 @@ export class UploadTrackingComponent implements OnInit, OnDestroy {
 
   private startAutoRefresh() {
     this.stopAutoRefresh();
-    this.refreshSubscription = interval(10000).subscribe(() => {
+    this.refreshSubscription = interval(5000).subscribe(() => {
       // Changed to 10 seconds
       if (this.jobStatus && this.isProcessingStatus()) {
         // Don't treat auto-refresh as manual refresh

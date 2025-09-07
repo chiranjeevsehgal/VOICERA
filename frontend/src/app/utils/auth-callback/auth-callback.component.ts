@@ -30,6 +30,58 @@ import { CommonModule } from '@angular/common';
     .animation-delay-300 {
       animation-delay: 300ms;
     }
+
+    /* Animated loader for messages */
+    #load {
+      position: absolute;
+      width: min(600px, 90vw);
+      height: 36px;
+      left: 50%;
+      top: 40%;
+      transform: translateX(-50%);
+      overflow: visible;
+      -webkit-user-select: none;
+      -moz-user-select: none;
+      -ms-user-select: none;
+      user-select: none;
+      cursor: default;
+    }
+
+    #load div {
+      position: absolute;
+      width: 20px;
+      height: 36px;
+      opacity: 0;
+      font-family: Helvetica, Arial, sans-serif;
+      animation: move 2s linear infinite;
+      transform: rotate(180deg);
+      color: #35C4F0;
+      font-weight: 600;
+      letter-spacing: 1px;
+      text-shadow: 0 0 8px rgba(53, 196, 240, 0.5);
+    }
+
+    @keyframes move {
+      0% {
+        left: 0;
+        opacity: 0;
+      }
+      35% {
+        left: 41%;
+        transform: rotate(0deg);
+        opacity: 1;
+      }
+      65% {
+        left: 59%;
+        transform: rotate(0deg);
+        opacity: 1;
+      }
+      100% {
+        left: 100%;
+        transform: rotate(-180deg);
+        opacity: 0;
+      }
+    }
   `,
 })
 export class AuthCallbackComponent implements OnInit, OnDestroy {
@@ -108,6 +160,11 @@ export class AuthCallbackComponent implements OnInit, OnDestroy {
     if (this.messageInterval) clearInterval(this.messageInterval);
     if (this.progressInterval) clearInterval(this.progressInterval);
     if (this.featureInterval) clearInterval(this.featureInterval);
+  }
+
+  // Split current message into characters for animated loader
+  get messageChars(): string[] {
+    return (this.currentMessage || '').split('');
   }
 
   private handleAuthCallback(): void {
