@@ -129,9 +129,7 @@
 
               <!-- Min Confidence control -->
               <div class="flex flex-col">
-                <label for="minConfidence" class="text-xs text-gray-600 mb-1"
-                  >Min Confidence</label
-                >
+                <label for="minConfidence" class="text-xs text-gray-600 mb-1">Confidence Threshold</label>
                 <input
                   type="range"
                   id="minConfidence"
@@ -142,16 +140,12 @@
                   step="0.01"
                   class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
                 />
-                <span class="text-xs text-gray-500 mt-1">{{
-                  minConfidence
-                }}</span>
+                <span class="text-xs text-gray-500 mt-1">{{ minConfidence }}</span>
               </div>
 
               <!-- Min Relevance control -->
               <div class="flex flex-col">
-                <label for="minRelevance" class="text-xs text-gray-600 mb-1"
-                  >Min Relevance</label
-                >
+                <label for="minRelevance" class="text-xs text-gray-600 mb-1">Relevance Threshold</label>
                 <input
                   type="range"
                   id="minRelevance"
