@@ -17,59 +17,82 @@ export interface SemanticPodcastGroup {
   segments: SearchResult[];
 }
 
-// Perceptron Animation Classes
-class Perceptron {
-  weights: number[];
-
-  constructor() {
-    this.weights = new Array(3);
-    for (let i = 0, n = 3; i < n; i++) {
-      this.weights[i] = (Math.random() * 2) - 1;
-    }
-  }
-
-  feed(inputs: number[]): number {
-    let sum = 0;
-    for (let i = 0, len = this.weights.length; i < len; i++) {
-      sum += inputs[i] * this.weights[i];
-    }
-    return this.activate(sum);
-  }
-
-  activate(sum: number): number {
-    return (sum > 0) ? 1 : -1;
-  }
-
-  train(inputs: number[], desired: number): void {
-    const c = 2;
-    let guess = this.feed(inputs);
-    let error = desired - guess;
-
-    for (let i = 0, len = this.weights.length; i < len; i++) {
-      this.weights[i] += parseInt((c * error * inputs[i]).toString());
-    }
-  }
-}
-
-class Trainer {
-  inputs: number[];
-  answer: number;
-
-  constructor(x: number, y: number, a: number) {
-    this.inputs = new Array(3);
-    this.inputs[0] = x;
-    this.inputs[1] = y;
-    this.inputs[2] = 1;
-    this.answer = a;
-  }
-}
+// Removed perceptron animation classes (replaced by CSS spinner orbits)
 
 @Component({
   selector: 'app-semantic-search',
   imports: [Toast, CommonModule, FormsModule, HeaderComponent],
   providers: [MessageService],
   templateUrl: './semantic-search.component.html',
-  styles: ``
+  styles: `
+    /* Spinner Orbits */
+    @keyframes spin {
+      from { transform: rotate(0); }
+      to { transform: rotate(359deg); }
+    }
+
+    @keyframes spin3D {
+      from { transform: rotate3d(.5,.5,.5, 360deg); }
+      to { transform: rotate3d(0deg); }
+    }
+
+    .spinner-box {
+      width: 300px;
+      height: 300px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background-color: transparent;
+    }
+
+    .leo {
+      position: absolute;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      border-radius: 50%;
+    }
+
+    .blue-orbit {
+      width: 165px;
+      height: 165px;
+      border: 2px solid #3b82f6; /* blue-500 */
+      box-shadow: 0 0 12px rgba(59, 130, 246, 0.55);
+      -webkit-animation: spin3D 3s linear .2s infinite;
+              animation: spin3D 3s linear .2s infinite;
+    }
+
+    .green-orbit {
+      width: 120px;
+      height: 120px;
+      border: 2px solid #10b981; /* emerald-500 */
+      box-shadow: 0 0 12px rgba(16, 185, 129, 0.55);
+      -webkit-animation: spin3D 2s linear 0s infinite;
+              animation: spin3D 2s linear 0s infinite;
+    }
+
+    .red-orbit {
+      width: 90px;
+      height: 90px;
+      border: 2px solid #ef4444; /* red-500 */
+      box-shadow: 0 0 12px rgba(239, 68, 68, 0.55);
+      -webkit-animation: spin3D 1s linear 0s infinite;
+              animation: spin3D 1s linear 0s infinite;
+    }
+
+    .white-orbit {
+      width: 60px;
+      height: 60px;
+      border: 2px solid #ffffff;
+      box-shadow: 0 0 12px rgba(255, 255, 255, 0.6);
+      -webkit-animation: spin3D 10s linear 0s infinite;
+              animation: spin3D 10s linear 0s infinite;
+    }
+
+    .w1 { transform: rotate3D(1, 1, 1, 90deg); }
+    .w2 { transform: rotate3D(1, 2, .5, 90deg); }
+    .w3 { transform: rotate3D(.5, 1, 2, 90deg); }
+  `
 })
 export class SemanticSearchComponent implements OnInit, OnDestroy, AfterViewInit {
   searchQuery: string = '';
@@ -89,16 +112,8 @@ export class SemanticSearchComponent implements OnInit, OnDestroy, AfterViewInit
   currentSegmentIndex: number = 0;
   private subscription?: Subscription;
   @ViewChild('player') audioRef?: ElementRef<HTMLAudioElement>;
-  @ViewChild('perceptronCanvas') canvasRef?: ElementRef<HTMLCanvasElement>;
-
-  // Perceptron animation properties
-  private perceptron?: Perceptron;
-  private trainers: Trainer[] = [];
-  private currentTrainer = 0;
-  private animationId?: number;
-  private readonly NUM_POINTS = 2000;
-  private readonly COLOR_POS = '#4f46e5'; // indigo-600
-  private readonly COLOR_NEG = '#e5e7eb'; // gray-200
+  
+  // Removed perceptron canvas references and properties
 
   constructor(
     private semanticSearchService: SemanticSearchService,
@@ -109,18 +124,12 @@ export class SemanticSearchComponent implements OnInit, OnDestroy, AfterViewInit
   ngOnInit(): void {}
 
   ngAfterViewInit(): void {
-    // Initialize perceptron animation when canvas is available
-    if (this.loading) {
-      this.initPerceptronAnimation();
-    }
+    // Perceptron animation disabled; spinner orbits are CSS-based
   }
 
   ngOnDestroy(): void {
     if (this.subscription) {
       this.subscription.unsubscribe();
-    }
-    if (this.animationId) {
-      cancelAnimationFrame(this.animationId);
     }
   }
 
@@ -143,10 +152,7 @@ export class SemanticSearchComponent implements OnInit, OnDestroy, AfterViewInit
   private performSearch(query: string): void {
     this.loading = true;
     this.hasSearched = false;
-    
-    // Start perceptron animation
-    setTimeout(() => this.initPerceptronAnimation(), 100);
-    
+
     this.subscription = this.semanticSearchService
       .searchAudio(query, this.limit, this.minConfidence, this.minRelevance)
       .subscribe({
@@ -155,14 +161,12 @@ export class SemanticSearchComponent implements OnInit, OnDestroy, AfterViewInit
         this.searchResults = response.results;
         // Group by audio file for UI
         this.groupedResults = this.transformAndGroupResults(response.results);
-        
-        this.stopPerceptronAnimation();
+
         this.loading = false;
         this.hasSearched = true;
       },
       error: (error) => {
         console.error('Search error:', error);
-        this.stopPerceptronAnimation();
         this.loading = false;
         this.hasSearched = true;
         this.messageService.add({
@@ -278,84 +282,5 @@ export class SemanticSearchComponent implements OnInit, OnDestroy, AfterViewInit
     }
   }
 
-  // Perceptron Animation Methods
-  private initPerceptronAnimation(): void {
-    const canvas = this.canvasRef?.nativeElement;
-    if (!canvas) return;
-
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    // Set canvas size
-    const rect = canvas.getBoundingClientRect();
-    canvas.width = rect.width;
-    canvas.height = rect.height;
-
-    // Initialize perceptron and trainers
-    this.perceptron = new Perceptron();
-    this.trainers = [];
-    this.currentTrainer = 0;
-
-    // Create training data
-    for (let i = 0; i < this.NUM_POINTS; i++) {
-      const x = Math.floor(Math.random() * canvas.width);
-      const y = Math.floor(Math.random() * canvas.height);
-      const answer = (y > (canvas.height / canvas.width) * x) ? 1 : -1;
-      this.trainers[i] = new Trainer(x, y, answer);
-    }
-
-    // Clear canvas
-    ctx.fillStyle = '#f8fafc'; // slate-50
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-    // Start animation
-    this.animatePerceptron();
-  }
-
-  private animatePerceptron(): void {
-    const canvas = this.canvasRef?.nativeElement;
-    if (!canvas || !this.perceptron) return;
-
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    // Train perceptron with current trainer
-    if (this.currentTrainer < this.trainers.length) {
-      this.perceptron.train(
-        this.trainers[this.currentTrainer].inputs,
-        this.trainers[this.currentTrainer].answer
-      );
-
-      // Draw points up to current trainer
-      for (let i = 0; i < this.currentTrainer; i++) {
-        ctx.beginPath();
-        ctx.arc(
-          this.trainers[i].inputs[0],
-          this.trainers[i].inputs[1],
-          3,
-          0,
-          2 * Math.PI,
-          false
-        );
-        ctx.fillStyle = (this.perceptron.feed(this.trainers[i].inputs) > 0) 
-          ? this.COLOR_POS 
-          : this.COLOR_NEG;
-        ctx.fill();
-      }
-
-      this.currentTrainer++;
-      
-      // Continue animation if loading and not finished
-      if (this.loading && this.currentTrainer < this.NUM_POINTS) {
-        this.animationId = requestAnimationFrame(() => this.animatePerceptron());
-      }
-    }
-  }
-
-  private stopPerceptronAnimation(): void {
-    if (this.animationId) {
-      cancelAnimationFrame(this.animationId);
-      this.animationId = undefined;
-    }
-  }
+  // CSS-based spinner orbits used during loading (no TS animation required)
 }

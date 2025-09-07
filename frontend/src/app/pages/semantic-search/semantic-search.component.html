@@ -63,10 +63,10 @@
               (keydown.escape)="onSearchClear()"
               id="semantic-search-input"
               aria-label="Search query"
-              class="w-full px-4 py-3 sm:px-5 sm:py-3.5 md:px-6 md:py-4 pr-12 border border-gray-200 rounded-xl text-sm sm:text-base md:text-lg text-gray-900 placeholder:text-gray-400 bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors"
+              class="w-full px-4 py-3 sm:px-5 sm:py-3.5 md:px-6 md:py-4 pr-12 border border-gray-200 rounded-xl text-sm sm:text-base md:text-lg text-gray-900 placeholder:opacity-50 bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors"
             />
             <!-- Clear button -->
-            <button
+            <!-- <button
               *ngIf="searchQuery && !loading"
               (click)="onSearchClear()"
               type="button"
@@ -86,7 +86,7 @@
                   d="M6 18L18 6M6 6l12 12"
                 ></path>
               </svg>
-            </button>
+            </button> -->
             <!-- Loading spinner -->
             <!-- <div
               *ngIf="loading"
@@ -216,15 +216,16 @@
         class="text-center py-12 sm:py-16 md:py-20 bg-white rounded-2xl shadow-sm border border-gray-200"
         role="status" aria-live="polite" aria-busy="true"
       >
-        <!-- Perceptron Neural Network Animation -->
+        <!-- Spinner Orbits Animation -->
         <div class="mb-6 sm:mb-8 flex justify-center">
-          <canvas
-            #perceptronCanvas
-            class="rounded-xl border border-gray-200 bg-slate-50"
-            width="700"
-            height="600"
-            style="max-width: 100%; height: 100%"
-          ></canvas>
+          <div class="spinner-box">
+            <div class="blue-orbit leo"></div>
+            <div class="green-orbit leo"></div>
+            <div class="red-orbit leo"></div>
+            <div class="white-orbit w1 leo"></div>
+            <div class="white-orbit w2 leo"></div>
+            <div class="white-orbit w3 leo"></div>
+          </div>
         </div>
         <div class="max-w-md mx-auto px-4">
           <div
@@ -338,7 +339,7 @@
                     <path d="M6 18a4 4 0 0 1-2-7.464" />
                     <path d="M6.003 5.125a4 4 0 0 0-2.526 5.77" />
                   </svg>
-                  <span class="ml-1.5 text-sm">AI Answer</span>
+                  <span class="ml-1.5 text-sm">AI Chat</span>
                 </button>
               </div>
 

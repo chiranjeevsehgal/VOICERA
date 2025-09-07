@@ -25,7 +25,7 @@
         </p>
       </div>
       
-      <!-- Search and Refresh Controls -->
+      <!-- Controls: Search, Sort, Filters, Density, Refresh -->
       <div class="flex flex-col sm:flex-row gap-3 lg:w-auto">
         <!-- Search Input -->
         <div class="relative flex-1 lg:w-64">
@@ -53,6 +53,58 @@
             </svg>
           </button>
         </div>
+
+        <!-- Sort -->
+        <div class="flex items-center gap-2">
+          <label for="sortBy" class="text-sm text-gray-600">Sort</label>
+          <select
+            id="sortBy"
+            [(ngModel)]="sortBy"
+            (change)="setSort(sortBy)"
+            class="px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+            aria-label="Sort log files"
+          >
+            <option value="last_modified">Last modified</option>
+            <option value="date">Date (label)</option>
+            <option value="size">Size</option>
+            <option value="filename">Filename</option>
+          </select>
+          <button
+            type="button"
+            (click)="sortDir = sortDir === 'asc' ? 'desc' : 'asc'; applySearch()"
+            class="inline-flex items-center justify-center w-9 h-9 rounded-lg border border-gray-200 text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            [attr.aria-label]="'Toggle sort direction (' + sortDir + ')'"
+          >
+            <svg
+              *ngIf="sortDir === 'asc'"
+              xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-arrow-up-wide-narrow"
+            >
+              <path d="M3 3h13" /><path d="M3 7h9" /><path d="M3 11h7" /><path d="M3 15h5" /><path d="M3 19h3" />
+            </svg>
+            <svg
+              *ngIf="sortDir === 'desc'"
+              xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-arrow-down-wide-narrow"
+            >
+              <path d="M3 3h3" /><path d="M3 7h5" /><path d="M3 11h7" /><path d="M3 15h9" /><path d="M3 19h13" />
+            </svg>
+          </button>
+        </div>
+
+        <!-- Recent filter -->
+        <label class="inline-flex items-center gap-2 px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-700 cursor-pointer hover:bg-gray-50">
+          <input type="checkbox" class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" [checked]="showRecentOnly" (change)="toggleRecentOnly()" />
+          <span>Recent (7d)</span>
+        </label>
+
+        <!-- Density toggle -->
+        <button
+          type="button"
+          (click)="toggleDensity()"
+          class="px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          [attr.aria-label]="'Switch to ' + (density === 'comfortable' ? 'compact' : 'comfortable') + ' density'"
+        >
+          {{ density === 'comfortable' ? 'Compact rows' : 'Comfortable rows' }}
+        </button>
 
         <!-- Refresh Button -->
         <button
@@ -146,7 +198,7 @@
     </div>
 
     <!-- Table Header -->
-    <div class="px-4 sm:px-6 py-3 sm:py-4 bg-gray-50 border-b border-gray-200">
+    <div class="px-4 sm:px-6 py-3 sm:py-4 bg-gray-50 border-b border-gray-200 sticky top-0 z-10">
       <h3 class="text-base sm:text-lg font-semibold text-gray-900">
         Log Files
       </h3>
@@ -157,21 +209,11 @@
       <table class="min-w-full divide-y divide-gray-200" aria-label="Application log files">
         <thead class="bg-gray-50">
           <tr>
-            <th class="px-4 xl:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Filename
-            </th>
-            <th class="px-4 xl:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Date
-            </th>
-            <th class="px-4 xl:px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Size
-            </th>
-            <th class="px-4 xl:px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Last Modified
-            </th>
-            <th class="px-4 xl:px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Actions
-            </th>
+            <th class="px-4 xl:px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">Filename</th>
+            <th class="px-4 xl:px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">Date</th>
+            <th class="px-4 xl:px-6 py-3 text-right text-xs font-medium text-gray-600 uppercase tracking-wider">Size</th>
+            <th class="px-4 xl:px-6 py-3 text-right text-xs font-medium text-gray-600 uppercase tracking-wider">Last Modified</th>
+            <th class="px-4 xl:px-6 py-3 text-center text-xs font-medium text-gray-600 uppercase tracking-wider">Actions</th>
           </tr>
         </thead>
         <tbody class="bg-white divide-y divide-gray-200">
@@ -179,7 +221,7 @@
             *ngFor="let file of filteredLogFiles; trackBy: trackByFilename"
             class="hover:bg-gray-50 transition-colors duration-200"
           >
-            <td class="px-4 xl:px-6 py-3 whitespace-nowrap">
+            <td class="px-4 xl:px-6 whitespace-nowrap" [ngClass]="density === 'compact' ? 'py-2' : 'py-3'">
               <div class="flex items-center">
                 <div class="flex-shrink-0 h-8 w-8 bg-indigo-100 rounded-lg flex items-center justify-center">
                   <svg class="h-4 w-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -193,10 +235,13 @@
                   >
                     {{ file.filename }}
                   </button>
+                  <div class="text-xs text-gray-500 mt-0.5">
+                    {{ formatFileSize(file.size) }} • {{ formatRelative(file.last_modified) }}
+                  </div>
                 </div>
               </div>
             </td>
-            <td class="px-4 xl:px-6 py-3 whitespace-nowrap">
+            <td class="px-4 xl:px-6 whitespace-nowrap" [ngClass]="density === 'compact' ? 'py-2' : 'py-3'">
               <span
                 class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium"
                 [ngClass]="getDateBadgeClass(file.last_modified)"
@@ -204,13 +249,14 @@
                 {{ file.date }}
               </span>
             </td>
-            <td class="px-4 xl:px-6 py-3 whitespace-nowrap text-right text-sm font-medium text-gray-900">
+            <td class="px-4 xl:px-6 whitespace-nowrap text-right text-sm font-medium text-gray-900" [ngClass]="density === 'compact' ? 'py-2' : 'py-3'">
               {{ formatFileSize(file.size) }}
             </td>
-            <td class="px-4 xl:px-6 py-3 whitespace-nowrap text-right text-sm text-gray-600">
-              {{ formatDate(file.last_modified) }}
+            <td class="px-4 xl:px-6 whitespace-nowrap text-right text-sm text-gray-600" [ngClass]="density === 'compact' ? 'py-2' : 'py-3'">
+              <div>{{ formatDate(file.last_modified) }}</div>
+              <div class="text-xs text-gray-400">{{ formatRelative(file.last_modified) }}</div>
             </td>
-            <td class="px-4 xl:px-6 py-3 whitespace-nowrap text-center">
+            <td class="px-4 xl:px-6 whitespace-nowrap text-center" [ngClass]="density === 'compact' ? 'py-2' : 'py-3'">
               <button
                 (click)="viewLogFile(file.filename)"
                 class="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md text-indigo-600 bg-indigo-100 hover:bg-indigo-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors"
