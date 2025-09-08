@@ -87,16 +87,17 @@ import { CommonModule } from '@angular/common';
 export class AuthCallbackComponent implements OnInit, OnDestroy {
   isProcessing = true;
   progressWidth = 0;
-  currentMessage = 'Connecting to Google...';
+  currentMessage = 'Connecting...';
   subMessage = 'Please wait while we authenticate you';
   activeFeatureIndex = 0;
+  authProvider: 'google' | 'github' | null = null;
 
   private messageInterval: any;
   private progressInterval: any;
   private featureInterval: any;
 
-  // Loading messages
-  private messages = [
+  // Loading messages for different providers
+  private googleMessages = [
     {
       main: 'Connecting to Google...',
       sub: 'Establishing secure connection',
@@ -119,6 +120,33 @@ export class AuthCallbackComponent implements OnInit, OnDestroy {
     },
   ];
 
+  private githubMessages = [
+    {
+      main: 'Connecting to GitHub...',
+      sub: 'Establishing secure connection',
+    },
+    {
+      main: 'Verifying your identity...',
+      sub: "GitHub is confirming it's really you",
+    },
+    {
+      main: 'Setting up your account...',
+      sub: 'Preparing your personalized workspace',
+    },
+    {
+      main: 'Loading your preferences...',
+      sub: 'Customizing your VOICERA experience',
+    },
+    {
+      main: 'Almost ready...',
+      sub: 'Just a few more seconds!',
+    },
+  ];
+
+  private get messages() {
+    return this.authProvider === 'github' ? this.githubMessages : this.googleMessages;
+  }
+
   constructor(
     private router: Router,
     private route: ActivatedRoute,
@@ -126,14 +154,32 @@ export class AuthCallbackComponent implements OnInit, OnDestroy {
   ) {}
 
   ngOnInit(): void {
+    this.determineAuthProvider();
     this.startAnimations();
     this.handleAuthCallback();
-    // setTimeout(() => {
-    // }, 1000);
   }
 
   ngOnDestroy(): void {
     this.clearIntervals();
+  }
+
+  private determineAuthProvider(): void {
+    this.route.queryParams.subscribe((params) => {
+      const state = params['state'];
+      
+      // Determine provider based on state parameter
+      if (state === 'google-oauth') {
+        this.authProvider = 'google';
+        this.currentMessage = 'Connecting to Google...';
+      } else if (state === 'github-oauth') {
+        this.authProvider = 'github';
+        this.currentMessage = 'Connecting to GitHub...';
+      } else {
+        // Fallback - try to determine from URL or default to Google
+        this.authProvider = 'google';
+        this.currentMessage = 'Connecting...';
+      }
+    });
   }
 
   private startAnimations(): void {
@@ -175,24 +221,38 @@ export class AuthCallbackComponent implements OnInit, OnDestroy {
 
       if (error) {
         console.error('OAuth error:', error);
+        this.handleAuthError(error);
         return;
       }
 
-      if (code) {
-        this.exchangeCodeForTokens(code);
+      if (code && state) {
+        this.exchangeCodeForTokens(code, state);
       } else {
-        console.error('No authorization code received');
+        console.error('No authorization code or state received');
+        this.handleAuthError('missing_params');
       }
     });
   }
 
-  private exchangeCodeForTokens(code: string): void {
+  private exchangeCodeForTokens(code: string, state: string): void {
     this.currentMessage = 'Finalizing authentication...';
     this.subMessage = 'Creating your secure session';
-
     this.progressWidth = 100;
 
-    this.loginService.exchangeGoogleCode(code).subscribe({
+    // Determine which OAuth service to call based on state
+    let authObservable;
+    
+    if (state === 'google-oauth') {
+      authObservable = this.loginService.exchangeGoogleCode(code);
+    } else if (state === 'github-oauth') {
+      authObservable = this.loginService.exchangeGitHubCode(code);
+    } else {
+      console.error('Unknown OAuth provider state:', state);
+      this.handleAuthError('unknown_provider');
+      return;
+    }
+
+    authObservable.subscribe({
       next: (response) => {
         // Check if account is inactive
         if (!response.status && response.detail?.includes('inactive')) {
@@ -214,8 +274,9 @@ export class AuthCallbackComponent implements OnInit, OnDestroy {
         }, 1500);
       },
       error: (error) => {
-        console.error('Failed to complete authentication');
-        // Check if it's a 403 error (inactive account) or error response with inactive status
+        console.error('Failed to complete authentication:', error);
+        
+        // Check if it's a 403 error (inactive account)
         if (
           error.status === 403 ||
           (error.error &&
@@ -230,19 +291,25 @@ export class AuthCallbackComponent implements OnInit, OnDestroy {
         }
 
         // For other errors, show generic error and redirect to login
-        this.currentMessage = 'Authentication failed';
-        this.subMessage = 'Redirecting to login...';
-
-        setTimeout(() => {
-          this.router.navigate(['/login'], {
-            queryParams: {
-              error: 'auth_failed',
-              message: 'Authentication failed. Please try again.',
-            },
-          });
-        }, 2000);
+        this.handleAuthError('auth_failed', error.error?.detail || 'Authentication failed. Please try again.');
       },
     });
+  }
+
+  private handleAuthError(errorType: string, message?: string): void {
+    this.clearIntervals();
+    
+    this.currentMessage = 'Authentication failed';
+    this.subMessage = 'Redirecting to login...';
+
+    setTimeout(() => {
+      this.router.navigate(['/login'], {
+        queryParams: {
+          error: errorType,
+          message: message || 'Authentication failed. Please try again.',
+        },
+      });
+    }, 2000);
   }
 
   private handleInactiveAccount(detail: string): void {

@@ -1,105 +1,84 @@
-import { Component, NgZone, OnInit } from '@angular/core';
-import { FormBuilder, FormGroup, Validators, ReactiveFormsModule, AbstractControl, ValidationErrors } from '@angular/forms';
-import { MessageService } from 'primeng/api';
-import { ProgressSpinner } from 'primeng/progressspinner';
+import { Component, NgZone } from '@angular/core';
 import { LoginService } from '../../services/auth/login.service';
 import { environment } from '../../../environments/environment';
-import { LucideAngularModule, Eye, EyeOff } from 'lucide-angular';
 import { Router } from '@angular/router';
 import { HotToastService } from '@ngxpert/hot-toast';
-
 
 @Component({
   selector: 'app-login-form',
   templateUrl: './login-form.component.html',
-  styles: ``,
-  imports: [
-    ReactiveFormsModule,
-    ProgressSpinner,
-    LucideAngularModule
-  ],
-  providers: [
-  ]
+  styles: `
+    @keyframes wave {
+      0%, 100% { transform: scaleY(1); }
+      50% { transform: scaleY(0.5); }
+    }
+  `,
+  imports: [],
 })
 export class LoginFormComponent {
-  loginForm: FormGroup;
-  isLoading: boolean = false;
-  showPassword: boolean = false;
-
-  // Icons
-  readonly eye = Eye;
-  readonly eyeOff = EyeOff;
-
   constructor(
-    private fb: FormBuilder,
     private loginService: LoginService,
     private ngZone: NgZone,
     private router: Router,
     private toast: HotToastService
-  ) {
-    this.loginForm = this.fb.group({
-      email: ['', [Validators.required, Validators.email]],
-      password: ['', [Validators.required]]
-    });
+  ) {}
+
+  oauthSignIn(provider: 'google' | 'github') {
+    if (provider === 'google') {
+      this.signInWithGoogle();
+    } else if (provider === 'github') {
+      this.signInWithGitHub();
+    }
   }
 
-  togglePasswordVisibility() {
-    this.showPassword = !this.showPassword; // Toggle the visibility
-  }
-
-  oauthSignIn() {
-    // Google's OAuth 2.0 endpoint for requesting an access token
-    var oauth2Endpoint = 'https://accounts.google.com/o/oauth2/v2/auth';
-
-    var form = document.createElement('form');
+  private signInWithGoogle() {
+    const oauth2Endpoint = 'https://accounts.google.com/o/oauth2/v2/auth';
+    const form = document.createElement('form');
     form.setAttribute('method', 'GET');
     form.setAttribute('action', oauth2Endpoint);
 
-
-    // Passing to OAuth 2.0 endpoint.
-    const params: { [key: string]: string } =
-    {
-      'client_id': environment.googleClientId,
-      'redirect_uri': 'http://localhost:4200/auth/callback',
-      'scope': 'openid email profile',
-      'response_type': 'code',
-      'include_granted_scopes': 'true',
-      'state': 'pass-through value',
-      'access_type': 'offline'
+    const params: { [key: string]: string } = {
+      client_id: environment.googleClientId,
+      redirect_uri: 'http://localhost:4200/auth/callback',
+      scope: 'openid email profile',
+      response_type: 'code',
+      include_granted_scopes: 'true',
+      state: 'google-oauth',
+      access_type: 'offline',
     };
 
-    for (var p in params) {
-      var input = document.createElement('input');
+    this.createFormAndSubmit(form, params);
+  }
+
+  private signInWithGitHub() {
+    const oauth2Endpoint = 'https://github.com/login/oauth/authorize';
+    const form = document.createElement('form');
+    form.setAttribute('method', 'GET');
+    form.setAttribute('action', oauth2Endpoint);
+
+    const params: { [key: string]: string } = {
+      client_id: environment.githubClientId,
+      redirect_uri: 'http://localhost:4200/auth/callback',
+      scope: 'read:user user:email',
+      state: 'github-oauth',
+    };
+
+    this.createFormAndSubmit(form, params);
+  }
+
+  private createFormAndSubmit(
+    form: HTMLFormElement,
+    params: { [key: string]: string }
+  ) {
+    for (const key in params) {
+      const input = document.createElement('input');
       input.setAttribute('type', 'hidden');
-      input.setAttribute('name', p);
-      input.setAttribute('value', params[p]);
+      input.setAttribute('name', key);
+      input.setAttribute('value', params[key]);
       form.appendChild(input);
     }
 
     document.body.appendChild(form);
     form.submit();
-  }
-
-  onSubmit() {
-    if (this.loginForm.valid) {
-      this.isLoading = true;
-      console.log('Form submitted', this.loginForm.value);
-
-      setTimeout(() => {
-        this.loginService.loginUser(this.loginForm.value).subscribe({
-          next: (response) => {
-            // console.log("Login Successfull", response);
-            this.isLoading = false;
-            this.router.navigate(['/library']);
-            this.loginForm.reset();
-          },
-          error: (error) => {
-            // console.log("Login Error", error);
-            this.isLoading = false;
-            this.toast.error(error.error.detail);
-          }
-        })
-      }, 3000);
-    }
   }
 }

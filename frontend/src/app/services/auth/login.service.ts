@@ -33,16 +33,17 @@ export class LoginService {
     );
   }
 
-  exchangeGoogleCode(
-    code: string
-  ): Observable<{
+  exchangeGoogleCode(code: string): Observable<{
     access_token: string;
     detail?: string;
     role: string;
     token_type: string;
     status: boolean;
   }> {
-    const payload: { code: string } = { code };
+    const payload = {
+      code,
+      provider: 'google',
+    };
 
     return this.http.post<{
       access_token: string;
@@ -50,6 +51,27 @@ export class LoginService {
       role: string;
       token_type: string;
       status: boolean;
-    }>(`${environment.apiUrl}/api/auth/google-login`, payload);
+    }>(`${environment.apiUrl}/api/auth/oauth/callback`, payload);
+  }
+
+  exchangeGitHubCode(code: string): Observable<{
+    access_token: string;
+    detail?: string;
+    role: string;
+    token_type: string;
+    status: boolean;
+  }> {
+    const payload = {
+      code,
+      provider: 'github',
+    };
+
+    return this.http.post<{
+      access_token: string;
+      detail?: string;
+      role: string;
+      token_type: string;
+      status: boolean;
+    }>(`${environment.apiUrl}/api/auth/oauth/callback`, payload);
   }
 }
