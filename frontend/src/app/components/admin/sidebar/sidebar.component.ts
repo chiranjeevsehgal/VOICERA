@@ -1,7 +1,7 @@
 import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { AudioLines, ClipboardCheck, Home, LucideAngularModule, Users, Wallet, FileText } from 'lucide-angular';
+import { AudioLines, ClipboardCheck, KeyRound, LucideAngularModule, Users, Wallet, FileText } from 'lucide-angular';
 import { Router } from '@angular/router';
 import { ProfileService } from '../../../services/auth/profile.service';
 import { AdminAuthService } from '../../../services/admin/admin.auth.service';
@@ -48,6 +48,11 @@ export class SidebarComponent {
       id: 'audio-management',
       label: 'Audio Management',
       icon: AudioLines,
+    },
+    {
+      id: 'gemini-keys',
+      label: 'Gemini Keys',
+      icon: KeyRound,
     },
     {
       id: 'logs',
