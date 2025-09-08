@@ -4,7 +4,7 @@ import os
 from pydantic import BaseModel, Field
 from dotenv import load_dotenv
 from services.auth import get_current_user
-from services.gemini_text_client import generate_text
+from services.gemini_text_client import generate_text, GeminiAPIError
 from services.gemini_key_manager import gemini_key_manager
 
 load_dotenv()
@@ -81,7 +81,16 @@ async def translate_text(
         return TranslationResponse(
             translated_text=translated_text
         )
-        
+    except GeminiAPIError as ge:
+        # Return aligned HTTP code and details
+        raise HTTPException(
+            status_code=ge.http_code,
+            detail={
+                "status": ge.status,
+                "message": ge.message or ge.description,
+                "solution": ge.solution,
+            },
+        )
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Translation error: {str(e)}")
     

@@ -2,7 +2,7 @@ import os
 import time
 import threading
 from collections import deque
-from typing import Deque, List, Tuple, Optional
+from typing import Deque, List, Tuple, Optional, Dict
 
 from utils.logging import log_info, log_warning, log_error
 
@@ -25,6 +25,8 @@ class _KeyState:
         self.err_429: int = 0
         self.err_auth: int = 0  # 401/403
         self.err_5xx: int = 0
+        # Generic error status counters (e.g., INVALID_ARGUMENT, FAILED_PRECONDITION, UNAVAILABLE...)
+        self.err_counts: Dict[str, int] = {}
 
 
 class GeminiKeyManager:
@@ -205,7 +207,7 @@ class GeminiKeyManager:
 
             time.sleep(slept)
 
-    def report_result(self, api_key: str, status_code: int, retry_after: Optional[float] = None) -> None:
+    def report_result(self, api_key: str, status_code: int, retry_after: Optional[float] = None, status: Optional[str] = None) -> None:
         """
         Inform the manager of the outcome so it can cooldown misbehaving keys.
         - 429: apply Retry-After if provided, else default cooldown
@@ -223,6 +225,9 @@ class GeminiKeyManager:
 
         now = self._now()
         with st.lock:
+            # Record structured error status counts for observability
+            if status_code >= 400 and status:
+                st.err_counts[status] = st.err_counts.get(status, 0) + 1
             if status_code == 429:
                 delta = float(retry_after) if retry_after and retry_after > 0 else self.cooldown_sec_default
                 st.cooldown_until = max(st.cooldown_until, now + delta)
@@ -263,6 +268,13 @@ class GeminiKeyManager:
                 tpm_last_min = sum(t for (_, t) in st.tpm_entries)
                 cooldown_remaining = max(0.0, st.cooldown_until - now)
 
+                # Build combined error counts including legacy aggregates and structured statuses
+                combined_errs: Dict[str, int] = dict(st.err_counts)
+                # Keep legacy aggregates for UI backward compatibility
+                combined_errs["429"] = st.err_429
+                combined_errs["auth_401_403"] = st.err_auth
+                combined_errs["5xx"] = st.err_5xx
+
                 keys_out.append({
                     "key_prefix": st.api_key[:100],
                     "cooldown_until": st.cooldown_until if cooldown_remaining > 0 else 0.0,
@@ -272,11 +284,7 @@ class GeminiKeyManager:
                     "tpm_last_min": tpm_last_min,
                     "daily_date": st.daily_date,
                     "daily_count": st.daily_count,
-                    "error_counts": {
-                        "429": st.err_429,
-                        "auth_401_403": st.err_auth,
-                        "5xx": st.err_5xx,
-                    },
+                    "error_counts": combined_errs,
                 })
 
         status = {
