@@ -108,6 +108,7 @@ export class SemanticSearchComponent implements OnInit, OnDestroy, AfterViewInit
   groupedResults: SemanticPodcastGroup[] = [];
   loading = false;
   hasSearched = false;
+  showAdvanced = false;
   selectedGroup: SemanticPodcastGroup | null = null;
   currentSegmentIndex: number = 0;
   private subscription?: Subscription;
@@ -147,6 +148,10 @@ export class SemanticSearchComponent implements OnInit, OnDestroy, AfterViewInit
     this.searchQuery = '';
     this.searchResults = [];
     this.hasSearched = false;
+  }
+
+  toggleAdvanced(): void {
+    this.showAdvanced = !this.showAdvanced;
   }
 
   private performSearch(query: string): void {
