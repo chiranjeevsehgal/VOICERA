@@ -68,3 +68,69 @@ async def get_or_create_user_from_google(google_user_info):
         user = await users_collection.find_one({"_id": result.inserted_id})
     
     return user
+
+async def get_or_create_user_from_github(github_user_info: dict) -> dict:
+    """
+    Get or create user from GitHub user information.
+    """
+    email = github_user_info.get('email')
+    github_id = str(github_user_info.get('id'))
+    name = github_user_info.get('name') or github_user_info.get('login')
+    avatar_url = github_user_info.get('avatar_url')
+    
+    if not email:
+        raise ValueError("No email found in GitHub profile")
+    
+    # Check if user exists by email
+    existing_user = await users_collection.find_one({"email": email})
+    
+    if existing_user:
+        # Update GitHub info if not present
+        update_data = {}
+        if not existing_user.get('github_id'):
+            update_data['github_id'] = github_id
+        if not existing_user.get('avatar_url') and avatar_url:
+            update_data['avatar_url'] = avatar_url
+            
+        if update_data:
+            await users_collection.update_one(
+                {"_id": existing_user["_id"]}, 
+                {"$set": update_data}
+            )
+            existing_user.update(update_data)
+        
+        return existing_user
+    
+    # Create new user
+    new_user = {
+        "email": email,
+        "full_name": name,
+        "github_id": github_id,
+        "profile_picture": avatar_url,
+        "role": "user",
+        "status": "active",
+        "created_at": datetime.utcnow(),
+        "auth_provider": "github"
+    }
+    
+    result = await users_collection.insert_one(new_user)
+    new_user["_id"] = result.inserted_id
+    
+    return new_user
+
+async def verify_github_token(access_token: str) -> dict:
+    """
+    Verify GitHub access token and return user info.
+    This is optional - you can use the token directly to get user info.
+    """
+    headers = {
+        'Authorization': f'token {access_token}',
+        'Accept': 'application/json'
+    }
+    
+    response = requests.get("https://api.github.com/user", headers=headers)
+    
+    if response.status_code != 200:
+        raise ValueError("Invalid GitHub token")
+    
+    return response.json()
