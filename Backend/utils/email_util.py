@@ -1,23 +1,15 @@
 import os
 import smtplib
 from email.message import EmailMessage
-from pathlib import Path
-from utils.logging import log_info, log_warning, log_error
+from utils.logging import log_error
 
-# Load HTML template
-TEMPLATE_PATH = Path(__file__).parent.parent / "utils" / "reset_password.html"
-HTML_TEMPLATE = TEMPLATE_PATH.read_text(encoding="utf-8")
-
-def send_email(to: str, otp: str) -> bool:
+def send_email(to: str, subject: str = "Default Subject", content: str = "Default content") -> bool:
     try:
-        # Inject OTP into HTML template
-        email_body = HTML_TEMPLATE.replace("{{OTP}}", otp)
-        
         msg = EmailMessage()
         msg["From"] = os.getenv("SMTP_USER")
         msg["To"] = to
-        msg["Subject"] = "Password Reset OTP"
-        msg.add_alternative(email_body, subtype="html")  # Set as HTML email
+        msg["Subject"] = subject
+        msg.add_alternative(content, subtype="html")  # Use dynamic content as HTML
 
         with smtplib.SMTP_SSL(
             os.getenv("SMTP_HOST"),

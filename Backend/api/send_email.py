@@ -1,19 +1,24 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 from dotenv import load_dotenv
-from Backend.utils.email_util import send_email
+from utils.email_util import send_email
 from pydantic import BaseModel
+from typing import Any, Optional
+from services.auth import requires_role
 
 load_dotenv()
-
-router = APIRouter(prefix='/mail')
+router = APIRouter()
 
 class EmailRequest(BaseModel):
     email: str
+    subject: Optional[str] = "Default Subject"
+    content: Optional[str] = "Default email content"
 
 @router.post("/send-email")
-async def send_email(req : EmailRequest):
+async def send_email_endpoint(req : EmailRequest, current_user: dict[str, Any] = Depends(requires_role("admin"))):
     success = send_email(
         to=req.email,
+        subject=req.subject,
+        content=req.content,
     )
     if success:
         return {
