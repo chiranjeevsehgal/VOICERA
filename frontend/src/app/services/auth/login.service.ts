@@ -17,7 +17,7 @@ export class LoginService {
   constructor(private http: HttpClient) {}
 
   loginUser(userDetails: any) {
-    const apiUrl = `${environment.apiUrl}/api/auth/login`;
+    const apiUrl = `${environment.backendApiUrl}/api/auth/login`;
 
     // Create a FormData object
     const formData = new FormData();
@@ -51,7 +51,7 @@ export class LoginService {
       role: string;
       token_type: string;
       status: boolean;
-    }>(`${environment.apiUrl}/api/auth/oauth/callback`, payload);
+    }>(`${environment.backendApiUrl}/api/auth/oauth/callback`, payload);
   }
 
   exchangeGitHubCode(code: string): Observable<{
@@ -72,6 +72,6 @@ export class LoginService {
       role: string;
       token_type: string;
       status: boolean;
-    }>(`${environment.apiUrl}/api/auth/oauth/callback`, payload);
+    }>(`${environment.backendApiUrl}/api/auth/oauth/callback`, payload);
   }
 }

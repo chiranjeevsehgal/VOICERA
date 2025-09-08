@@ -9,10 +9,11 @@ import { CreditManagementComponent } from '../../../components/admin/credit-mana
 import { AudioManagementComponent } from '../../../components/admin/audio-management/audio-management.component';
 import { UsageLogsComponent } from '../../../components/admin/usage-logs/usage-logs.component';
 import { ApplicationLogsComponent } from '../../../components/admin/application-logs/application-logs.component';
+import { GeminiKeysComponent } from '../../../components/admin/gemini-keys/gemini-keys.component';
 
 @Component({
   selector: 'app-dashboard',
-  imports: [CommonModule, SidebarComponent, UserManagementComponent, CreditManagementComponent, AudioManagementComponent, UsageLogsComponent, ApplicationLogsComponent],
+  imports: [CommonModule, SidebarComponent, UserManagementComponent, CreditManagementComponent, AudioManagementComponent, UsageLogsComponent, ApplicationLogsComponent, GeminiKeysComponent],
   templateUrl: './dashboard.component.html',
   styles: ``
 })
@@ -92,6 +93,7 @@ export class AdminDashboardComponent implements OnInit, OnDestroy  {
       'user-management', 
       'audio-management',
       'credit-management',
+      'gemini-keys',
       'logs',
       'application-logs',
     ];
@@ -124,6 +126,7 @@ export class AdminDashboardComponent implements OnInit, OnDestroy  {
       'user-management': 'User Management',
       'credit-management': 'Credits',
       'audio-management': 'Audio Management',
+      'gemini-keys': 'Gemini Keys',
       'logs': 'Usage Logs',
       'application-logs': 'Application Logs',
     };
@@ -136,6 +139,7 @@ export class AdminDashboardComponent implements OnInit, OnDestroy  {
       'user-management': 'Manage user accounts',
       'credit-management': 'Manage IP credits',
       'audio-management': 'Upload, organize and manage audio content',
+      'gemini-keys': 'Monitor Gemini API keys and rate limits',
       'logs': 'View API usage metrics and endpoint counts',
       'application-logs': 'View and search application log files',
     };

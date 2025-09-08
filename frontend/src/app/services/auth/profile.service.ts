@@ -19,7 +19,7 @@ export interface CreditsResponse {
   providedIn: 'root',
 })
 export class ProfileService {
-  private baseUrl = environment.apiUrl;
+  private baseUrl = environment.backendApiUrl;
   private userProfileSubject = new BehaviorSubject<UserProfile | null>(null);
   private creditsSubject = new BehaviorSubject<number>(0);
 

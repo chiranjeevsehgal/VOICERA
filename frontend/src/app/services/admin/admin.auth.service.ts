@@ -28,7 +28,7 @@ export class AdminAuthService {
   private userProfileSubject = new BehaviorSubject<UserProfile | null>(null);
 
   loginUser(userDetails: any) {
-    const apiUrl = `${environment.apiUrl}/api/auth/login`;
+    const apiUrl = `${environment.backendApiUrl}/api/auth/login`;
 
     // Create a FormData object
     const formData = new FormData();
@@ -84,7 +84,7 @@ export class AdminAuthService {
     // If no cached data, fetching from api
     const headers = this.getHeaders();
     return this.http
-      .get<UserProfile>(`${environment.apiUrl}/api/auth/users/profile`, {
+      .get<UserProfile>(`${environment.backendApiUrl}/api/auth/users/profile`, {
         headers,
       })
       .pipe(
@@ -120,6 +120,6 @@ export class AdminAuthService {
       message?: string;
       token_type: string;
       status: boolean;
-    }>(`${environment.apiUrl}/api/auth/google-login`, payload);
+    }>(`${environment.backendApiUrl}/api/auth/google-login`, payload);
   }
 }

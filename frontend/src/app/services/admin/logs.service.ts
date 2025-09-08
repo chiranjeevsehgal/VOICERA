@@ -27,7 +27,7 @@ export interface LogContentResponse {
   providedIn: 'root'
 })
 export class LogsService {
-  private readonly baseUrl = `${environment.apiUrl}/api/admin`;
+  private readonly baseUrl = `${environment.backendApiUrl}/api/admin`;
 
   constructor(private http: HttpClient) {}
 

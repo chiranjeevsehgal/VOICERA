@@ -68,7 +68,7 @@ export interface WordTiming {
   providedIn: "root",
 })
 export class PodcastService {
-  private baseUrl = environment.apiUrl; 
+  private baseUrl = environment.backendApiUrl; 
   private authToken = localStorage.getItem('vEra_auth_token'); 
 
   constructor(private http: HttpClient) {}
