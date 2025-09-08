@@ -18,6 +18,7 @@ from services.database import (
     search_trends_collection,
     user_activity_collection
 )
+from services.gemini_key_manager import gemini_key_manager
 from models.analytics import (
     APIUsageStats,
     TranscriptionStats,
@@ -56,6 +57,23 @@ class UserCreateRequest(BaseModel):
     full_name: Optional[str] = None
     role: str = "user"
     status: str = "active"
+
+@router.get("/gemini-keys/status", status_code=status.HTTP_200_OK)
+async def get_gemini_keys_status(
+    current_user: Dict[str, Any] = Depends(requires_role("admin"))
+):
+    """
+    Return current Gemini keys usage and health as tracked by the GeminiKeyManager.
+    Includes per-key cooldowns, RPM/RPS/TPM windows, daily counters, and error counts.
+    """
+    try:
+        status_obj = gemini_key_manager.get_status()
+        return status_obj
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to retrieve Gemini keys status: {str(e)}",
+        )
 
 # Response models
 class IPCreditResponse(BaseModel):

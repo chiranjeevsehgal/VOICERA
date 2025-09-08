@@ -7,12 +7,11 @@ from services.transcript_service import extract_transcript
 from pydantic import BaseModel, Field
 import os
 import json
-import google.generativeai as genai
-from dotenv import load_dotenv
+from services.gemini_text_client import generate_text
+from services.gemini_key_manager import gemini_key_manager
 import re
 import logging
 import asyncio
-from concurrent.futures import ThreadPoolExecutor
 from services.database import podcasts_collection, uploads_collection
 from utils.analytics import track_search_term, track_user_activity
 from utils.logging import log_error, log_info, log_warning
@@ -30,7 +29,7 @@ MAX_PARALLEL_VALIDATIONS = 5  # Adjust based on your API rate limits and system 
 
 class LLMConfig_Search:
     def __init__(self):
-        self.api_key = os.getenv("GEMINI_API_KEY")
+        self.api_key = None
         self.model_name = os.getenv("GEMINI_MODEL")
         self.temperature = 0.0  # 0 for deterministic expansion
         self.max_tokens = None
@@ -122,8 +121,7 @@ class LLMConfig_Search:
         If the answer cannot be found in the transcript, clearly state that the information is not available."""
         
         # Initialize LLM if API key is available
-        if self.api_key:
-            genai.configure(api_key=self.api_key)
+        # Removed API key initialization
 
 async def expand_query_with_llm(query: str) -> List[str]:
     """
@@ -131,32 +129,26 @@ async def expand_query_with_llm(query: str) -> List[str]:
     """
     config = LLMConfig_Search()
     
-    if not config.api_key:
+    if not gemini_key_manager.has_keys():
         # If no API key, just return the original query
         return [query]
     
     try:
-        # Configuring the model
-        model = genai.GenerativeModel(
-            model_name=config.model_name,
-            generation_config={
-                "temperature": config.temperature,
-                "max_output_tokens": config.max_tokens,
-                "top_p": config.top_p,
-                "top_k": config.top_k
-            }
-        )
-        
         # Construct prompt to expand the query
         prompt = f"Expand this search query to include variations of numbers and words: {query}"
-        
-        response = model.generate_content(
-            [config.system_prompt, prompt]
+        response_text = generate_text(
+            model_name=config.model_name,
+            messages=[prompt],
+            system_prompt=config.system_prompt,
+            temperature=config.temperature,
+            max_output_tokens=config.max_tokens,
+            top_p=config.top_p,
+            top_k=config.top_k,
         )
         
         try:
             # Parse the response as JSON
-            result = json.loads(response.text)
+            result = json.loads(response_text)
             
             # Return the expanded queries
             expanded_queries = result.get("expanded", [])
@@ -366,7 +358,7 @@ async def process_natural_language_query(query: str) -> Dict:
     "ere", "excepted", "excepts", "excepting", "exes",
     }
     
-    if not config.api_key:
+    if not gemini_key_manager.has_keys():
         # If no API key, return basic structure with original query
         # Filter out stopwords from the key terms
         key_terms = [term.lower() for term in query.lower().split() 
@@ -380,25 +372,20 @@ async def process_natural_language_query(query: str) -> Dict:
         }
     
     try:
-        # Configuring the model
-        model = genai.GenerativeModel(
-            model_name=config.model_name,
-            generation_config={
-                "temperature": config.temperature,
-                "max_output_tokens": config.max_tokens,
-                "top_p": config.top_p,
-                "top_k": config.top_k
-            }
-        )
-        
         # Get NL query analysis
-        response = model.generate_content(
-            [config.nl_query_prompt, query]
+        response_text = generate_text(
+            model_name=config.model_name,
+            messages=[query],
+            system_prompt=config.nl_query_prompt,
+            temperature=config.temperature,
+            max_output_tokens=config.max_tokens,
+            top_p=config.top_p,
+            top_k=config.top_k,
         )
         
         try:
             # Parse the response as JSON
-            result = json.loads(response.text)
+            result = json.loads(response_text)
             return result
             
         except json.JSONDecodeError:
@@ -560,7 +547,7 @@ async def llm_rerank_results(
     try:
         config = LLMConfig_Search()
         
-        if not config.api_key:
+        if not gemini_key_manager.has_keys():
             logger.warning("LLM API key not configured, skipping LLM reranking")
             return results
             
@@ -576,17 +563,6 @@ async def llm_rerank_results(
                 "has_exact_match": result.get("has_exact_match", False)
             })
         
-        # Configure the model
-        model = genai.GenerativeModel(
-            model_name=config.model_name,
-            generation_config={
-                "temperature": 0.1,  # Low temperature for consistent scoring
-                "max_output_tokens": 2048,
-                "top_p": 0.95,
-                "top_k": 40
-            }
-        )
-        
         # Format the prompt
         formatted_prompt = config.reranking_prompt.format(
             query=query,
@@ -595,8 +571,15 @@ async def llm_rerank_results(
         )
         
         # Get LLM evaluation
-        response = model.generate_content(formatted_prompt)
-        response_text = response.text.strip()
+        response_text = generate_text(
+            model_name=config.model_name,
+            messages=[formatted_prompt],
+            system_prompt=None,
+            temperature=0.1,
+            max_output_tokens=2048,
+            top_p=0.95,
+            top_k=40,
+        ).strip()
         
         try:
             # Clean up the response text to ensure it's valid JSON
@@ -703,19 +686,8 @@ async def validate_result_content(result: Dict, query: str, config: LLMConfig_Se
     Returns (is_relevant, explanation)
     """
     try:
-        if not config.api_key:
+        if not gemini_key_manager.has_keys():
             return True, "No LLM validation available"
-            
-        # Configure the model
-        model = genai.GenerativeModel(
-            model_name=config.model_name,
-            generation_config={
-                "temperature": 0.1,  # Low temperature for consistent validation
-                "max_output_tokens": 1024,
-                "top_p": 0.95,
-                "top_k": 40
-            }
-        )
         
         # Get the complete transcript using extract_transcript
         file_name = result.get('file_name')
@@ -770,9 +742,16 @@ Return ONLY the JSON object, no other text or formatting.""".format(
                 time_context=time_context
             )
             
-            # Get validation from LLM
-            response = model.generate_content(validation_prompt)
-            response_text = response.text.strip()
+            # Get validation from LLM via REST client
+            response_text = generate_text(
+                model_name=config.model_name,
+                messages=[validation_prompt],
+                system_prompt=None,
+                temperature=0.1,
+                max_output_tokens=1024,
+                top_p=0.95,
+                top_k=40,
+            ).strip()
             
             # Clean up the response text to ensure it's valid JSON
             # Remove any markdown formatting or extra text
@@ -1044,7 +1023,7 @@ async def search(
             }
 
         # After getting initial results but before final reranking, validate content if enabled
-        if validate_content and config.api_key:
+        if validate_content and gemini_key_manager.has_keys():
             logger.info("Validating result content relevance in parallel...")
             
             # Process results in parallel batches
@@ -1217,7 +1196,7 @@ async def search(
         }
         
         # Add validation stats if content validation was performed
-        if validate_content and config.api_key:
+        if validate_content and gemini_key_manager.has_keys():
             response_data["validation_stats"] = validation_stats
         
         # Add natural language processing info if available
@@ -1300,8 +1279,8 @@ async def generate_answer(
     try:
         config = LLMConfig_Search()
         
-        if not config.api_key:
-            raise HTTPException(status_code=500, detail="LLM API key not configured")
+        if not gemini_key_manager.has_keys():
+            raise HTTPException(status_code=500, detail="Gemini API keys not configured")
         
         # Validate input
         if not request.query:
@@ -1310,30 +1289,27 @@ async def generate_answer(
         if not request.transcript:
             raise HTTPException(status_code=400, detail="Transcript is required")
             
-        # Configure the LLM
-        model = genai.GenerativeModel(
-            model_name=config.model_name,
-            generation_config={
-                "temperature": 0.3,  # Slightly higher temperature for more natural answers
-                "max_output_tokens": 1024,  # Allow longer answers
-                "top_p": 0.95,
-                "top_k": 40
-            }
-        )
-        
         # Format the prompt with the transcript and query
         formatted_prompt = config.answer_generation_prompt.format(
             transcript=request.transcript,
             query=request.query
         )
         
-        # Generate the answer
-        response = model.generate_content(formatted_prompt)
+        # Generate the answer via REST Gemini client
+        response_text = generate_text(
+            model_name=config.model_name,
+            messages=[formatted_prompt],
+            system_prompt=None,
+            temperature=0.3,
+            max_output_tokens=1024,
+            top_p=0.95,
+            top_k=40,
+        )
         
         # Return the generated answer
         return {
             "query": request.query,
-            "answer": response.text,
+            "answer": response_text,
             "model": config.model_name,
         }
         
@@ -1380,9 +1356,9 @@ async def search_and_answer(
         
         config = LLMConfig_Search()
         
-        if not config.api_key:
-            log_error("LLM API key not configured", "search.search_and_answer")
-            raise HTTPException(status_code=500, detail="LLM API key not configured")
+        if not gemini_key_manager.has_keys():
+            log_error("Gemini API keys not configured", "search.search_and_answer")
+            raise HTTPException(status_code=500, detail="Gemini API keys not configured")
             
         # Validate the transcript
         if not request.transcript or len(request.transcript.strip()) < 10:
@@ -1397,17 +1373,6 @@ async def search_and_answer(
         # Log transcript length for debugging
         transcript_word_count = len(request.transcript.split())
         log_info(f"Processing answer for '{request.search_query}' with transcript of {transcript_word_count} words", "search.search_and_answer", {"search_query": request.search_query, "transcript_word_count": transcript_word_count})
-        
-        # Configure the LLM
-        model = genai.GenerativeModel(
-            model_name=config.model_name,
-            generation_config={
-                "temperature": 0.2,  # Lower temperature for more factual answers
-                "max_output_tokens": 1024,  # Allow longer answers
-                "top_p": 0.95,
-                "top_k": 40
-            }
-        )
         
         # Base prompt with transcript and current query
         formatted_prompt = config.answer_generation_prompt.format(
@@ -1440,16 +1405,24 @@ async def search_and_answer(
         
         log_info(f"Sending prompt to LLM (length: {len(full_prompt)} chars)", "search.search_and_answer", {"prompt_length": len(full_prompt)})
         
-        # Generate the answer
-        response = model.generate_content(full_prompt)
+        # Generate the answer via REST Gemini client
+        response_text = generate_text(
+            model_name=config.model_name,
+            messages=[full_prompt],
+            system_prompt=None,
+            temperature=0.2,
+            max_output_tokens=1024,
+            top_p=0.95,
+            top_k=40,
+        )
         
-        log_info(f"LLM response received (length: {len(response.text)} chars)", "search.search_and_answer", {"response_length": len(response.text)})
+        log_info(f"LLM response received (length: {len(response_text)} chars)", "search.search_and_answer", {"response_length": len(response_text)})
         
         # Return the generated answer along with identifying information
         return {
             "result_id": request.result_id,
             "search_query": request.search_query,
-            "answer": response.text,
+            "answer": response_text,
             "model": config.model_name,
         }
         
