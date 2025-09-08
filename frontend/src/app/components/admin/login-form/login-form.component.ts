@@ -59,7 +59,7 @@ export class AdminLoginFormComponent {
     const params: { [key: string]: string } =
     {
       'client_id': environment.googleClientId,
-      'redirect_uri': 'http://localhost:4200/auth/callback',
+      'redirect_uri': `${environment.frontendApiUrl}/auth/callback`,
       'scope': 'openid email profile',
       'response_type': 'code',
       'include_granted_scopes': 'true',
