@@ -76,6 +76,7 @@ export class SearchComponent implements OnInit, OnDestroy, AfterViewInit {
   ) {}
 
   ngOnInit(): void {
+    this.setDefaultViewMode();
     this.loadPodcasts();
     this.setupDebouncedSearch();
   }
@@ -107,6 +108,18 @@ export class SearchComponent implements OnInit, OnDestroy, AfterViewInit {
 
   private loadPodcasts(): void {
     this.loadPage(1);
+  }
+
+  private setDefaultViewMode(): void {
+    // Use Tailwind's sm breakpoint (640px) as the cutoff for mobile
+    try {
+      if (typeof window !== 'undefined' && typeof window.matchMedia === 'function') {
+        const isMobile = window.matchMedia('(max-width: 639px)').matches;
+        this.viewMode = isMobile ? 'list' : 'grid';
+      }
+    } catch (e) {
+      // Fallback: keep existing default if any error occurs
+    }
   }
 
   ngAfterViewInit(): void {

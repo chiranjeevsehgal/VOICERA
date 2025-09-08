@@ -237,15 +237,35 @@
         class="text-center py-12 sm:py-16 md:py-20 bg-white rounded-2xl shadow-sm border border-gray-200"
         role="status" aria-live="polite" aria-busy="true"
       >
-        <!-- Spinner Orbits Animation -->
+        <!-- Branded Loader -->
         <div class="mb-6 sm:mb-8 flex justify-center">
-          <div class="spinner-box">
-            <div class="blue-orbit leo"></div>
-            <div class="green-orbit leo"></div>
-            <div class="red-orbit leo"></div>
-            <div class="white-orbit w1 leo"></div>
-            <div class="white-orbit w2 leo"></div>
-            <div class="white-orbit w3 leo"></div>
+          <div class="brand-loader" aria-hidden="true">
+            <!-- Outer Ring -->
+            <svg class="brand-ring brand-ring--outer" viewBox="0 0 100 100" width="168" height="168" role="img">
+              <defs>
+                <linearGradient id="outerGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                  <stop offset="0%" stop-color="var(--brand-primary)" />
+                  <stop offset="100%" stop-color="var(--brand-accent)" />
+                </linearGradient>
+              </defs>
+              <circle class="track" cx="50" cy="50" r="46" />
+              <circle class="indicator" cx="50" cy="50" r="46" stroke="url(#outerGrad)" />
+            </svg>
+
+            <!-- Inner Ring -->
+            <svg class="brand-ring brand-ring--inner" viewBox="0 0 100 100" width="128" height="128" role="img">
+              <defs>
+                <linearGradient id="innerGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                  <stop offset="0%" stop-color="var(--brand-secondary)" />
+                  <stop offset="100%" stop-color="var(--brand-primary)" />
+                </linearGradient>
+              </defs>
+              <circle class="track" cx="50" cy="50" r="32" />
+              <circle class="indicator" cx="50" cy="50" r="32" stroke="url(#innerGrad)" />
+            </svg>
+
+            <!-- Core -->
+            <div class="brand-loader__core"></div>
           </div>
         </div>
         <div class="max-w-md mx-auto px-4">

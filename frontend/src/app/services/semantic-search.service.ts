@@ -79,6 +79,7 @@ export class SemanticSearchService {
       .set('limit', String(limit))
       .set('min_confidence', String(minConfidence))
       .set('min_relevance', String(minRelevance))
+      .set('validate_content', 'false') // Turn it to true only if you want LLM Validation
 
     return this.http.get<SearchResponse>(url, { headers, params });
   }

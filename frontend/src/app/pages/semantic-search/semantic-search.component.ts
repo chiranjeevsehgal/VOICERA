@@ -25,73 +25,102 @@ export interface SemanticPodcastGroup {
   providers: [MessageService],
   templateUrl: './semantic-search.component.html',
   styles: `
-    /* Spinner Orbits */
+    /* Branded Loader (VOICERA) */
+    :host {
+      --brand-primary: #6366f1; /* indigo-500 */
+      --brand-secondary: #a855f7; /* purple-500 */
+      --brand-accent: #22d3ee; /* cyan-400 */
+      --ring-track: rgba(99, 102, 241, 0.15);
+      --glow-1: rgba(99, 102, 241, 0.45);
+      --glow-2: rgba(168, 85, 247, 0.25);
+    }
+
     @keyframes spin {
-      from { transform: rotate(0); }
-      to { transform: rotate(359deg); }
+      from { transform: rotate(0deg); }
+      to   { transform: rotate(360deg); }
     }
 
-    @keyframes spin3D {
-      from { transform: rotate3d(.5,.5,.5, 360deg); }
-      to { transform: rotate3d(0deg); }
+    @keyframes spinReverse {
+      from { transform: rotate(0deg); }
+      to   { transform: rotate(-360deg); }
     }
 
-    .spinner-box {
-      width: 300px;
-      height: 300px;
-      display: flex;
-      justify-content: center;
+    @keyframes dash {
+      0%   { stroke-dashoffset: 300; }
+      50%  { stroke-dashoffset: 140; }
+      100% { stroke-dashoffset: 300; }
+    }
+
+    @keyframes pulse {
+      0%, 100% { transform: translate(-50%, -50%) scale(1); }
+      50%      { transform: translate(-50%, -50%) scale(1.06); }
+    }
+
+    .brand-loader {
+      position: relative;
+      width: 168px;
+      height: 168px;
+      display: inline-flex;
       align-items: center;
-      background-color: transparent;
+      justify-content: center;
+      isolation: isolate;
+      filter: drop-shadow(0 4px 18px rgba(2, 8, 23, 0.08))
+              drop-shadow(0 8px 32px rgba(99, 102, 241, 0.15));
     }
 
-    .leo {
+    .brand-ring {
       position: absolute;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      border-radius: 50%;
+      inset: 0;
+      transform-origin: 50% 50%;
     }
 
-    .blue-orbit {
-      width: 165px;
-      height: 165px;
-      border: 3px solid #8b5cf6; /* violet-500 */
-      box-shadow: 0 0 12px rgba(139, 92, 246, 0.65);
-      -webkit-animation: spin3D 3s linear .2s infinite;
-              animation: spin3D 3s linear .2s infinite;
+    .brand-ring--outer {
+      animation: spin 1.8s linear infinite;
     }
 
-    .green-orbit {
-      width: 120px;
-      height: 120px;
-      border: 3px solid #22d3ee; /* cyan-400 */
-      box-shadow: 0 0 12px rgba(34, 211, 238, 0.65);
-      -webkit-animation: spin3D 2s linear 0s infinite;
-              animation: spin3D 2s linear 0s infinite;
+    .brand-ring--inner {
+      inset: 20px;
+      animation: spinReverse 1.4s linear infinite;
     }
 
-    .red-orbit {
-      width: 90px;
-      height: 90px;
-      border: 3px solid #f59e0b; /* amber-500 */
-      box-shadow: 0 0 12px rgba(245, 158, 11, 0.65);
-      -webkit-animation: spin3D 1s linear 0s infinite;
-              animation: spin3D 1s linear 0s infinite;
+    .brand-ring .track {
+      fill: none;
+      stroke: var(--ring-track);
+      stroke-width: 8;
     }
 
-    .white-orbit {
-      width: 60px;
-      height: 60px;
-      border: 3px solid #ffffff;
-      box-shadow: 0 0 12px rgba(255, 255, 255, 0.6);
-      -webkit-animation: spin3D 10s linear 0s infinite;
-              animation: spin3D 10s linear 0s infinite;
+    .brand-ring .indicator {
+      fill: none;
+      stroke-width: 8;
+      stroke-linecap: round;
+      stroke-dasharray: 220;
+      stroke-dashoffset: 300;
+      animation: dash 1.8s ease-in-out infinite;
     }
 
-    .w1 { transform: rotate3D(1, 1, 1, 90deg); }
-    .w2 { transform: rotate3D(1, 2, .5, 90deg); }
-    .w3 { transform: rotate3D(.5, 1, 2, 90deg); }
+    .brand-ring--inner .indicator {
+      stroke-dasharray: 160;
+      animation-duration: 1.4s;
+    }
+
+    .brand-loader__core {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      width: 38px;
+      height: 38px;
+      border-radius: 999px;
+      transform: translate(-50%, -50%);
+      background:
+        radial-gradient(40% 40% at 30% 30%, #ffffff 0%, #ffffff 30%, rgba(255, 255, 255, 0.75) 60%, rgba(255, 255, 255, 0) 100%),
+        radial-gradient(100% 100% at 50% 50%, rgba(99, 102, 241, 0.25) 0%, rgba(99, 102, 241, 0.0) 60%);
+      box-shadow:
+        0 0 22px var(--glow-1),
+        0 0 38px var(--glow-2);
+      border: 1px solid rgba(255, 255, 255, 0.65);
+      animation: pulse 1.8s ease-in-out infinite;
+      backdrop-filter: blur(2px);
+    }
   `
 })
 export class SemanticSearchComponent implements OnInit, OnDestroy, AfterViewInit {

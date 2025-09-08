@@ -319,7 +319,7 @@ async def search(
     min_confidence: Optional[float] = Query(0.7, description="Minimum confidence threshold (0-1)"),
     min_relevance: Optional[float] = Query(0.5, description="Minimum relevance (combined score) threshold (0-1)"),
     speaker: Optional[int] = Query(None, description="Filter by speaker ID"),
-    validate_content: Optional[bool] = Query(True, description="Use LLM to validate result content relevance"),
+    validate_content: Optional[bool] = Query(False, description="Use LLM to validate result content relevance"),
     current_user: dict = Depends(get_current_user)
 ):
     """

@@ -355,6 +355,31 @@
       <div #scrollAnchor></div>
     </div>
 
+    <!-- Floating Scroll-To-Bottom Button -->
+    <button
+      *ngIf="showScrollToBottom"
+      (click)="jumpToBottom()"
+      class="absolute cursor-pointer bottom-4 right-4 z-20 inline-flex items-center justify-center w-10 h-10 rounded-full bg-indigo-600 text-white shadow-lg hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+      aria-label="Scroll to bottom"
+      title="Scroll to bottom"
+      type="button"
+    >
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        width="20"
+        height="20"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      >
+        <path d="M12 5v14" />
+        <path d="m19 12-7 7-7-7" />
+      </svg>
+    </button>
+
     <!-- Empty State -->
     <div *ngIf="getLogLines().length === 0" class="text-center py-10">
       <div

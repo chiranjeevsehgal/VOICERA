@@ -30,11 +30,14 @@ export class LogViewerComponent implements OnInit, OnDestroy {
   wrapLines = true;
   showLineNumbers = true;
   fontSize = 'text-sm';
+  showScrollToBottom = false;
   
   // Auto-refresh
   autoRefreshEnabled = false;
   private autoRefreshId?: number;
   private readonly autoRefreshMs = 3000;
+  // Scroll behavior
+  private firstLoad = true;
   
   // Incremental rendering
   logLines: string[] = [];
@@ -127,9 +130,27 @@ export class LogViewerComponent implements OnInit, OnDestroy {
 
     this.lastContentText = content;
 
+    // Always scroll to bottom on the first load
+    if (this.firstLoad) {
+      setTimeout(() => {
+        this.scrollToBottom(this.logContainer?.nativeElement);
+        this.showScrollToBottom = false;
+      }, 0);
+      this.firstLoad = false;
+      return;
+    }
+
     if (wasAtBottom) {
       // Scroll to bottom after DOM updates
-      setTimeout(() => this.scrollToBottom(this.logContainer?.nativeElement), 0);
+      setTimeout(() => {
+        this.scrollToBottom(this.logContainer?.nativeElement);
+        this.showScrollToBottom = false;
+      }, 0);
+    } else {
+      // Update the visibility of the button based on current position after render
+      setTimeout(() => {
+        this.showScrollToBottom = !this.isAtBottom(this.logContainer?.nativeElement);
+      }, 0);
     }
   }
 
@@ -144,8 +165,14 @@ export class LogViewerComponent implements OnInit, OnDestroy {
     el.scrollTop = el.scrollHeight;
   }
 
+  jumpToBottom(): void {
+    this.scrollToBottom(this.logContainer?.nativeElement);
+    this.showScrollToBottom = false;
+  }
+
   onLogScroll(): void {
-    // Placeholder in case we want to show a sticky toggle later
+    const container = this.logContainer?.nativeElement;
+    this.showScrollToBottom = !this.isAtBottom(container);
   }
 
   trackByIndex(index: number, _item: unknown): number {
