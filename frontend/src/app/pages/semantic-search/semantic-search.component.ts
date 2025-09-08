@@ -56,8 +56,8 @@ export interface SemanticPodcastGroup {
     .blue-orbit {
       width: 165px;
       height: 165px;
-      border: 2px solid #3b82f6; /* blue-500 */
-      box-shadow: 0 0 12px rgba(59, 130, 246, 0.55);
+      border: 3px solid #8b5cf6; /* violet-500 */
+      box-shadow: 0 0 12px rgba(139, 92, 246, 0.65);
       -webkit-animation: spin3D 3s linear .2s infinite;
               animation: spin3D 3s linear .2s infinite;
     }
@@ -65,8 +65,8 @@ export interface SemanticPodcastGroup {
     .green-orbit {
       width: 120px;
       height: 120px;
-      border: 2px solid #10b981; /* emerald-500 */
-      box-shadow: 0 0 12px rgba(16, 185, 129, 0.55);
+      border: 3px solid #22d3ee; /* cyan-400 */
+      box-shadow: 0 0 12px rgba(34, 211, 238, 0.65);
       -webkit-animation: spin3D 2s linear 0s infinite;
               animation: spin3D 2s linear 0s infinite;
     }
@@ -74,8 +74,8 @@ export interface SemanticPodcastGroup {
     .red-orbit {
       width: 90px;
       height: 90px;
-      border: 2px solid #ef4444; /* red-500 */
-      box-shadow: 0 0 12px rgba(239, 68, 68, 0.55);
+      border: 3px solid #f59e0b; /* amber-500 */
+      box-shadow: 0 0 12px rgba(245, 158, 11, 0.65);
       -webkit-animation: spin3D 1s linear 0s infinite;
               animation: spin3D 1s linear 0s infinite;
     }
@@ -83,7 +83,7 @@ export interface SemanticPodcastGroup {
     .white-orbit {
       width: 60px;
       height: 60px;
-      border: 2px solid #ffffff;
+      border: 3px solid #ffffff;
       box-shadow: 0 0 12px rgba(255, 255, 255, 0.6);
       -webkit-animation: spin3D 10s linear 0s infinite;
               animation: spin3D 10s linear 0s infinite;
