@@ -61,7 +61,7 @@ export interface UpdateAudioRequest {
   providedIn: 'root',
 })
 export class AudioService {
-  private baseUrl = environment.apiUrl;
+  private baseUrl = environment.backendApiUrl;
 
   constructor(private http: HttpClient) {}
 

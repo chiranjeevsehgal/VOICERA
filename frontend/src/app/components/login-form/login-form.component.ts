@@ -39,7 +39,7 @@ export class LoginFormComponent {
 
     const params: { [key: string]: string } = {
       client_id: environment.googleClientId,
-      redirect_uri: 'http://localhost:4200/auth/callback',
+      redirect_uri: `${environment.frontendApiUrl}/auth/callback`,
       scope: 'openid email profile',
       response_type: 'code',
       include_granted_scopes: 'true',
@@ -56,21 +56,22 @@ export class LoginFormComponent {
     form.setAttribute('method', 'GET');
     form.setAttribute('action', oauth2Endpoint);
 
-
-    // Passing to OAuth 2.0 endpoint.
-    const params: { [key: string]: string } =
-    {
-      'client_id': environment.googleClientId,
-      'redirect_uri': `${environment.frontendApiUrl}/auth/callback`,
-      'scope': 'openid email profile',
-      'response_type': 'code',
-      'include_granted_scopes': 'true',
-      'state': 'pass-through value',
-      'access_type': 'offline'
+    const params: { [key: string]: string } = {
+      client_id: environment.githubClientId,
+      redirect_uri: 'http://localhost:4200/auth/callback',
+      scope: 'read:user user:email',
+      state: 'github-oauth',
     };
 
-    for (var p in params) {
-      var input = document.createElement('input');
+    this.createFormAndSubmit(form, params);
+  }
+
+  private createFormAndSubmit(
+    form: HTMLFormElement,
+    params: { [key: string]: string }
+  ) {
+    for (const key in params) {
+      const input = document.createElement('input');
       input.setAttribute('type', 'hidden');
       input.setAttribute('name', key);
       input.setAttribute('value', params[key]);

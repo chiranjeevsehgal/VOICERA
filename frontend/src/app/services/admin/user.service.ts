@@ -38,7 +38,7 @@ export interface User {
   providedIn: 'root',
 })
 export class UserService {
-  private baseUrl = environment.apiUrl;
+  private baseUrl = environment.backendApiUrl;
 
   constructor(private http: HttpClient) {}
 

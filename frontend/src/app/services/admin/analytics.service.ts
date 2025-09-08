@@ -104,7 +104,7 @@ export interface AnalyticsFilters {
 
 @Injectable({ providedIn: 'root' })
 export class AnalyticsService {
-  private baseUrl = environment.apiUrl;
+  private baseUrl = environment.backendApiUrl;
 
   constructor(private http: HttpClient) {}
 

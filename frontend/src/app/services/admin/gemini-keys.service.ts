@@ -34,7 +34,7 @@ export interface GeminiKeysStatusResponse {
 
 @Injectable({ providedIn: 'root' })
 export class GeminiKeysService {
-  private readonly baseUrl = `${environment.apiUrl}/api/admin`;
+  private readonly baseUrl = `${environment.backendApiUrl}/api/admin`;
 
   constructor(private http: HttpClient) {}
 
