@@ -1,4 +1,5 @@
-from fastapi import APIRouter, Query, HTTPException, Depends
+from utils.error_email import send_error_alert_email
+from fastapi import APIRouter, Query, HTTPException, Depends, Request
 from typing import Optional, List, Dict, Tuple
 from services.pinecone_service import test_pinecone_connection
 from services.enhanced_search import EnhancedSearch, TechnicalTermsScorer
@@ -624,6 +625,7 @@ class AnswerRequest(BaseModel):
 )
 async def generate_answer(
     request: AnswerRequest,
+    req: Request,
     current_user: dict = Depends(get_current_user)
 ):
     """
@@ -643,8 +645,13 @@ async def generate_answer(
         config = LLMConfig_Search()
         
         if not gemini_key_manager.has_keys():
+            await send_error_alert_email(
+            error_message=f"Gemini API keys not configured",
+            error_code="500",
+            api_endpoint="/generate-answer"
+            )
             raise HTTPException(status_code=500, detail="Gemini API keys not configured")
-        
+                
         # Validate input
         if not request.query:
             raise HTTPException(status_code=400, detail="Query is required")
@@ -694,6 +701,7 @@ class SearchAndAnswerRequest(BaseModel):
 )
 async def search_and_answer(
     request: SearchAndAnswerRequest,
+    req: Request,
     current_user: dict = Depends(get_current_user)
 ):
     """
@@ -720,6 +728,11 @@ async def search_and_answer(
         config = LLMConfig_Search()
         
         if not gemini_key_manager.has_keys():
+            await send_error_alert_email(
+            error_message=f"Gemini API keys not configured",
+            error_code="500",
+            api_endpoint="/search-and-answer"
+            )
             log_error("Gemini API keys not configured", "search.search_and_answer")
             raise HTTPException(status_code=500, detail="Gemini API keys not configured")
             
