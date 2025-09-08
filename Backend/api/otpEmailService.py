@@ -17,7 +17,6 @@ async def send_reset_email(req : GenerateOtpRequest):
     
     user = await get_user_by_email(req.email);
     
-    
     if(user == None) :
         return JSONResponse(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -32,7 +31,7 @@ async def send_reset_email(req : GenerateOtpRequest):
         to=req.email,
         otp=otp
     )
-    
+
     if success:
         return {
             "status" : True,
