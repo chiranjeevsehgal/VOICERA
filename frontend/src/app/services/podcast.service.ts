@@ -160,7 +160,7 @@ export class PodcastService {
           title: title.replace(/\.mp3$/i, ''),
           creator,
           imageUrl:
-            "https://steptodown.com/istock-downloader/images/steptodown.com440945.jpg",
+            "https://res.cloudinary.com/dpbapzakz/image/upload/v1757304113/podcast_placeholder_nbkdpf.jpg",
           audioFile: file,
         };
       });
