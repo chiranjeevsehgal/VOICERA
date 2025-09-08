@@ -12,6 +12,7 @@ from pinecone import Pinecone, ServerlessSpec, CloudProvider, AwsRegion
 from dotenv import load_dotenv
 import requests
 from utils.logging import log_info, log_warning, log_error
+from services.gemini_key_manager import gemini_key_manager
 
 # Load environment variables
 load_dotenv()
@@ -258,21 +259,21 @@ def get_embedding(text: str, task_type: Optional[str] = None) -> List[float]:
 
     # Provider: Google Gemini
     elif EMBED_PROVIDER == 1:
-        if not GEMINI_API_KEY:
-            log_error("GEMINI_API_KEY is not set", "pinecone_service")
-            raise ValueError("GEMINI_API_KEY is not set")
+        if not gemini_key_manager.has_keys():
+            log_error("No Gemini API keys configured", "pinecone_service")
+            raise ValueError("No Gemini API keys configured")
 
         url = f"https://generativelanguage.googleapis.com/v1beta/models/{GEMINI_EMBED_MODEL}:embedContent"
-        headers = {
-            "Content-Type": "application/json",
-            "x-goog-api-key": GEMINI_API_KEY,
-        }
 
         for attempt in range(1, EMBED_MAX_RETRIES + 1):
             try:
-                # Rate limit before acquiring concurrency semaphore to avoid long-held locks
+                # Estimate tokens and acquire a key with available budget
                 token_count = _estimate_tokens_for_gemini(text) + GEMINI_TOKEN_OVERHEAD
-                _enforce_gemini_rate_limits(token_count)
+                api_key = gemini_key_manager.acquire(token_count, request_type="embed")
+                headers = {
+                    "Content-Type": "application/json",
+                    "x-goog-api-key": api_key,
+                }
                 with _embedding_sem:
                     log_info(f"Generating Google embedding (attempt {attempt}) for text: {text[:100]}...", "pinecone_service", {"attempt": attempt, "model": GEMINI_EMBED_MODEL, "dimension": EMBEDDING_DIMENSION})
                     payload: Dict[str, Any] = {
@@ -289,13 +290,22 @@ def get_embedding(text: str, task_type: Optional[str] = None) -> List[float]:
                     resp = requests.post(url, headers=headers, data=json.dumps(payload), timeout=30)
                 if resp.status_code == 429:
                     retry_after = resp.headers.get("Retry-After")
-                    sleep_s = float(retry_after) if retry_after and retry_after.isdigit() else EMBED_RETRY_BASE_DELAY * (2 ** (attempt - 1))
+                    # Inform manager so it can cooldown this key
+                    try:
+                        ra = float(retry_after) if retry_after and str(retry_after).isdigit() else None
+                    except Exception:
+                        ra = None
+                    gemini_key_manager.report_result(api_key, 429, ra)
+                    sleep_s = ra if ra is not None else EMBED_RETRY_BASE_DELAY * (2 ** (attempt - 1))
                     log_warning(f"Google embedding 429. Respecting Retry-After: sleeping {sleep_s:.2f}s", "pinecone_service", {"sleep_time": sleep_s})
                     time.sleep(sleep_s)
                     continue
                 if resp.status_code >= 400:
+                    gemini_key_manager.report_result(api_key, resp.status_code, None)
                     raise RuntimeError(f"Google Embedding HTTP {resp.status_code}: {resp.text}")
 
+                # Success
+                gemini_key_manager.report_result(api_key, 200, None)
                 data = resp.json()
                 # Response may be either {"embedding": {"values": [...]}} or batched {"embeddings": [{"values": [...]}]}
                 embedding = None
@@ -333,11 +343,11 @@ def _gemini_embed_batch(texts: List[str], task_type: Optional[str] = None) -> Li
     Respects RPM/TPM/RPD using the same limiter with summed token estimate.
     Returns list of embeddings aligned to input order.
     """
-    if not GEMINI_API_KEY:
-        raise ValueError("GEMINI_API_KEY is not set")
+    if not gemini_key_manager.has_keys():
+        raise ValueError("No Gemini API keys configured")
 
     url = f"https://generativelanguage.googleapis.com/v1beta/models/{GEMINI_EMBED_MODEL}:batchEmbedContents"
-    headers = {"Content-Type": "application/json", "x-goog-api-key": GEMINI_API_KEY}
+    # headers will be constructed per-attempt after acquiring a key
 
     # Build requests array
     reqs: List[Dict[str, Any]] = []
@@ -353,26 +363,35 @@ def _gemini_embed_batch(texts: List[str], task_type: Optional[str] = None) -> Li
             item["taskType"] = task_type
         reqs.append(item)
 
-    # Rate limit based on sum tokens of the batch
+    # Token estimate for the whole batch; manager will block until a key is available
     batch_tokens = sum(_estimate_tokens_for_gemini(t) + GEMINI_TOKEN_OVERHEAD for t in texts)
-    _enforce_gemini_rate_limits(batch_tokens)
 
     last_err: Optional[Exception] = None
     for attempt in range(1, EMBED_MAX_RETRIES + 1):
         try:
+            # Acquire a key for this batch attempt
+            api_key = gemini_key_manager.acquire(batch_tokens, request_type="embed")
+            headers = {"Content-Type": "application/json", "x-goog-api-key": api_key}
             with _embedding_sem:
                 payload = {"requests": reqs}
                 log_info(f"Batch embedding {len(texts)} items (attempt {attempt}) with model {GEMINI_EMBED_MODEL}, dim {EMBEDDING_DIMENSION}", "pinecone_service", {"batch_size": len(texts), "attempt": attempt, "model": GEMINI_EMBED_MODEL, "dimension": EMBEDDING_DIMENSION})
                 resp = requests.post(url, headers=headers, data=json.dumps(payload), timeout=60)
             if resp.status_code == 429:
                 retry_after = resp.headers.get("Retry-After")
-                sleep_s = float(retry_after) if retry_after and retry_after.isdigit() else EMBED_RETRY_BASE_DELAY * (2 ** (attempt - 1))
+                try:
+                    ra = float(retry_after) if retry_after and str(retry_after).isdigit() else None
+                except Exception:
+                    ra = None
+                gemini_key_manager.report_result(api_key, 429, ra)
+                sleep_s = ra if ra is not None else EMBED_RETRY_BASE_DELAY * (2 ** (attempt - 1))
                 log_warning(f"Google batch embedding 429. Respecting Retry-After: sleeping {sleep_s:.2f}s", "pinecone_service", {"sleep_time": sleep_s})
                 time.sleep(sleep_s)
                 continue
             if resp.status_code >= 400:
+                gemini_key_manager.report_result(api_key, resp.status_code, None)
                 raise RuntimeError(f"Google Batch Embedding HTTP {resp.status_code}: {resp.text}")
 
+            gemini_key_manager.report_result(api_key, 200, None)
             data = resp.json()
             if not isinstance(data, dict) or "embeddings" not in data or not isinstance(data["embeddings"], list):
                 raise RuntimeError(f"Google Batch Embedding: invalid response: {data}")

@@ -53,7 +53,7 @@ export interface SearchResponse {
   providedIn: 'root',
 })
 export class SemanticSearchService {
-  private baseUrl = environment.apiUrl;
+  private baseUrl = environment.backendApiUrl;
   private authToken = localStorage.getItem('vEra_auth_token');
 
   constructor(private http: HttpClient) {}

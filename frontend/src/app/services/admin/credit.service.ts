@@ -37,7 +37,7 @@ export interface ApiUpdateCreditResponse {
   providedIn: 'root',
 })
 export class CreditService {
-  private baseUrl = environment.apiUrl;
+  private baseUrl = environment.backendApiUrl;
 
   constructor(private http: HttpClient) {}
 
