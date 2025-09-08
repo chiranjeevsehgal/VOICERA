@@ -79,11 +79,6 @@ export class SemanticSearchService {
       .set('limit', String(limit))
       .set('min_confidence', String(minConfidence))
       .set('min_relevance', String(minRelevance))
-      .set('use_llm_expansion', 'false')
-      .set('natural_language', 'false')
-      .set('validate_content', 'false')
-      // Ensure backend skips heavy LLM reranking (keeps cross-encoder + algorithmic pipeline)
-      .set('use_llm_rerank', 'false');
 
     return this.http.get<SearchResponse>(url, { headers, params });
   }
