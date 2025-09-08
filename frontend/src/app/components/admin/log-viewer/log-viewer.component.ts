@@ -1,4 +1,4 @@
-import { Component, OnDestroy, OnInit } from '@angular/core';
+import { Component, OnDestroy, OnInit, ElementRef, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { HttpClientModule } from '@angular/common/http';
 import { FormsModule } from '@angular/forms';
@@ -36,6 +36,11 @@ export class LogViewerComponent implements OnInit, OnDestroy {
   private autoRefreshId?: number;
   private readonly autoRefreshMs = 3000;
   
+  // Incremental rendering
+  logLines: string[] = [];
+  private lastContentText: string = '';
+  @ViewChild('logContainer') logContainer?: ElementRef<HTMLDivElement>;
+  
   constructor(
     private route: ActivatedRoute,
     private router: Router,
@@ -64,7 +69,10 @@ export class LogViewerComponent implements OnInit, OnDestroy {
     
     this.logsService.getLogFileContent(this.filename, lines, search).subscribe({
       next: (response: LogContentResponse) => {
+        // Keep the raw response for download/copy
         this.logContent = response;
+        // Update the incrementally rendered lines
+        this.updateLinesFromContent(response.content || '');
         this.loading = false;
         this.refreshing = false;
       },
@@ -91,6 +99,57 @@ export class LogViewerComponent implements OnInit, OnDestroy {
     this.searchTerm = '';
     this.lineLimit = 1000;
     this.loadLogContent();
+  }
+
+  // Append-only update if server content grew with the previous content as a prefix.
+  private updateLinesFromContent(content: string): void {
+    const container = this.logContainer?.nativeElement;
+    const wasAtBottom = this.isAtBottom(container);
+
+    if (this.lastContentText && content.startsWith(this.lastContentText)) {
+      const prevEndedWithNl = this.lastContentText.endsWith('\n');
+      const newPart = content.substring(this.lastContentText.length);
+      if (newPart.length > 0) {
+        const newLinesRaw = newPart.split('\n');
+        if (!prevEndedWithNl && this.logLines.length > 0) {
+          // Merge first new fragment with the last existing line
+          this.logLines[this.logLines.length - 1] += newLinesRaw.shift() ?? '';
+        }
+        // Append remaining complete lines
+        if (newLinesRaw.length > 0) {
+          this.logLines.push(...newLinesRaw);
+        }
+      }
+    } else {
+      // Fallback: replace entire buffer (first load or rotated/truncated log)
+      this.logLines = content.split('\n');
+    }
+
+    this.lastContentText = content;
+
+    if (wasAtBottom) {
+      // Scroll to bottom after DOM updates
+      setTimeout(() => this.scrollToBottom(this.logContainer?.nativeElement), 0);
+    }
+  }
+
+  private isAtBottom(el?: HTMLDivElement | null): boolean {
+    if (!el) return true;
+    const threshold = 40; // px tolerance
+    return el.scrollHeight - el.scrollTop - el.clientHeight <= threshold;
+  }
+
+  private scrollToBottom(el?: HTMLDivElement | null): void {
+    if (!el) return;
+    el.scrollTop = el.scrollHeight;
+  }
+
+  onLogScroll(): void {
+    // Placeholder in case we want to show a sticky toggle later
+  }
+
+  trackByIndex(index: number, _item: unknown): number {
+    return index;
   }
 
   toggleFilters(): void {

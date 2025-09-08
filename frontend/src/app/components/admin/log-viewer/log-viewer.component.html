@@ -324,10 +324,14 @@
     </div>
 
     <!-- Log Content Display -->
-    <div class="p-4 bg-gray-950 text-gray-100 overflow-auto max-h-[85vh]">
+    <div
+      #logContainer
+      class="p-4 bg-gray-950 text-gray-100 overflow-auto max-h-[85vh]"
+      (scroll)="onLogScroll()"
+    >
       <div class="font-mono leading-relaxed" [ngClass]="fontSize">
         <div
-          *ngFor="let line of getLogLines(); let i = index"
+          *ngFor="let line of logLines; let i = index; trackBy: trackByIndex"
           class="flex hover:bg-gray-800/50 transition-colors duration-150 min-h-[1.5rem] items-start"
           [ngClass]="{
             'whitespace-pre-wrap': wrapLines,
