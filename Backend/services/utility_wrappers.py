@@ -154,7 +154,7 @@ def sync_check_credits(ip: str, current_user: dict) -> Dict[str, Any]:
         load_dotenv()
 
         # Get the base URL - use localhost on same port as the server
-        api_base_url = "http://localhost:8000"  # Use same server where the app is running
+        api_base_url = os.getenv("BACKEND_URL")  # Use same server where the app is running
 
         # Construct the full URL for the credit endpoint
         credit_api_url = f"{api_base_url}/api/check-credits"
@@ -403,7 +403,7 @@ def direct_deduct_credit(ip_address: str, current_user: dict) -> Dict[str, Any]:
         load_dotenv()
 
         # Get the base URL - use localhost on same port as the server
-        api_base_url = "http://localhost:8000"  # Use same server where the app is running
+        api_base_url = os.getenv("BACKEND_URL")  # Use same server where the app is running
 
         # Construct the full URL for the credit endpoint
         credit_api_url = f"{api_base_url}/api/credit"

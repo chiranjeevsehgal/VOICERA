@@ -63,6 +63,14 @@ export class UploadComponent {
     if (file) {
       this.handleFile(file);
     }
+    // Reset the input value so selecting the same file again will trigger change
+    if (event?.target) {
+      try {
+        event.target.value = '';
+      } catch {
+        // ignore
+      }
+    }
   }
 
   private handleFile(file: File) {

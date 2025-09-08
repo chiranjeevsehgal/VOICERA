@@ -226,7 +226,7 @@
     <h3 class="text-lg font-semibold text-gray-900 mb-4">
       Status Code Distribution
     </h3>
-    <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4">
+    <div class="grid gap-4" [style.gridTemplateColumns]="'repeat(auto-fit, minmax(140px, 1fr))'">
       <div *ngFor="let status of getStatusEntries()" class="text-center">
         <div class="text-2xl font-bold" [class]="getStatusColor(status.code)">
           {{ status.count }}
