@@ -5,7 +5,13 @@ import { HotToastService } from '@ngxpert/hot-toast';
 
 @Component({
   selector: 'app-login-page',
-  templateUrl: './login-page.component.html',
+  template: `
+    <div class="flex min-h-screen flex-col items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 p-6 md:p-10">
+      <div class="w-full max-w-sm md:max-w-4xl">
+        <app-login-form></app-login-form>
+      </div>
+    </div>
+  `,
   styles: ``,
   imports: [LoginFormComponent],
 })
@@ -17,44 +23,33 @@ export class LoginPageComponent implements OnInit {
   ) {}
 
   ngOnInit(): void {
-    // Check for logout success message
     this.route.queryParams.subscribe((params) => {
-      // Check for logout success message
       if (params['loggedOut'] === 'true') {
         this.toast.success('You have been logged out successfully.');
       }
 
-      // Check for authentication errors
       if (params['error']) {
         switch (params['error']) {
           case 'account_inactive':
             this.toast.error(
-              params['message'] ||
-                'Your account is inactive. Please contact support for assistance.',
-              {
-                id: 'account_inactive',
-              }
+              params['message'] || 'Your account is inactive. Please contact support.',
+              { id: 'account_inactive' }
             );
             break;
           case 'auth_failed':
             this.toast.error(
               params['message'] || 'Authentication failed. Please try again.',
-              {
-                id: 'auth_failed',
-              }
+              { id: 'auth_failed' }
             );
             break;
           default:
             if (params['message']) {
-              this.toast.error(params['message'], {
-                id: 'unknown_error',
-              });
+              this.toast.error(params['message'], { id: 'unknown_error' });
             }
             break;
         }
       }
 
-      // Clean up the query parameters after showing messages
       if (params['loggedOut'] || params['error']) {
         this.router.navigate([], {
           queryParams: {},

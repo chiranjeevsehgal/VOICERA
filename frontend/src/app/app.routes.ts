@@ -1,11 +1,9 @@
 import { Routes } from '@angular/router';
 import { LoginPageComponent } from './pages/login-page/login-page.component';
 import { SearchComponent } from './pages/search/search.component';
-import { RegisterPageComponent } from './pages/register-page/register-page.component';
 import { PageNotFound } from './pages/error-page/error-page';
 import { authGuard } from './guards/auth.guard';
 import { redirectGuard } from './guards/redirect.guard';
-import { ForgotPasswordPageComponent } from './pages/forgot-password-page/forgot-password-page.component';
 import { AuthCallbackComponent } from './utils/auth-callback/auth-callback.component';
 import { AdminDashboardComponent } from './pages/admin/dashboard/dashboard.component';
 import { ApplicationLogsComponent } from './components/admin/application-logs/application-logs.component';
@@ -25,8 +23,6 @@ export const routes: Routes = [
     {path:"ai-answer", component: AiAnswerComponent, canActivate : [authGuard]},
     {path:"upload", component: UploadComponent, canActivate : [authGuard]},
     {path:"track", component: UploadTrackingComponent, canActivate : [authGuard]},
-    {path:"register", component: RegisterPageComponent, canActivate : [redirectGuard]},
-    {path:"forgot-password", component: ForgotPasswordPageComponent},
     {path:"auth/callback", component: AuthCallbackComponent},
     
     // Admin route
