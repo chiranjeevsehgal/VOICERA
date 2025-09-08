@@ -13,10 +13,9 @@ import { HotToastService } from '@ngxpert/hot-toast';
       50% { transform: scaleY(0.5); }
     }
   `,
-  imports: []
+  imports: [],
 })
 export class LoginFormComponent {
-
   constructor(
     private loginService: LoginService,
     private ngZone: NgZone,
@@ -39,13 +38,13 @@ export class LoginFormComponent {
     form.setAttribute('action', oauth2Endpoint);
 
     const params: { [key: string]: string } = {
-      'client_id': environment.googleClientId,
-      'redirect_uri': 'http://localhost:4200/auth/callback',
-      'scope': 'openid email profile',
-      'response_type': 'code',
-      'include_granted_scopes': 'true',
-      'state': 'google-oauth',
-      'access_type': 'offline'
+      client_id: environment.googleClientId,
+      redirect_uri: 'http://localhost:4200/auth/callback',
+      scope: 'openid email profile',
+      response_type: 'code',
+      include_granted_scopes: 'true',
+      state: 'google-oauth',
+      access_type: 'offline',
     };
 
     this.createFormAndSubmit(form, params);
@@ -58,16 +57,19 @@ export class LoginFormComponent {
     form.setAttribute('action', oauth2Endpoint);
 
     const params: { [key: string]: string } = {
-      'client_id': environment.githubClientId, // Add this to your environment
-      'redirect_uri': 'http://localhost:4200/auth/callback',
-      'scope': 'user:email',
-      'state': 'github-oauth'
+      client_id: environment.githubClientId,
+      redirect_uri: 'http://localhost:4200/auth/callback',
+      scope: 'read:user user:email',
+      state: 'github-oauth',
     };
 
     this.createFormAndSubmit(form, params);
   }
 
-  private createFormAndSubmit(form: HTMLFormElement, params: { [key: string]: string }) {
+  private createFormAndSubmit(
+    form: HTMLFormElement,
+    params: { [key: string]: string }
+  ) {
     for (const key in params) {
       const input = document.createElement('input');
       input.setAttribute('type', 'hidden');
