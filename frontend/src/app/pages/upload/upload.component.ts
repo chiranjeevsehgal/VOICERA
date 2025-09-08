@@ -30,7 +30,7 @@ export class UploadComponent {
   errorMessage = '';
   uploadResponse: UploadResponse | null = null;
 
-  supportedFormats = ['MP3', 'WAV', 'FLAC', 'AAC', 'OGG', 'M4A', 'WMA'];
+  supportedFormats = ['MP3', 'WAV'];
 
   constructor(
     private uploadService: UploadAudioService,
@@ -66,12 +66,15 @@ export class UploadComponent {
   }
 
   private handleFile(file: File) {
-    if (!file.type.startsWith('audio/')) {
-      this.showError('Please select a valid audio file');
+    // Allow only MP3 and WAV by extension
+    const allowedExtensions = ['mp3', 'wav'];
+    const ext = file.name.split('.').pop()?.toLowerCase();
+    if (!ext || !allowedExtensions.includes(ext)) {
+      this.showError('Only MP3 and WAV files are allowed');
       return;
     }
 
-    const maxSize = 50 * 1024 * 1024; // 50MB in bytes (matching the UI text)
+    const maxSize = 50 * 1024 * 1024; // 50MB in bytes
     if (file.size > maxSize) {
       this.showError('File size exceeds 50MB limit');
       return;
