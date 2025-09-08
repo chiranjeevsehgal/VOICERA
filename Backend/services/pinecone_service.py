@@ -287,7 +287,18 @@ def get_embedding(text: str, task_type: Optional[str] = None) -> List[float]:
                     else:
                         payload["taskType"] = RETRIEVAL_DOCUMENT
 
-                    resp = requests.post(url, headers=headers, data=json.dumps(payload), timeout=30)
+                    try:
+                        resp = requests.post(url, headers=headers, data=json.dumps(payload), timeout=30)
+                    except requests.Timeout:
+                        # Deadline exceeded
+                        gemini_key_manager.report_result(api_key, 504, None, status="DEADLINE_EXCEEDED")
+                        raise
+                    except requests.ConnectionError:
+                        gemini_key_manager.report_result(api_key, 503, None, status="UNAVAILABLE")
+                        raise
+                    except requests.RequestException:
+                        gemini_key_manager.report_result(api_key, 500, None, status="INTERNAL")
+                        raise
                 if resp.status_code == 429:
                     retry_after = resp.headers.get("Retry-After")
                     # Inform manager so it can cooldown this key
@@ -295,13 +306,21 @@ def get_embedding(text: str, task_type: Optional[str] = None) -> List[float]:
                         ra = float(retry_after) if retry_after and str(retry_after).isdigit() else None
                     except Exception:
                         ra = None
-                    gemini_key_manager.report_result(api_key, 429, ra)
+                    gemini_key_manager.report_result(api_key, 429, ra, status="RESOURCE_EXHAUSTED")
                     sleep_s = ra if ra is not None else EMBED_RETRY_BASE_DELAY * (2 ** (attempt - 1))
                     log_warning(f"Google embedding 429. Respecting Retry-After: sleeping {sleep_s:.2f}s", "pinecone_service", {"sleep_time": sleep_s})
                     time.sleep(sleep_s)
                     continue
                 if resp.status_code >= 400:
-                    gemini_key_manager.report_result(api_key, resp.status_code, None)
+                    err_status = None
+                    try:
+                        body = resp.json()
+                        err = body.get("error") if isinstance(body, dict) else None
+                        if isinstance(err, dict):
+                            err_status = err.get("status")
+                    except Exception:
+                        err_status = None
+                    gemini_key_manager.report_result(api_key, resp.status_code, None, status=err_status)
                     raise RuntimeError(f"Google Embedding HTTP {resp.status_code}: {resp.text}")
 
                 # Success
@@ -375,22 +394,39 @@ def _gemini_embed_batch(texts: List[str], task_type: Optional[str] = None) -> Li
             with _embedding_sem:
                 payload = {"requests": reqs}
                 log_info(f"Batch embedding {len(texts)} items (attempt {attempt}) with model {GEMINI_EMBED_MODEL}, dim {EMBEDDING_DIMENSION}", "pinecone_service", {"batch_size": len(texts), "attempt": attempt, "model": GEMINI_EMBED_MODEL, "dimension": EMBEDDING_DIMENSION})
-                resp = requests.post(url, headers=headers, data=json.dumps(payload), timeout=60)
+                try:
+                    resp = requests.post(url, headers=headers, data=json.dumps(payload), timeout=60)
+                except requests.Timeout:
+                    gemini_key_manager.report_result(api_key, 504, None, status="DEADLINE_EXCEEDED")
+                    raise
+                except requests.ConnectionError:
+                    gemini_key_manager.report_result(api_key, 503, None, status="UNAVAILABLE")
+                    raise
+                except requests.RequestException:
+                    gemini_key_manager.report_result(api_key, 500, None, status="INTERNAL")
+                    raise
             if resp.status_code == 429:
                 retry_after = resp.headers.get("Retry-After")
                 try:
                     ra = float(retry_after) if retry_after and str(retry_after).isdigit() else None
                 except Exception:
                     ra = None
-                gemini_key_manager.report_result(api_key, 429, ra)
+                gemini_key_manager.report_result(api_key, 429, ra, status="RESOURCE_EXHAUSTED")
                 sleep_s = ra if ra is not None else EMBED_RETRY_BASE_DELAY * (2 ** (attempt - 1))
                 log_warning(f"Google batch embedding 429. Respecting Retry-After: sleeping {sleep_s:.2f}s", "pinecone_service", {"sleep_time": sleep_s})
                 time.sleep(sleep_s)
                 continue
             if resp.status_code >= 400:
-                gemini_key_manager.report_result(api_key, resp.status_code, None)
+                err_status = None
+                try:
+                    body = resp.json()
+                    err = body.get("error") if isinstance(body, dict) else None
+                    if isinstance(err, dict):
+                        err_status = err.get("status")
+                except Exception:
+                    err_status = None
+                gemini_key_manager.report_result(api_key, resp.status_code, None, status=err_status)
                 raise RuntimeError(f"Google Batch Embedding HTTP {resp.status_code}: {resp.text}")
-
             gemini_key_manager.report_result(api_key, 200, None)
             data = resp.json()
             if not isinstance(data, dict) or "embeddings" not in data or not isinstance(data["embeddings"], list):
@@ -534,7 +570,6 @@ async def index_transcript(transcript_data: Dict, file_url: str, file_name: str,
         
         if not is_permanent_url:
             from services.database import uploads_collection, podcasts_collection
-            import asyncio
             
             try:
                 # Check uploads collection first
@@ -786,12 +821,12 @@ async def delete_by_file_id(file_id: str) -> Dict[str, Any]:
 
         batch_size = 1000  # Pinecone's delete limit per request
         deleted_count = 0
-        errors: List[str] = []
+        errors = []
 
         for i in range(0, len(vector_ids), batch_size):
             batch_ids = vector_ids[i:i + batch_size]
             try:
-                delete_response = index.delete(ids=batch_ids)
+                index.delete(ids=batch_ids)
                 deleted_count += len(batch_ids)
             except Exception as de:
                 err = f"Error deleting batch {i//batch_size + 1}: {str(de)}"

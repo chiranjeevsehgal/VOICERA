@@ -8,7 +8,7 @@ from services.transcript_service import extract_transcript
 from pydantic import BaseModel
 import os
 import json
-from services.gemini_text_client import generate_text
+from services.gemini_text_client import generate_text, GeminiAPIError
 from services.gemini_key_manager import gemini_key_manager
 import re
 import logging
@@ -646,7 +646,7 @@ async def generate_answer(
         
         if not gemini_key_manager.has_keys():
             await send_error_alert_email(
-            error_message=f"Gemini API keys not configured",
+            error_message="Gemini API keys not configured",
             error_code="500",
             api_endpoint="/generate-answer"
             )
@@ -683,6 +683,16 @@ async def generate_answer(
             "model": config.model_name,
         }
         
+    except GeminiAPIError as ge:
+        # Return aligned Gemini error to client
+        raise HTTPException(
+            status_code=ge.http_code,
+            detail={
+                "status": ge.status,
+                "message": ge.message or ge.description,
+                "solution": ge.solution,
+            },
+        )
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error generating answer: {str(e)}")
 
@@ -729,7 +739,7 @@ async def search_and_answer(
         
         if not gemini_key_manager.has_keys():
             await send_error_alert_email(
-            error_message=f"Gemini API keys not configured",
+            error_message="Gemini API keys not configured",
             error_code="500",
             api_endpoint="/search-and-answer"
             )
@@ -802,6 +812,20 @@ async def search_and_answer(
             "model": config.model_name,
         }
         
+    except GeminiAPIError as ge:
+        log_error(
+            f"Gemini error generating answer: {ge}",
+            "search.search_and_answer",
+            {"http_code": ge.http_code, "status": ge.status},
+        )
+        raise HTTPException(
+            status_code=ge.http_code,
+            detail={
+                "status": ge.status,
+                "message": ge.message or ge.description,
+                "solution": ge.solution,
+            },
+        )
     except Exception as e:
         log_error(f"Error generating answer: {str(e)}", "search.search_and_answer", {"error": str(e), "search_query": request.search_query if 'request' in locals() else "unknown"})
         import traceback
@@ -832,7 +856,7 @@ async def find_permanent_url(result: Dict) -> None:
     file_url = result.get("file_url", "")
     file_name = result.get("file_name", "")
     
-    if not file_name or not "tmpfiles.org" in file_url:
+    if not file_name or "tmpfiles.org" not in file_url:
         return
         
     try:
