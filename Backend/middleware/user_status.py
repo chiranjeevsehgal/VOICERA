@@ -15,9 +15,7 @@ class UserStatusMiddleware(BaseHTTPMiddleware):
         r'^/api/auth/login.*',  # Login endpoints
         r'^/api/auth/google-login.*',  # OAuth endpoints
         r'^/api/auth/register.*',  # Registration endpoints
-        r'^/api/mail/get-otp.*',  # Password reset
-        r'^/api/mail/verify-otp.*',  # Password reset
-        r'^/api/mail/update-password.*',  # Password reset
+        r'^/api/send-email.*',  # Send email endpoints
     ]
     
     async def dispatch(self, request: Request, call_next):

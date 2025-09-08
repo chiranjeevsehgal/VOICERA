@@ -1,6 +1,6 @@
 from fastapi import FastAPI, Depends, Request
 from fastapi.middleware.cors import CORSMiddleware
-from api import health, transcribe, embedding, upload, llm_translation, supabase_upload, auth, ip_detection, search, credit_management, oauth, admin, content_management, otpEmailService, process_audio
+from api import health, transcribe, embedding, upload, llm_translation, supabase_upload, auth, ip_detection, search, credit_management, oauth, admin, content_management, send_email, process_audio
 import uvicorn
 import time
 import logging
@@ -131,7 +131,7 @@ app.include_router(credit_management.router, prefix="/api", tags=["credit"])
 app.include_router(oauth.router, prefix="/api", tags=["oauth"])
 
 # Mail Service Router
-app.include_router(otpEmailService.router, prefix="/api", tags=["mail-service"])
+app.include_router(send_email.router, prefix="/api", tags=["mail-service"])
 
 # Process Audio Router (modularized)
 app.include_router(process_audio.router, prefix="/api", tags=["process-audio"])
