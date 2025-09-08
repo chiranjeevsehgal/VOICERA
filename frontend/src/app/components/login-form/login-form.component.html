@@ -1,80 +1,97 @@
-<div class="flex flex-col gap-6">
-  <div class="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
+<div class="flex flex-col gap-8">
+  <div class="overflow-hidden rounded-2xl border border-gray-200/50 bg-white shadow-xl hover:shadow-2xl transition-shadow duration-500">
     <div class="grid p-0 md:grid-cols-2">
-      <form [formGroup]="loginForm" (ngSubmit)="onSubmit()" class="p-6 md:p-8">
-        <div class="flex flex-col gap-6">
+      <!--  OAuth Login Section -->
+      <div class="p-8 md:p-12 flex flex-col justify-center bg-gradient-to-br from-white to-gray-50/50">
+        <div class="flex flex-col gap-10">
+          <!--  Header -->
           <div class="flex flex-col items-center text-center">
-            <h1 class="text-3xl font-bold text-black">Welcome back</h1>
-            <p class="text-gray-500 text-xs">Login to your account</p>
-          </div>
-
-          <div class="grid gap-2">
-            <label for="email" class="text-sm font-medium text-black">Email</label>
-            <input id="email" type="email" formControlName="email" placeholder="Enter your Email Address" required
-              autocomplete="email"
-              class="flex h-10 w-full rounded-md border border-gray-200 bg-white px-3 py-2 text-sm ring-offset-white file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-gray-500 disabled:cursor-not-allowed disabled:opacity-50 text-black focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500" />
-          </div>
-
-          <div class="grid gap-2">
-
-            <div class="relative">
-              <input id="password" placeholder="Enter your Password" [type]="showPassword ? 'text' : 'password'"
-                formControlName="password" required
-                autocomplete="current-password"
-                class="flex h-10 w-full rounded-md border border-gray-200 bg-white px-3 py-2 text-sm ring-offset-white file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-gray-500 disabled:cursor-not-allowed disabled:opacity-50 text-black focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500" />
-              <button type="button" (click)="togglePasswordVisibility()"
-                class="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-500 hover:text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 rounded">
-                @if (showPassword) {
-                <lucide-icon [name]="eyeOff" class="h-5 w-5 cursor-pointer"></lucide-icon>
-                } @else {
-                <lucide-icon [name]="eye" class="h-5 w-5 cursor-pointer"></lucide-icon>
-                }
-              </button>
+            <div class="mb-6 relative">
+              <!--  Logo with Glow Effect -->
+              <div class="w-20 h-20 bg-gradient-to-br from-indigo-500 via-purple-600 to-indigo-700 rounded-2xl flex items-center justify-center mb-6 shadow-2xl relative overflow-hidden group">
+                <!-- Glow Effect -->
+                <div class="absolute inset-0 bg-gradient-to-br from-indigo-400/50 to-purple-500/50 rounded-2xl blur-xl opacity-60 group-hover:opacity-80 transition-opacity duration-300"></div>
+                <!-- Icon -->
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 text-white relative z-10 drop-shadow-lg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
+                </svg>
+                <!-- Subtle Animation -->
+                <div class="absolute inset-0 bg-white/20 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+              </div>
             </div>
+            <h1 class="text-4xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent mb-3">
+              Welcome to VOICERA
+            </h1>
+            <p class="text-gray-600 text-lg">Sign in to continue your audio journey</p>
           </div>
 
-          <button
-            class="inline-flex items-center justify-center whitespace-nowrap rounded-md bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 text-sm font-medium shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:pointer-events-none disabled:opacity-50 w-full cursor-pointer"
-            [disabled]="!loginForm.valid">
-            @if (isLoading) {
-            <p-progress-spinner strokeWidth="2" fill="transparent" animationDuration=".5s"
-              [style]="{ width: '20px', height: '20px' }" />
-            } @else {
-            Login
-            }
-          </button>
-
-          <div
-            class="relative text-center text-sm after:absolute after:inset-0 after:top-1/2 after:z-0 after:flex after:items-center after:border-t after:border-gray-200">
-            <span class="relative z-10 bg-white px-2 text-gray-500">Or continue with</span>
-          </div>
-
-          <div class="">
-
-            <button type="button" (click)="oauthSignIn()"
-              class="inline-flex items-center justify-center whitespace-nowrap rounded-md border border-gray-200 bg-white px-4 py-2 text-sm font-medium shadow-sm transition-colors hover:bg-gray-100 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:pointer-events-none disabled:opacity-50 w-full cursor-pointer">
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="h-5 w-5">
-                <path
-                  d="M12.48 10.92v3.28h7.84c-.24 1.84-.853 3.187-1.787 4.133-1.147 1.147-2.933 2.4-6.053 2.4-4.827 0-8.6-3.893-8.6-8.72s3.773-8.72 8.6-8.72c2.6 0 4.507 1.027 5.907 2.347l2.307-2.307C18.747 1.44 16.133 0 12.48 0 5.867 0 .307 5.387.307 12s5.56 12 12.173 12c3.573 0 6.267-1.173 8.373-3.36 2.16-2.16 2.84-5.213 2.84-7.667 0-.76-.053-1.467-.173-2.053H12.48z"
-                  fill="black" />
+          <!--  OAuth Buttons -->
+          <div class="flex flex-col gap-5">
+            <!--  Google Sign In -->
+            <button type="button" (click)="oauthSignIn('google')"
+              class="group relative inline-flex items-center justify-center whitespace-nowrap rounded-xl border border-gray-200 bg-white px-8 py-4 text-base font-medium shadow-lg transition-all duration-300 hover:bg-gray-50 hover:border-gray-300 hover:shadow-xl hover:-translate-y-0.5 focus:outline-none focus:ring-4 focus:ring-indigo-500/20 focus:border-indigo-500 disabled:pointer-events-none disabled:opacity-50 w-full cursor-pointer overflow-hidden">
+              <!-- Hover Effect Background -->
+              <div class="absolute inset-0 bg-gradient-to-r from-blue-50 to-indigo-50 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+              
+              <!-- Google Icon with  Styling -->
+              <div class="relative z-10 flex items-center">
+                <div class="w-6 h-6 mr-4 relative">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="w-full h-full">
+                    <path
+                      d="M12.48 10.92v3.28h7.84c-.24 1.84-.853 3.187-1.787 4.133-1.147 1.147-2.933 2.4-6.053 2.4-4.827 0-8.6-3.893-8.6-8.72s3.773-8.72 8.6-8.72c2.6 0 4.507 1.027 5.907 2.347l2.307-2.307C18.747 1.44 16.133 0 12.48 0 5.867 0 .307 5.387.307 12s5.56 12 12.173 12c3.573 0 6.267-1.173 8.373-3.36 2.16-2.16 2.84-5.213 2.84-7.667 0-.76-.053-1.467-.173-2.053H12.48z"
+                      fill="#4285F4" />
+                  </svg>
+                </div>
+                <span class="text-gray-700 group-hover:text-gray-900 font-medium">Continue with Google</span>
+              </div>
+              
+              <!-- Subtle Arrow -->
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 ml-auto text-gray-400 group-hover:text-gray-600 group-hover:translate-x-1 transition-all duration-300 relative z-10" viewBox="0 0 20 20" fill="currentColor">
+                <path fill-rule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clip-rule="evenodd" />
               </svg>
-              <span class="sr-only">Login with Google</span>
+            </button>
+
+            <!--  GitHub Sign In -->
+            <button type="button" (click)="oauthSignIn('github')"
+              class="group relative inline-flex items-center justify-center whitespace-nowrap rounded-xl border border-gray-200 bg-white px-8 py-4 text-base font-medium shadow-lg transition-all duration-300 hover:bg-gray-50 hover:border-gray-300 hover:shadow-xl hover:-translate-y-0.5 focus:outline-none focus:ring-4 focus:ring-indigo-500/20 focus:border-indigo-500 disabled:pointer-events-none disabled:opacity-50 w-full cursor-pointer overflow-hidden">
+              <!-- Hover Effect Background -->
+              <div class="absolute inset-0 bg-gradient-to-r from-gray-50 to-slate-50 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+              
+              <!-- GitHub Icon with  Styling -->
+              <div class="relative z-10 flex items-center">
+                <div class="w-6 h-6 mr-4 relative">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="w-full h-full" fill="#24292e">
+                    <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+                  </svg>
+                </div>
+                <span class="text-gray-700 group-hover:text-gray-900 font-medium">Continue with GitHub</span>
+              </div>
+              
+              <!-- Subtle Arrow -->
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 ml-auto text-gray-400 group-hover:text-gray-600 group-hover:translate-x-1 transition-all duration-300 relative z-10" viewBox="0 0 20 20" fill="currentColor">
+                <path fill-rule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clip-rule="evenodd" />
+              </svg>
             </button>
           </div>
 
-          <div class="text-center text-xs text-black">
-            Don't have an account?
-            <a href="/register" class="underline underline-offset-4 ml-1">
-              Sign up
-            </a>
-          </div>
         </div>
-      </form>
+      </div>
 
-      <div class="relative hidden bg-gray-100 md:block">
+      <!-- Keep the  Image Section -->
+      <div class="relative hidden bg-gradient-to-br from-gray-100 to-gray-200 md:block overflow-hidden">
+        <!-- Overlay for better contrast -->
+        <div class="absolute inset-0 bg-gradient-to-br from-indigo-900/20 to-purple-900/20 z-10"></div>
         <img
           src="https://images.unsplash.com/photo-1683304554869-8a871c913096?q=80&w=1974&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
-          alt="Image" class="absolute inset-0 h-full w-full object-cover dark:brightness-[0.9]" />
+          alt="Audio Discovery Interface" 
+          class="absolute inset-0 h-full w-full object-cover transition-transform duration-700 hover:scale-105 dark:brightness-[0.9]" />
+        
+        <div class="absolute bottom-8 left-8 right-8 z-20">
+          <div class="bg-white/10 backdrop-blur-md rounded-2xl p-6 border border-white/20">
+            <h3 class="text-white text-lg font-semibold mb-2">AI-Powered Audio Search</h3>
+            <p class="text-white/80 text-sm">Transform your audio content into searchable, organized knowledge.</p>
+          </div>
+        </div>
       </div>
     </div>
   </div>

@@ -1,7 +1,6 @@
 import { Routes } from '@angular/router';
 import { LoginPageComponent } from './pages/login-page/login-page.component';
 import { SearchComponent } from './pages/search/search.component';
-import { RegisterPageComponent } from './pages/register-page/register-page.component';
 import { PageNotFound } from './pages/error-page/error-page';
 import { authGuard } from './guards/auth.guard';
 import { redirectGuard } from './guards/redirect.guard';
@@ -24,7 +23,6 @@ export const routes: Routes = [
     {path:"ai-answer", component: AiAnswerComponent, canActivate : [authGuard]},
     {path:"upload", component: UploadComponent, canActivate : [authGuard]},
     {path:"track", component: UploadTrackingComponent, canActivate : [authGuard]},
-    {path:"register", component: RegisterPageComponent, canActivate : [redirectGuard]},
     {path:"auth/callback", component: AuthCallbackComponent},
     
     // Admin route
