@@ -23,7 +23,6 @@ import { HotToastService } from '@ngxpert/hot-toast';
 export class ApplicationLogsComponent implements OnInit {
   loading = false;
   refreshing = false;
-  error = '';
 
   logFiles: LogFile[] = [];
   totalFiles = 0;
@@ -50,7 +49,6 @@ export class ApplicationLogsComponent implements OnInit {
 
   loadLogFiles(): void {
     this.loading = true;
-    this.error = '';
 
     // Check if we should use mock data
     if (shouldUseMockData()) {
@@ -80,7 +78,7 @@ export class ApplicationLogsComponent implements OnInit {
       },
       error: (err) => {
         console.error('Failed to load log files', err);
-        this.error = 'Failed to load log files. Please try again.';
+        this.toast.error('Failed to load log files. Please try again.');
         this.loading = false;
         this.refreshing = false;
       },

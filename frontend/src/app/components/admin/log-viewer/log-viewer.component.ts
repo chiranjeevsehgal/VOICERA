@@ -13,6 +13,7 @@ import {
   LogsService,
   LogContentResponse,
 } from '../../../services/admin/logs.service';
+import { HotToastService } from '@ngxpert/hot-toast';
 
 @Component({
   selector: 'app-log-viewer',
@@ -25,7 +26,6 @@ import {
 export class LogViewerComponent implements OnInit, OnDestroy {
   loading = false;
   refreshing = false;
-  error = '';
 
   filename = '';
   logContent: LogContentResponse | null = null;
@@ -57,6 +57,7 @@ export class LogViewerComponent implements OnInit, OnDestroy {
     private route: ActivatedRoute,
     private router: Router,
     private logsService: LogsService,
+    private toast: HotToastService,
   ) {}
 
   ngOnInit(): void {
@@ -74,7 +75,6 @@ export class LogViewerComponent implements OnInit, OnDestroy {
 
   loadLogContent(): void {
     this.loading = true;
-    this.error = '';
 
     const lines = this.lineLimit > 0 ? this.lineLimit : undefined;
     const search = this.searchTerm.trim() || undefined;
@@ -90,7 +90,7 @@ export class LogViewerComponent implements OnInit, OnDestroy {
       },
       error: (err) => {
         console.error('Failed to load log content', err);
-        this.error = 'Failed to load log content. Please try again.';
+        this.toast.error('Failed to load log content. Please try again.');
         this.loading = false;
         this.refreshing = false;
       },

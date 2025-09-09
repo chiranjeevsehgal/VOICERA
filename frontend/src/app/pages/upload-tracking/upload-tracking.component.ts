@@ -5,17 +5,16 @@ import {
   UploadAudioService,
   JobStatus,
 } from '../../services/upload-audio.service';
-import { MessageService } from 'primeng/api';
 import { CommonModule } from '@angular/common';
-import { Toast } from 'primeng/toast';
 import { HeaderComponent } from '../../components/header/header.component';
 import { FormsModule } from '@angular/forms';
 import { ProfileService } from '../../services/auth/profile.service';
+import { HotToastService } from '@ngxpert/hot-toast';
 
 @Component({
   selector: 'app-upload-tracking',
-  imports: [Toast, CommonModule, FormsModule, HeaderComponent],
-  providers: [MessageService],
+  imports: [CommonModule, FormsModule, HeaderComponent],
+  providers: [],
   templateUrl: './upload-tracking.component.html',
   styles: ``,
 })
@@ -41,6 +40,7 @@ export class UploadTrackingComponent implements OnInit, OnDestroy {
     private route: ActivatedRoute,
     private uploadService: UploadAudioService,
     private profileService: ProfileService,
+    private toast: HotToastService,
   ) {}
 
   ngOnInit() {
@@ -62,7 +62,6 @@ export class UploadTrackingComponent implements OnInit, OnDestroy {
     // Track if this is a manual refresh to prevent auto-enabling auto-refresh
     this.manualRefreshInProgress = !this.loading;
     this.loading = true;
-    this.errorMessage = '';
 
     this.uploadService.getJobStatus(this.jobId).subscribe({
       next: (status: any) => {
@@ -92,7 +91,9 @@ export class UploadTrackingComponent implements OnInit, OnDestroy {
         this.errorMessage =
           error.error?.message ||
           'Failed to fetch job status. Please check your job ID and try again.';
+        this.toast.error('Failed to fetch job status. Please check your job ID and try again.');
       },
+
     });
   }
 

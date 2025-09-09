@@ -10,13 +10,12 @@ import { Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { Subscription } from 'rxjs';
 import { HeaderComponent } from '../../components/header/header.component';
-import { MessageService } from 'primeng/api';
 import { FormsModule } from '@angular/forms';
-import { Toast } from 'primeng/toast';
 import {
   SemanticSearchService,
   SearchResult,
 } from '../../services/semantic-search.service';
+import { HotToastService } from '@ngxpert/hot-toast';
 
 export interface SemanticPodcastGroup {
   id: string;
@@ -31,8 +30,8 @@ export interface SemanticPodcastGroup {
 
 @Component({
   selector: 'app-semantic-search',
-  imports: [Toast, CommonModule, FormsModule, HeaderComponent],
-  providers: [MessageService],
+  imports: [CommonModule, FormsModule, HeaderComponent],
+  providers: [],
   templateUrl: './semantic-search.component.html',
   styles: `
     /* Branded Loader (VOICERA) */
@@ -195,8 +194,8 @@ export class SemanticSearchComponent
 
   constructor(
     private semanticSearchService: SemanticSearchService,
-    private messageService: MessageService,
     private router: Router,
+    private toast: HotToastService,
   ) {}
 
   ngOnInit(): void {}
@@ -257,11 +256,7 @@ export class SemanticSearchComponent
           console.error('Search error:', error);
           this.loading = false;
           this.hasSearched = true;
-          this.messageService.add({
-            severity: 'error',
-            summary: 'Search Error',
-            detail: 'Failed to perform search. Please try again.',
-          });
+          this.toast.error('Failed to perform search. Please try again.');
         },
       });
   }

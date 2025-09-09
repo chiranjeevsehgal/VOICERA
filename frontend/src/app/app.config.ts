@@ -10,7 +10,6 @@ import {
   provideHttpClient,
   withInterceptors,
 } from '@angular/common/http';
-import { MessageService } from 'primeng/api';
 import { authInterceptor } from './interceptors/auth.interceptor';
 import { provideHotToastConfig } from '@ngxpert/hot-toast';
 import { AppTitleStrategy } from './title.strategy';
@@ -34,6 +33,5 @@ export const appConfig: ApplicationConfig = {
       duration: 3000,
       position: 'top-center',
     }),
-    MessageService,
   ],
 };

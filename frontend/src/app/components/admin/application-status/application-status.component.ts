@@ -9,8 +9,6 @@ import {
   RateLimitsResponse,
   CircuitBreakerState,
 } from '../../../services/admin/system-health.service';
-import { Toast } from 'primeng/toast';
-import { MessageService } from 'primeng/api';
 import {
   LucideAngularModule,
   Activity,
@@ -27,18 +25,18 @@ import { shouldUseMockData } from '../../../utils/role.utils';
 import * as mockHealthData from '../../../utils/mockData/mockHealth.json';
 import * as mockCircuitBreakersData from '../../../utils/mockData/mockCircuitBreakers.json';
 import * as mockRateLimitsData from '../../../utils/mockData/mockRateLimits.json';
+import { HotToastService } from '@ngxpert/hot-toast';
 
 @Component({
   selector: 'app-application-status',
   standalone: true,
   imports: [
-    Toast,
     CommonModule,
     FormsModule,
     HttpClientModule,
     LucideAngularModule,
   ],
-  providers: [MessageService, SystemHealthService],
+  providers: [SystemHealthService],
   templateUrl: './application-status.component.html',
   styles: ``,
 })
@@ -62,7 +60,6 @@ export class ApplicationStatusComponent implements OnInit {
   loading: boolean = false;
   refreshing: boolean = false;
   resettingCircuitBreakers: boolean = false;
-  error: string = '';
   lastRefresh: Date | null = null;
 
   // Auto refresh
@@ -72,7 +69,7 @@ export class ApplicationStatusComponent implements OnInit {
 
   constructor(
     private systemHealthService: SystemHealthService,
-    private messageService: MessageService,
+    private toast: HotToastService,
   ) {}
 
   ngOnInit() {
@@ -86,7 +83,6 @@ export class ApplicationStatusComponent implements OnInit {
 
   async loadAllData() {
     this.loading = true;
-    this.error = '';
     // Use mock data for Guests
     if (shouldUseMockData()) {
       const health = mockHealthData as SystemHealthResponse;
@@ -115,12 +111,7 @@ export class ApplicationStatusComponent implements OnInit {
       this.rateLimits = rateLimitData!;
       this.lastRefresh = new Date();
     } catch (error: any) {
-      this.error = error?.error?.detail || 'Failed to load system status';
-      this.messageService.add({
-        severity: 'error',
-        summary: 'Error',
-        detail: this.error,
-      });
+      this.toast.error("Failed to load system status");
     } finally {
       this.loading = false;
       this.refreshing = false;
@@ -145,11 +136,6 @@ export class ApplicationStatusComponent implements OnInit {
     // Simulate reset in Guest/Mock mode
     if (shouldUseMockData()) {
       await new Promise((resolve) => setTimeout(resolve, 400));
-      this.messageService.add({
-        severity: 'success',
-        summary: 'Success',
-        detail: 'Circuit breakers reset (mock)',
-      });
       // Refresh data after reset
       await this.loadAllData();
       this.resettingCircuitBreakers = false;
@@ -161,20 +147,13 @@ export class ApplicationStatusComponent implements OnInit {
         .resetCircuitBreakers()
         .toPromise();
 
-      this.messageService.add({
-        severity: 'success',
-        summary: 'Success',
-        detail: result!.message,
-      });
+      this.toast.success('Circuit breakers reset successfully');
 
       // Refresh data after reset
       await this.loadAllData();
     } catch (error: any) {
-      this.messageService.add({
-        severity: 'error',
-        summary: 'Error',
-        detail: error?.error?.detail || 'Failed to reset circuit breakers',
-      });
+      
+      this.toast.error('Failed to reset circuit breakers');
     } finally {
       this.resettingCircuitBreakers = false;
     }

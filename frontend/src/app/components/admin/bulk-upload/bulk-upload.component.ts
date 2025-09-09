@@ -54,7 +54,7 @@ export class BulkUploadComponent implements OnDestroy {
 
   constructor(
     private bulkService: BulkUploadService,
-    private toast: HotToastService,
+    private toast: HotToastService
   ) {}
 
   ngOnDestroy(): void {
@@ -80,13 +80,11 @@ export class BulkUploadComponent implements OnDestroy {
     if (combined.length > this.maxFiles) {
       const allowed = this.maxFiles - this.files.length;
       this.files.push(
-        ...selected
-          .slice(0, Math.max(0, allowed))
-          .map((f) => ({
-            file: f,
-            customName: f.name,
-            sizeMB: Math.round((f.size / (1024 * 1024)) * 100) / 100,
-          })),
+        ...selected.slice(0, Math.max(0, allowed)).map((f) => ({
+          file: f,
+          customName: f.name,
+          sizeMB: Math.round((f.size / (1024 * 1024)) * 100) / 100,
+        }))
       );
     } else {
       this.files = combined;
@@ -181,13 +179,8 @@ export class BulkUploadComponent implements OnDestroy {
         this.showTrackingModal = true;
       },
       error: (err) => {
-        console.error('Bulk upload error', err);
+        this.toast.error('Bulk upload failed');
         this.submitting = false;
-        alert(
-          err?.error?.detail?.message ||
-            err?.error?.detail ||
-            'Bulk upload failed',
-        );
       },
     });
   }
@@ -229,7 +222,7 @@ export class BulkUploadComponent implements OnDestroy {
           };
         },
         error: (err) => {
-          console.warn('Status error', job.job_id, err);
+          this.toast.error('Failed to fetch status');
           this.jobStatuses[idx] = {
             ...job,
             status: 'error',

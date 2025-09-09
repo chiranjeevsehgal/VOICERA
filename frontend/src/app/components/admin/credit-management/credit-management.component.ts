@@ -25,7 +25,6 @@ export class CreditManagementComponent implements OnInit {
   selectedCreditRange: string = 'all';
   loading: boolean = false;
   refreshing: boolean = false;
-  error: string = '';
   totalCount: number = 0;
   showEditModal: boolean = false;
   creditToEdit: IPCredit | null = null;
@@ -43,7 +42,6 @@ export class CreditManagementComponent implements OnInit {
 
   loadCredits() {
     this.loading = true;
-    this.error = '';
 
     // Check if we should use mock data
     if (shouldUseMockData()) {
@@ -75,10 +73,9 @@ export class CreditManagementComponent implements OnInit {
       },
       error: (error) => {
         console.error('Error loading IP credits:', error);
-        this.error = 'Failed to load IP credits. Please try again.';
+        this.toast.error('Failed to load IP credits. Please try again.');
         this.loading = false;
 
-        this.toast.error('Failed to load IP credits. Please try again.');
 
         this.credits = [];
         this.filteredCredits = [];

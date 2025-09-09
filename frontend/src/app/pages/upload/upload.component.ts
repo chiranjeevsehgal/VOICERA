@@ -4,18 +4,17 @@ import {
   UploadAudioService,
   UploadResponse,
 } from '../../services/upload-audio.service';
-import { Toast } from 'primeng/toast';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HeaderComponent } from '../../components/header/header.component';
-import { MessageService } from 'primeng/api';
 import { Router } from '@angular/router';
 import { ProfileService } from '../../services/auth/profile.service';
+import { HotToastService } from '@ngxpert/hot-toast';
 
 @Component({
   selector: 'app-upload',
-  imports: [Toast, CommonModule, FormsModule, HeaderComponent],
-  providers: [MessageService],
+  imports: [CommonModule, FormsModule, HeaderComponent],
+  providers: [],
   templateUrl: './upload.component.html',
   styles: '',
 })
@@ -27,7 +26,6 @@ export class UploadComponent {
   uploadStatus = '';
   uploadSuccess = false;
   uploadError = false;
-  errorMessage = '';
   uploadResponse: UploadResponse | null = null;
 
   supportedFormats = ['MP3', 'WAV'];
@@ -36,6 +34,7 @@ export class UploadComponent {
     private uploadService: UploadAudioService,
     private router: Router,
     private profileService: ProfileService,
+    private toast: HotToastService
   ) {}
 
   onDragOver(event: DragEvent) {
@@ -78,13 +77,13 @@ export class UploadComponent {
     const allowedExtensions = ['mp3', 'wav'];
     const ext = file.name.split('.').pop()?.toLowerCase();
     if (!ext || !allowedExtensions.includes(ext)) {
-      this.showError('Only MP3 and WAV files are allowed');
+      this.toast.error('Only MP3 and WAV files are allowed');
       return;
     }
 
     const maxSize = 50 * 1024 * 1024; // 50MB in bytes
     if (file.size > maxSize) {
-      this.showError('File size exceeds 50MB limit');
+      this.toast.error('File size exceeds 50MB limit');
       return;
     }
 
@@ -121,9 +120,7 @@ export class UploadComponent {
       },
       error: (error) => {
         this.isUploading = false;
-        this.showError(
-          error.error?.message || 'Upload failed. Please try again.',
-        );
+        console.error('Upload failed. Please try again.');
       },
     });
   }
@@ -167,13 +164,6 @@ export class UploadComponent {
     this.uploadStatus = '';
     this.uploadSuccess = false;
     this.uploadError = false;
-    this.errorMessage = '';
-  }
-
-  private showError(message: string) {
-    this.errorMessage = message;
-    this.uploadError = true;
-    this.isUploading = false;
   }
 
   formatFileSize(bytes: number): string {
