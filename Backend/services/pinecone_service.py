@@ -13,6 +13,7 @@ from dotenv import load_dotenv
 import requests
 from utils.logging import log_info, log_warning, log_error
 from services.gemini_key_manager import gemini_key_manager
+from services.circuit_breaker import ServiceCircuitBreakers, CircuitBreakerError, CircuitState
 
 # Load environment variables
 load_dotenv()
@@ -287,21 +288,38 @@ def get_embedding(text: str, task_type: Optional[str] = None) -> List[float]:
                     else:
                         payload["taskType"] = RETRIEVAL_DOCUMENT
 
+                    # Check circuit breaker before making request
+                    gemini_breaker = ServiceCircuitBreakers.get_gemini_breaker()
+                    if gemini_breaker.state.value == "open":
+                        log_error("Circuit breaker is OPEN - blocking Gemini embedding request", "pinecone_service", {"circuit_state": "open"})
+                        raise CircuitBreakerError("Gemini API circuit breaker is open")
+                    
+                    # Track request
+                    gemini_breaker.stats["total_requests"] += 1
+
                     try:
                         resp = requests.post(url, headers=headers, data=json.dumps(payload), timeout=30)
-                    except requests.Timeout:
-                        # Deadline exceeded
-                        gemini_key_manager.report_result(api_key, 504, None, status="DEADLINE_EXCEEDED")
+                    except (requests.Timeout, requests.ConnectionError, requests.RequestException) as e:
+                        # Record failure in circuit breaker (sync version)
+                        gemini_breaker.stats["failed_requests"] += 1
+                        gemini_breaker.failure_count += 1
+                        gemini_breaker.last_failure_time = time.time()
+                        if gemini_breaker.failure_count >= gemini_breaker.config.failure_threshold:
+                            gemini_breaker.state = CircuitState.OPEN
+                            gemini_breaker.stats["circuit_opens"] += 1
+                            log_error(f"Circuit breaker opened after {gemini_breaker.failure_count} failures", "pinecone_service")
+                        
+                        if isinstance(e, requests.Timeout):
+                            gemini_key_manager.report_result(api_key, 504, None, status="DEADLINE_EXCEEDED")
+                        elif isinstance(e, requests.ConnectionError):
+                            gemini_key_manager.report_result(api_key, 503, None, status="UNAVAILABLE")
+                        else:
+                            gemini_key_manager.report_result(api_key, 500, None, status="INTERNAL")
                         raise
-                    except requests.ConnectionError:
-                        gemini_key_manager.report_result(api_key, 503, None, status="UNAVAILABLE")
-                        raise
-                    except requests.RequestException:
-                        gemini_key_manager.report_result(api_key, 500, None, status="INTERNAL")
-                        raise
+
+                # Handle HTTP response
                 if resp.status_code == 429:
                     retry_after = resp.headers.get("Retry-After")
-                    # Inform manager so it can cooldown this key
                     try:
                         ra = float(retry_after) if retry_after and str(retry_after).isdigit() else None
                     except Exception:
@@ -311,6 +329,7 @@ def get_embedding(text: str, task_type: Optional[str] = None) -> List[float]:
                     log_warning(f"Google embedding 429. Respecting Retry-After: sleeping {sleep_s:.2f}s", "pinecone_service", {"sleep_time": sleep_s})
                     time.sleep(sleep_s)
                     continue
+
                 if resp.status_code >= 400:
                     err_status = None
                     try:
@@ -321,10 +340,29 @@ def get_embedding(text: str, task_type: Optional[str] = None) -> List[float]:
                     except Exception:
                         err_status = None
                     gemini_key_manager.report_result(api_key, resp.status_code, None, status=err_status)
+                    
+                    # Record failure in circuit breaker
+                    gemini_breaker.stats["failed_requests"] += 1
+                    gemini_breaker.failure_count += 1
+                    gemini_breaker.last_failure_time = time.time()
+                    if gemini_breaker.failure_count >= gemini_breaker.config.failure_threshold:
+                        gemini_breaker.state = CircuitState.OPEN
+                        gemini_breaker.stats["circuit_opens"] += 1
+                        log_error(f"Circuit breaker opened after {gemini_breaker.failure_count} failures", "pinecone_service")
+                    
                     raise RuntimeError(f"Google Embedding HTTP {resp.status_code}: {resp.text}")
 
-                # Success
+                # Success - reset circuit breaker failure count
                 gemini_key_manager.report_result(api_key, 200, None)
+                gemini_breaker.failure_count = 0  # Reset on success
+                gemini_breaker.stats["successful_requests"] += 1
+                gemini_breaker.last_success_time = time.time()
+                if gemini_breaker.state == CircuitState.HALF_OPEN:
+                    gemini_breaker.success_count += 1
+                    if gemini_breaker.success_count >= gemini_breaker.config.success_threshold:
+                        gemini_breaker.state = CircuitState.CLOSED
+                        gemini_breaker.stats["circuit_closes"] += 1
+                
                 data = resp.json()
                 # Response may be either {"embedding": {"values": [...]}} or batched {"embeddings": [{"values": [...]}]}
                 embedding = None
@@ -355,6 +393,46 @@ def get_embedding(text: str, task_type: Optional[str] = None) -> List[float]:
 
     else:
         raise ValueError(f"Unsupported EMBED_PROVIDER value: {EMBED_PROVIDER}")
+
+def _make_gemini_embedding_request(url: str, headers: dict, payload: dict, api_key: str) -> dict:
+    """Make a single Gemini embedding API request with circuit breaker protection"""
+    try:
+        resp = requests.post(url, headers=headers, data=json.dumps(payload), timeout=30)
+    except requests.Timeout:
+        gemini_key_manager.report_result(api_key, 504, None, status="DEADLINE_EXCEEDED")
+        raise
+    except requests.ConnectionError:
+        gemini_key_manager.report_result(api_key, 503, None, status="UNAVAILABLE")
+        raise
+    except requests.RequestException:
+        gemini_key_manager.report_result(api_key, 500, None, status="INTERNAL")
+        raise
+    
+    if resp.status_code == 429:
+        retry_after = resp.headers.get("Retry-After")
+        try:
+            ra = float(retry_after) if retry_after and str(retry_after).isdigit() else None
+        except Exception:
+            ra = None
+        gemini_key_manager.report_result(api_key, 429, ra, status="RESOURCE_EXHAUSTED")
+        # Convert 429 to a retriable exception that circuit breaker can handle
+        raise RuntimeError(f"Google Embedding rate limit: {resp.text}")
+    
+    if resp.status_code >= 400:
+        err_status = None
+        try:
+            body = resp.json()
+            err = body.get("error") if isinstance(body, dict) else None
+            if isinstance(err, dict):
+                err_status = err.get("status")
+        except Exception:
+            err_status = None
+        gemini_key_manager.report_result(api_key, resp.status_code, None, status=err_status)
+        raise RuntimeError(f"Google Embedding HTTP {resp.status_code}: {resp.text}")
+    
+    # Success
+    gemini_key_manager.report_result(api_key, 200, None)
+    return resp.json()
 
 def _gemini_embed_batch(texts: List[str], task_type: Optional[str] = None) -> List[List[float]]:
     """
@@ -394,56 +472,91 @@ def _gemini_embed_batch(texts: List[str], task_type: Optional[str] = None) -> Li
             with _embedding_sem:
                 payload = {"requests": reqs}
                 log_info(f"Batch embedding {len(texts)} items (attempt {attempt}) with model {GEMINI_EMBED_MODEL}, dim {EMBEDDING_DIMENSION}", "pinecone_service", {"batch_size": len(texts), "attempt": attempt, "model": GEMINI_EMBED_MODEL, "dimension": EMBEDDING_DIMENSION})
+                # Circuit breaker protection (synchronous)
+                gemini_breaker = ServiceCircuitBreakers.get_gemini_breaker()
+                if gemini_breaker.state.value == "open":
+                    log_error("Circuit breaker is OPEN - blocking Gemini batch embedding request", "pinecone_service", {"circuit_state": "open"})
+                    raise CircuitBreakerError("Gemini API circuit breaker is open")
+
+                # Track request
+                gemini_breaker.stats["total_requests"] += 1
+
                 try:
-                    resp = requests.post(url, headers=headers, data=json.dumps(payload), timeout=60)
-                except requests.Timeout:
-                    gemini_key_manager.report_result(api_key, 504, None, status="DEADLINE_EXCEEDED")
+                    response = requests.post(url, headers=headers, data=json.dumps(payload), timeout=60)
+                except (requests.Timeout, requests.ConnectionError, requests.RequestException) as e:
+                    # Record failure in circuit breaker (sync version)
+                    gemini_breaker.stats["failed_requests"] += 1
+                    gemini_breaker.failure_count += 1
+                    gemini_breaker.last_failure_time = time.time()
+                    if gemini_breaker.failure_count >= gemini_breaker.config.failure_threshold:
+                        gemini_breaker.state = CircuitState.OPEN
+                        gemini_breaker.stats["circuit_opens"] += 1
+                        log_error(f"Circuit breaker opened after {gemini_breaker.failure_count} failures", "pinecone_service")
+
+                    if isinstance(e, requests.Timeout):
+                        gemini_key_manager.report_result(api_key, 504, None, status="DEADLINE_EXCEEDED")
+                    elif isinstance(e, requests.ConnectionError):
+                        gemini_key_manager.report_result(api_key, 503, None, status="UNAVAILABLE")
+                    else:
+                        gemini_key_manager.report_result(api_key, 500, None, status="INTERNAL")
                     raise
-                except requests.ConnectionError:
-                    gemini_key_manager.report_result(api_key, 503, None, status="UNAVAILABLE")
-                    raise
-                except requests.RequestException:
-                    gemini_key_manager.report_result(api_key, 500, None, status="INTERNAL")
-                    raise
-            if resp.status_code == 429:
-                retry_after = resp.headers.get("Retry-After")
-                try:
-                    ra = float(retry_after) if retry_after and str(retry_after).isdigit() else None
-                except Exception:
-                    ra = None
-                gemini_key_manager.report_result(api_key, 429, ra, status="RESOURCE_EXHAUSTED")
-                sleep_s = ra if ra is not None else EMBED_RETRY_BASE_DELAY * (2 ** (attempt - 1))
-                log_warning(f"Google batch embedding 429. Respecting Retry-After: sleeping {sleep_s:.2f}s", "pinecone_service", {"sleep_time": sleep_s})
-                time.sleep(sleep_s)
-                continue
-            if resp.status_code >= 400:
-                err_status = None
-                try:
-                    body = resp.json()
-                    err = body.get("error") if isinstance(body, dict) else None
-                    if isinstance(err, dict):
-                        err_status = err.get("status")
-                except Exception:
+
+                if response.status_code == 429:
+                    retry_after = response.headers.get("Retry-After")
+                    try:
+                        ra = float(retry_after) if retry_after and str(retry_after).isdigit() else None
+                    except Exception:
+                        ra = None
+                    gemini_key_manager.report_result(api_key, 429, ra, status="RESOURCE_EXHAUSTED")
+                    sleep_s = ra if ra is not None else EMBED_RETRY_BASE_DELAY * (2 ** (attempt - 1))
+                    log_warning(f"Google batch embedding 429. Respecting Retry-After: sleeping {sleep_s:.2f}s", "pinecone_service", {"sleep_time": sleep_s})
+                    time.sleep(sleep_s)
+                    continue
+                if response.status_code >= 400:
                     err_status = None
-                gemini_key_manager.report_result(api_key, resp.status_code, None, status=err_status)
-                raise RuntimeError(f"Google Batch Embedding HTTP {resp.status_code}: {resp.text}")
-            gemini_key_manager.report_result(api_key, 200, None)
-            data = resp.json()
-            if not isinstance(data, dict) or "embeddings" not in data or not isinstance(data["embeddings"], list):
-                raise RuntimeError(f"Google Batch Embedding: invalid response: {data}")
-            embeddings_out: List[List[float]] = []
-            for e in data["embeddings"]:
-                vals = e.get("values") if isinstance(e, dict) else None
-                if not vals or not isinstance(vals, list):
-                    raise RuntimeError("Google Batch Embedding: missing values in one item")
-                if EMBEDDING_DIMENSION != 3072:
-                    vals = _l2_normalize([float(x) for x in vals])
-                embeddings_out.append(vals)  # type: ignore
+                    try:
+                        body = response.json()
+                        err = body.get("error") if isinstance(body, dict) else None
+                        if isinstance(err, dict):
+                            err_status = err.get("status")
+                    except Exception:
+                        err_status = None
+                    gemini_key_manager.report_result(api_key, response.status_code, None, status=err_status)
+                    # Record failure in circuit breaker
+                    gemini_breaker.stats["failed_requests"] += 1
+                    gemini_breaker.failure_count += 1
+                    gemini_breaker.last_failure_time = time.time()
+                    if gemini_breaker.failure_count >= gemini_breaker.config.failure_threshold:
+                        gemini_breaker.state = CircuitState.OPEN
+                        gemini_breaker.stats["circuit_opens"] += 1
+                        log_error(f"Circuit breaker opened after {gemini_breaker.failure_count} failures", "pinecone_service")
+                    raise RuntimeError(f"Google Batch Embedding HTTP {response.status_code}: {response.text}")
+                gemini_key_manager.report_result(api_key, 200, None)
+                data = response.json()
+                if not isinstance(data, dict) or "embeddings" not in data or not isinstance(data["embeddings"], list):
+                    raise RuntimeError(f"Google Batch Embedding: invalid response: {data}")
+                embeddings_out: List[List[float]] = []
+                for e in data["embeddings"]:
+                    vals = e.get("values") if isinstance(e, dict) else None
+                    if not vals or not isinstance(vals, list):
+                        raise RuntimeError("Google Batch Embedding: missing values in one item")
+                    if EMBEDDING_DIMENSION != 3072:
+                        vals = _l2_normalize([float(x) for x in vals])
+                    embeddings_out.append(vals)  # type: ignore
 
-            if len(embeddings_out) != len(texts):
-                raise RuntimeError("Google Batch Embedding: response count mismatch")
+                if len(embeddings_out) != len(texts):
+                    raise RuntimeError("Google Batch Embedding: response count mismatch")
 
-            return embeddings_out
+                # Success - reset circuit breaker failures
+                gemini_breaker.failure_count = 0
+                gemini_breaker.stats["successful_requests"] += 1
+                gemini_breaker.last_success_time = time.time()
+                if gemini_breaker.state == CircuitState.HALF_OPEN:
+                    gemini_breaker.success_count += 1
+                    if gemini_breaker.success_count >= gemini_breaker.config.success_threshold:
+                        gemini_breaker.state = CircuitState.CLOSED
+                        gemini_breaker.stats["circuit_closes"] += 1
+                return embeddings_out
         except Exception as e:
             last_err = e
             sleep_s = EMBED_RETRY_BASE_DELAY * (2 ** (attempt - 1)) + random.uniform(0, 0.3)
