@@ -9,6 +9,7 @@ import {
   Users,
   Wallet,
   FileText,
+  Upload,
 } from 'lucide-angular';
 import { Router } from '@angular/router';
 import { ProfileService } from '../../../services/auth/profile.service';
