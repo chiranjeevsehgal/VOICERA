@@ -3,7 +3,10 @@ import smtplib
 from email.message import EmailMessage
 from utils.logging import log_error
 
-def send_email(to: str, subject: str = "Default Subject", content: str = "Default content") -> bool:
+
+def send_email(
+    to: str, subject: str = "Default Subject", content: str = "Default content"
+) -> bool:
     try:
         msg = EmailMessage()
         msg["From"] = os.getenv("SMTP_USER")
@@ -22,5 +25,9 @@ def send_email(to: str, subject: str = "Default Subject", content: str = "Defaul
             server.send_message(msg)
         return True
     except Exception as e:
-        log_error(f"Failed to send email: {str(e)}", "send_email", {"error": str(e), "recipient": to})
+        log_error(
+            f"Failed to send email: {str(e)}",
+            "send_email",
+            {"error": str(e), "recipient": to},
+        )
         return False

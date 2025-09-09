@@ -2,6 +2,7 @@ from pydantic import BaseModel, Field
 from typing import Dict, List, Optional, Any
 from datetime import datetime
 
+
 class APIUsageStats(BaseModel):
     total_requests: int = 0
     endpoint_counts: Dict[str, int] = {}
@@ -33,6 +34,7 @@ class IPDetail(BaseModel):
     first_seen: Optional[datetime] = None
     unique_endpoints: int = 0
 
+
 class TranscriptionStats(BaseModel):
     total_transcriptions: int = 0
     successful_transcriptions: int = 0
@@ -42,16 +44,19 @@ class TranscriptionStats(BaseModel):
     languages: Dict[str, int] = {}
     date_range: Dict[str, datetime] = {}
 
+
 class SearchTrend(BaseModel):
     term: str
     count: int
     last_searched: datetime
+
 
 class SearchTrendsResponse(BaseModel):
     top_terms: List[SearchTrend]
     total_searches: int
     unique_terms: int
     date_range: Dict[str, datetime] = {}
+
 
 class UserActivityData(BaseModel):
     total_active_users: int = 0
@@ -62,6 +67,7 @@ class UserActivityData(BaseModel):
     most_used_features: Dict[str, int] = {}
     date_range: Dict[str, datetime] = {}
 
+
 class LogEntry(BaseModel):
     timestamp: datetime = Field(default_factory=datetime.utcnow)
     level: str
@@ -69,15 +75,18 @@ class LogEntry(BaseModel):
     source: str
     context: Dict[str, Any] = {}
 
+
 class LogFile(BaseModel):
     filename: str
     size: int
     last_modified: datetime
     date: str  # YYYY-MM-DD format extracted from filename
 
+
 class LogFilesResponse(BaseModel):
     log_files: List[LogFile]
     total_count: int
+
 
 class LogContentResponse(BaseModel):
     filename: str
@@ -86,10 +95,12 @@ class LogContentResponse(BaseModel):
     last_modified: datetime
     total_lines: int
 
+
 class LogsResponse(BaseModel):
     logs: List[LogEntry]
     total_count: int
     levels_count: Dict[str, int] = {}
+
 
 # Resolve forward references for Pydantic v2 (no-op if already resolved)
 try:

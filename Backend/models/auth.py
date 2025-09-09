@@ -1,6 +1,7 @@
 from pydantic import BaseModel, EmailStr
 from typing import Optional
 
+
 class Token(BaseModel):
     status: bool
     detail: str
@@ -8,8 +9,10 @@ class Token(BaseModel):
     role: str
     token_type: str
 
+
 class TokenData(BaseModel):
     email: Optional[str] = None
+
 
 class UserCreate(BaseModel):
     email: EmailStr
@@ -18,11 +21,13 @@ class UserCreate(BaseModel):
     role: str = "user"  # Default role
     status: str = "active"  # Default status
 
+
 class UserResponse(BaseModel):
     status: bool
     detail: str
     email: EmailStr
     full_name: Optional[str] = None
+
 
 class ProfileResponse(BaseModel):
     email: EmailStr

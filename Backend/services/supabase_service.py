@@ -25,6 +25,7 @@ supabase_bucket_embedded = os.getenv("SUPABASE_BUCKET_EMBEDDED", supabase_bucket
 # Initialize Supabase client
 supabase: Client = None
 
+
 def init_supabase():
     """Initialize Supabase client if environment variables are set"""
     global supabase
@@ -32,113 +33,172 @@ def init_supabase():
         try:
             supabase = create_client(supabase_url, supabase_key)
             key_mode = "anon"
-            log_info(f"Supabase client initialized ({key_mode} key). Default bucket: {supabase_bucket}; original: {supabase_bucket_original}; embedded: {supabase_bucket_embedded}", "supabase_service", {"key_mode": key_mode, "default_bucket": supabase_bucket, "original_bucket": supabase_bucket_original, "embedded_bucket": supabase_bucket_embedded})
+            log_info(
+                f"Supabase client initialized ({key_mode} key). Default bucket: {supabase_bucket}; original: {supabase_bucket_original}; embedded: {supabase_bucket_embedded}",
+                "supabase_service",
+                {
+                    "key_mode": key_mode,
+                    "default_bucket": supabase_bucket,
+                    "original_bucket": supabase_bucket_original,
+                    "embedded_bucket": supabase_bucket_embedded,
+                },
+            )
             # We don't try to create buckets - they should be created in the dashboard
         except Exception as e:
-            log_warning(f"Failed to initialize Supabase client: {str(e)}", "supabase_service", {"error": str(e)})
+            log_warning(
+                f"Failed to initialize Supabase client: {str(e)}",
+                "supabase_service",
+                {"error": str(e)},
+            )
     else:
-        log_warning("Supabase environment variables not set. Storage functionality disabled.", "supabase_service")
+        log_warning(
+            "Supabase environment variables not set. Storage functionality disabled.",
+            "supabase_service",
+        )
+
 
 # Initialize on module import
 init_supabase()
 
-async def upload_file_to_supabase(file_path, file_name=None, user_id=None, bucket_name: str = None):
+
+async def upload_file_to_supabase(
+    file_path, file_name=None, user_id=None, bucket_name: str = None
+):
     """
     Upload a file to Supabase storage and track user ownership
-    
+
     Args:
         file_path (str): Path to the file to upload
         file_name (str, optional): Custom filename for the uploaded file
         user_id (str/ObjectId, optional): ID of the user uploading the file
-    
+
     Returns:
         dict: Response with file URL and metadata
     """
     if not supabase:
-        raise ValueError("Supabase client not initialized. Check your environment variables.")
-    
-    log_info(f"Starting upload process with user_id: {user_id}, type: {type(user_id)}", "supabase_service", {"user_id": str(user_id), "user_id_type": str(type(user_id))})
-    
+        raise ValueError(
+            "Supabase client not initialized. Check your environment variables."
+        )
+
+    log_info(
+        f"Starting upload process with user_id: {user_id}, type: {type(user_id)}",
+        "supabase_service",
+        {"user_id": str(user_id), "user_id_type": str(type(user_id))},
+    )
+
     if not file_name:
         file_name = os.path.basename(file_path)
-    
+
     # Generate a unique ID to prevent overwriting files with same name
     unique_id = str(uuid.uuid4())[:8]
     base_name, ext = os.path.splitext(file_name)
     unique_file_name = f"{base_name}_{unique_id}{ext}"
-    
+
     # Place files in the 'public' subfolder to match RLS policy
     file_path_in_bucket = f"public/{unique_file_name}"
     # Select bucket
     selected_bucket = bucket_name or supabase_bucket
-    
+
     try:
         # Read file contents
         with open(file_path, "rb") as f:
             file_contents = f.read()
-        
-        log_info(f"File read successfully: {file_path}", "supabase_service", {"file_path": file_path})
-        
+
+        log_info(
+            f"File read successfully: {file_path}",
+            "supabase_service",
+            {"file_path": file_path},
+        )
+
         # Upload to Supabase
         response = supabase.storage.from_(selected_bucket).upload(
             path=file_path_in_bucket,
             file=file_contents,
-            file_options={"content-type": "audio/mpeg"}
+            file_options={"content-type": "audio/mpeg"},
         )
-        
-        log_info(f"Storage upload response: {response}", "supabase_service", {"response": str(response)})
-        
+
+        log_info(
+            f"Storage upload response: {response}",
+            "supabase_service",
+            {"response": str(response)},
+        )
+
         # Generate public URL
-        file_url = supabase.storage.from_(selected_bucket).get_public_url(file_path_in_bucket)
-        
+        file_url = supabase.storage.from_(selected_bucket).get_public_url(
+            file_path_in_bucket
+        )
+
         result = {
             "success": True,
             "file_name": unique_file_name,
             "file_path": file_path_in_bucket,
             "file_url": file_url,
-            "bucket": selected_bucket
+            "bucket": selected_bucket,
         }
 
         # If user_id is provided, track the upload in the database
         if user_id:
-            log_info(f"Processing user_id: {user_id}, type: {type(user_id)}", "supabase_service", {"user_id": str(user_id), "user_id_type": str(type(user_id))})
-            
+            log_info(
+                f"Processing user_id: {user_id}, type: {type(user_id)}",
+                "supabase_service",
+                {"user_id": str(user_id), "user_id_type": str(type(user_id))},
+            )
+
             # Convert MongoDB ObjectId to string if needed
             if isinstance(user_id, ObjectId):
                 user_id = str(user_id)
-            elif isinstance(user_id, dict) and '_id' in user_id:
-                user_id = str(user_id['_id'])
-            
+            elif isinstance(user_id, dict) and "_id" in user_id:
+                user_id = str(user_id["_id"])
+
             try:
                 upload_data = {
                     "user_id": user_id,
                     "file_name": unique_file_name,
                     "file_path": file_path_in_bucket,
                     "file_url": file_url,
-                    "metadata": {}
+                    "metadata": {},
                 }
-                
-                log_info(f"Attempting to insert user_upload data: {json.dumps(upload_data, default=str)}", "supabase_service", {"upload_data": upload_data})
-                
+
+                log_info(
+                    f"Attempting to insert user_upload data: {json.dumps(upload_data, default=str)}",
+                    "supabase_service",
+                    {"upload_data": upload_data},
+                )
+
                 # Insert into user_uploads table
-                db_response = supabase.table("user_uploads").insert(upload_data).execute()
-                log_info(f"Database insert response: {json.dumps(db_response.data if db_response.data else 'No data', default=str)}", "supabase_service", {"response_data": db_response.data if db_response.data else None})
-                
+                db_response = (
+                    supabase.table("user_uploads").insert(upload_data).execute()
+                )
+                log_info(
+                    f"Database insert response: {json.dumps(db_response.data if db_response.data else 'No data', default=str)}",
+                    "supabase_service",
+                    {"response_data": db_response.data if db_response.data else None},
+                )
+
                 if db_response.data:
                     result["user_upload"] = db_response.data[0]
                     log_info("Successfully recorded user upload", "supabase_service")
                 else:
-                    log_warning("No data returned from user_uploads insert", "supabase_service")
+                    log_warning(
+                        "No data returned from user_uploads insert", "supabase_service"
+                    )
                     result["user_upload_warning"] = "No data returned from insert"
             except Exception as e:
-                log_error(f"Failed to record user upload: {str(e)}", "supabase_service", {"error": str(e)})
+                log_error(
+                    f"Failed to record user upload: {str(e)}",
+                    "supabase_service",
+                    {"error": str(e)},
+                )
                 result["user_upload_error"] = str(e)
 
         return result
-        
+
     except Exception as e:
-        log_error(f"Upload failed with error: {str(e)}", "supabase_service", {"error": str(e)})
+        log_error(
+            f"Upload failed with error: {str(e)}", "supabase_service", {"error": str(e)}
+        )
         raise ValueError(f"Failed to upload file: {str(e)}")
+
 
 async def list_files_in_bucket(
     user_id=None,
@@ -151,7 +211,7 @@ async def list_files_in_bucket(
 ):
     """
     List files in the storage bucket with user information, with pagination.
-    
+
     Args:
         user_id (str, optional): If provided, only list files uploaded by this user
         bucket_name (str, optional): Supabase bucket name
@@ -162,8 +222,10 @@ async def list_files_in_bucket(
         sort_order (str): Sort order, "asc" or "desc" (default: "desc")
     """
     if not supabase:
-        raise ValueError("Supabase client not initialized. Check your environment variables.")
-    
+        raise ValueError(
+            "Supabase client not initialized. Check your environment variables."
+        )
+
     try:
         selected_bucket = bucket_name or supabase_bucket
         # Pagination math and storage list options
@@ -179,19 +241,19 @@ async def list_files_in_bucket(
                 "sortBy": {"column": sort_column, "order": sort_order},
             },
         )
-        
+
         # Get user upload records
         query = supabase.table("user_uploads").select("*")
         if user_id:
             # Convert ObjectId to string if needed
             if isinstance(user_id, ObjectId):
                 user_id = str(user_id)
-            elif isinstance(user_id, dict) and '_id' in user_id:
-                user_id = str(user_id['_id'])
+            elif isinstance(user_id, dict) and "_id" in user_id:
+                user_id = str(user_id["_id"])
             query = query.eq("user_id", user_id)
-        
+
         user_uploads = query.execute()
-        
+
         # Create a mapping of file_name to user data
         user_upload_map = {}
         if user_uploads.data:
@@ -208,11 +270,15 @@ async def list_files_in_bucket(
                             # Add any other user fields you want to include
                         }
                 except Exception as e:
-                    log_warning(f"Failed to get user details for {upload['user_id']}: {str(e)}", "supabase_service", {"user_id": upload['user_id'], "error": str(e)})
+                    log_warning(
+                        f"Failed to get user details for {upload['user_id']}: {str(e)}",
+                        "supabase_service",
+                        {"user_id": upload["user_id"], "error": str(e)},
+                    )
                     upload["user_details"] = {"error": "User not found"}
-                
+
                 user_upload_map[upload["file_name"]] = upload
-        
+
         # Combine storage files with user data
         enriched_files = []
         for file in storage_files:
@@ -220,24 +286,29 @@ async def list_files_in_bucket(
             if file["name"] in user_upload_map:
                 file_data["user_data"] = user_upload_map[file["name"]]
             enriched_files.append(file_data)
-        
+
         return enriched_files
-        
+
     except Exception as e:
-        log_error(f"Error listing files: {str(e)}", "supabase_service", {"error": str(e)})
+        log_error(
+            f"Error listing files: {str(e)}", "supabase_service", {"error": str(e)}
+        )
         return []
+
 
 async def delete_file_from_supabase(file_name, bucket_name: str = None):
     """Delete a file from Supabase storage"""
     if not supabase:
-        raise ValueError("Supabase client not initialized. Check your environment variables.")
-    
+        raise ValueError(
+            "Supabase client not initialized. Check your environment variables."
+        )
+
     # Ensure file path starts with "public/" for RLS compatibility
     if not file_name.startswith("public/"):
         file_name = f"public/{file_name}"
-    
+
     selected_bucket = bucket_name or supabase_bucket
-    
+
     try:
         response = supabase.storage.from_(selected_bucket).remove([file_name])
         # Check if deletion was successful
@@ -245,17 +316,17 @@ async def delete_file_from_supabase(file_name, bucket_name: str = None):
             return {
                 "success": True,
                 "message": f"File {file_name} deleted from {selected_bucket}",
-                "response": response
+                "response": response,
             }
         else:
             return {
                 "success": False,
                 "message": f"Failed to delete {file_name} from {selected_bucket} - no response",
-                "response": response
+                "response": response,
             }
     except Exception as e:
         return {
             "success": False,
             "message": f"Error deleting {file_name}: {str(e)}",
-            "response": None
+            "response": None,
         }

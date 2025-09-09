@@ -259,9 +259,7 @@ async def process_audio_background(
             )
 
         # Step 4: Transcribe the audio
-        update_job_status(
-            job_id, JobStatus.TRANSCRIBING, current_step="transcribing"
-        )
+        update_job_status(job_id, JobStatus.TRANSCRIBING, current_step="transcribing")
 
         transcribe_options: Dict[str, Any] = {}
         try:
@@ -272,7 +270,8 @@ async def process_audio_background(
 
             transcription_data = await asyncio.wait_for(
                 asyncio.get_event_loop().run_in_executor(
-                    thread_pool, lambda: sync_transcribe_audio(supabase_url, transcribe_options)
+                    thread_pool,
+                    lambda: sync_transcribe_audio(supabase_url, transcribe_options),
                 ),
                 timeout=300,
             )
@@ -376,8 +375,17 @@ async def process_audio_background(
             processing_time = time.time() - start_time
             audio_length = transcription_data.get("metadata", {}).get("duration", 0)
             status_val = "success"
-            detected_language = transcription_data.get("results", {}).get("channels", [{}])[0].get("detected_language", "en")
-            confidence = transcription_data.get("results", {}).get("channels", [{}])[0].get("alternatives", [{}])[0].get("confidence", 0)
+            detected_language = (
+                transcription_data.get("results", {})
+                .get("channels", [{}])[0]
+                .get("detected_language", "en")
+            )
+            confidence = (
+                transcription_data.get("results", {})
+                .get("channels", [{}])[0]
+                .get("alternatives", [{}])[0]
+                .get("confidence", 0)
+            )
 
             # Note: podcast_id and transcript_id will be set after embedded upload
             stats_data = {
@@ -392,11 +400,20 @@ async def process_audio_background(
             }
 
             try:
-                await asyncio.wait_for(_insert_transcription_stats(stats_data), timeout=5)
+                await asyncio.wait_for(
+                    _insert_transcription_stats(stats_data), timeout=5
+                )
             except asyncio.TimeoutError:
-                log_warning("_insert_transcription_stats timed out after 5s (success case)", "background_processor")
+                log_warning(
+                    "_insert_transcription_stats timed out after 5s (success case)",
+                    "background_processor",
+                )
             except Exception as e:
-                log_warning(f"_insert_transcription_stats error: {e}", "background_processor", {"error": str(e)})
+                log_warning(
+                    f"_insert_transcription_stats error: {e}",
+                    "background_processor",
+                    {"error": str(e)},
+                )
 
         except Exception as e:
             processing_time = time.time() - start_time
@@ -412,11 +429,20 @@ async def process_audio_background(
             }
 
             try:
-                await asyncio.wait_for(_insert_transcription_stats(error_stats_data), timeout=5)
+                await asyncio.wait_for(
+                    _insert_transcription_stats(error_stats_data), timeout=5
+                )
             except asyncio.TimeoutError:
-                log_warning("_insert_transcription_stats timed out after 5s (error case)", "background_processor")
+                log_warning(
+                    "_insert_transcription_stats timed out after 5s (error case)",
+                    "background_processor",
+                )
             except Exception as e:
-                log_warning(f"_insert_transcription_stats error (error case): {e}", "background_processor", {"error": str(e)})
+                log_warning(
+                    f"_insert_transcription_stats error (error case): {e}",
+                    "background_processor",
+                    {"error": str(e)},
+                )
 
             update_job_status(
                 job_id, JobStatus.FAILED, error=f"Error transcribing audio: {str(e)}"
@@ -424,9 +450,7 @@ async def process_audio_background(
             return
 
         # Step 5: Embed metadata into the audio file
-        update_job_status(
-            job_id, JobStatus.EMBEDDING, current_step="embedding"
-        )
+        update_job_status(job_id, JobStatus.EMBEDDING, current_step="embedding")
 
         try:
             temp_embedded_file = os.path.join(
@@ -490,9 +514,17 @@ async def process_audio_background(
                     if embedded_upload_result and "file_url" in embedded_upload_result:
                         break
                 except asyncio.TimeoutError:
-                    log_warning(f"Embedded upload attempt {attempt} timed out after 90s", "background_processor", {"attempt": attempt})
+                    log_warning(
+                        f"Embedded upload attempt {attempt} timed out after 90s",
+                        "background_processor",
+                        {"attempt": attempt},
+                    )
                 except Exception as inner_e:
-                    log_warning(f"Embedded upload attempt {attempt} failed: {inner_e}", "background_processor", {"attempt": attempt, "error": str(inner_e)})
+                    log_warning(
+                        f"Embedded upload attempt {attempt} failed: {inner_e}",
+                        "background_processor",
+                        {"attempt": attempt, "error": str(inner_e)},
+                    )
                 if attempt < max_attempts:
                     time.sleep(delay)
                     delay *= 2
@@ -513,7 +545,7 @@ async def process_audio_background(
                 lambda: sync_create_podcast(
                     title=podcast_creation_data["title"],
                     description=podcast_creation_data["description"],
-                    raw_audio_url=supabase_url, # Raw Audio URL
+                    raw_audio_url=supabase_url,  # Raw Audio URL
                     embedded_audio_url=embedded_supabase_url,  # Embedded Audio URL
                     duration_seconds=podcast_creation_data["duration_seconds"],
                     author=podcast_creation_data["author"],
@@ -568,10 +600,9 @@ async def process_audio_background(
                 )
 
             try:
-                delete_flag = (
-                    os.getenv("DELETE_ORIGINAL_SUPABASE_FILE", "false").lower()
-                    in ("1", "true", "yes")
-                )
+                delete_flag = os.getenv(
+                    "DELETE_ORIGINAL_SUPABASE_FILE", "false"
+                ).lower() in ("1", "true", "yes")
                 if delete_flag and (
                     original_supabase_file_path or original_supabase_file_name
                 ):
@@ -593,9 +624,16 @@ async def process_audio_background(
                             timeout=30,
                         )
                     except asyncio.TimeoutError:
-                        log_warning("Deletion of original Supabase file timed out after 30s", "background_processor")
+                        log_warning(
+                            "Deletion of original Supabase file timed out after 30s",
+                            "background_processor",
+                        )
             except Exception as del_e:
-                log_warning(f"Failed to delete original Supabase file: {del_e}", "background_processor", {"error": str(del_e)})
+                log_warning(
+                    f"Failed to delete original Supabase file: {del_e}",
+                    "background_processor",
+                    {"error": str(del_e)},
+                )
 
             current_result = get_job_status(job_id).get("result", {}) or {}
             current_result["embedded_supabase_url"] = embedded_supabase_url
@@ -658,9 +696,7 @@ async def process_audio_background(
         update_job_status(job_id, JobStatus.COMPLETED, progress=100)
 
     except Exception as e:
-        update_job_status(
-            job_id, JobStatus.FAILED, error=f"Unexpected error: {str(e)}"
-        )
+        update_job_status(job_id, JobStatus.FAILED, error=f"Unexpected error: {str(e)}")
     finally:
         if os.path.exists(temp_dir):
             try:
@@ -671,6 +707,12 @@ async def process_audio_background(
                     timeout=10,
                 )
             except asyncio.TimeoutError:
-                log_warning("Temp dir cleanup timed out after 10s", "background_processor")
+                log_warning(
+                    "Temp dir cleanup timed out after 10s", "background_processor"
+                )
             except Exception as e:
-                log_warning(f"Temp dir cleanup error: {e}", "background_processor", {"error": str(e)})
+                log_warning(
+                    f"Temp dir cleanup error: {e}",
+                    "background_processor",
+                    {"error": str(e)},
+                )

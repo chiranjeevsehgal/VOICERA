@@ -2,6 +2,7 @@
 Centralized logging configuration for the VOICERA backend.
 Creates a rotating TXT log file and sets a consistent format across modules.
 """
+
 from __future__ import annotations
 
 import logging
@@ -17,22 +18,22 @@ class DateRotatingFileHandler(TimedRotatingFileHandler):
     Custom rotating file handler that includes date in filename.
     Creates files like: 2025-09-04.log, 2025-09-05.log, etc.
     """
-    
+
     def __init__(self, filename_pattern: str, *args, **kwargs):
         """
         Initialize with a filename pattern containing {date} placeholder.
-        
+
         Args:
             filename_pattern: Pattern like "logs/{date}.log" where {date} will be replaced
         """
         self.filename_pattern = filename_pattern
-        
+
         # Generate initial filename with today's date
         current_date = datetime.now().strftime("%Y-%m-%d")
         initial_filename = filename_pattern.format(date=current_date)
-        
+
         super().__init__(initial_filename, *args, **kwargs)
-    
+
     def doRollover(self):
         """
         Override to create new file with current date in filename.
@@ -40,14 +41,14 @@ class DateRotatingFileHandler(TimedRotatingFileHandler):
         if self.stream:
             self.stream.close()
             self.stream = None
-        
+
         # Generate new filename with current date
         current_date = datetime.now().strftime("%Y-%m-%d")
         self.baseFilename = self.filename_pattern.format(date=current_date)
-        
+
         # Create directory if it doesn't exist
         os.makedirs(os.path.dirname(self.baseFilename), exist_ok=True)
-        
+
         # Open new log file
         if not self.delay:
             self.stream = self._open()

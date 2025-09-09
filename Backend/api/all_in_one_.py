@@ -17,7 +17,7 @@ router = APIRouter()
 # Include all routes from the process_audio module
 # This gives us access to:
 # - POST /process_audio (single file processing)
-# - POST /process_audio_bulk (bulk file processing) 
+# - POST /process_audio_bulk (bulk file processing)
 # - GET /job-status/{job_id} (job status checking)
 router.include_router(process_audio_router, tags=["audio-processing"])
 
@@ -26,5 +26,5 @@ router.include_router(process_audio_router, tags=["audio-processing"])
 # - services/utility_wrappers.py: Contains all sync wrapper functions
 # - api/process_audio.py: Contains the API endpoints
 #
-# This eliminates 1500+ lines of duplicate code while maintaining 
+# This eliminates 1500+ lines of duplicate code while maintaining
 # full functionality and API compatibility.

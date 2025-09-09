@@ -43,6 +43,7 @@ def _build_generation_config(
 # Error mapping for Gemini API (aligns with docs)
 # ---------------------------------------------
 
+
 class GeminiAPIError(Exception):
     """Structured error for Gemini API failures.
 
@@ -136,7 +137,9 @@ def _build_gemini_api_error(resp: requests.Response) -> GeminiAPIError:
     if not status:
         status = _DEFAULT_STATUS_BY_HTTP.get(http, "UNKNOWN")
 
-    doc = _STATUS_DOC.get((http, status)) or _STATUS_DOC.get((http, _DEFAULT_STATUS_BY_HTTP.get(http, "")))
+    doc = _STATUS_DOC.get((http, status)) or _STATUS_DOC.get(
+        (http, _DEFAULT_STATUS_BY_HTTP.get(http, ""))
+    )
     description = doc["description"] if doc else None
     solution = doc["solution"] if doc else None
 
@@ -186,12 +189,12 @@ def generate_text(
     tokens = sum(_estimate_tokens(m) for m in messages) + _GEMINI_TOKEN_OVERHEAD
 
     # Build the payload
-    contents = [
-        {"role": "user", "parts": [{"text": m}]} for m in messages
-    ]
+    contents = [{"role": "user", "parts": [{"text": m}]} for m in messages]
     payload: dict = {
         "contents": contents,
-        "generationConfig": _build_generation_config(temperature, max_output_tokens, top_p, top_k),
+        "generationConfig": _build_generation_config(
+            temperature, max_output_tokens, top_p, top_k
+        ),
     }
     if system_prompt:
         payload["systemInstruction"] = {
@@ -231,11 +234,15 @@ def generate_text(
                 {"attempt": attempt, "model": model_name, "msg_count": len(messages)},
             )
             try:
-                resp = requests.post(url, headers=headers, data=json.dumps(payload), timeout=timeout)
+                resp = requests.post(
+                    url, headers=headers, data=json.dumps(payload), timeout=timeout
+                )
             except requests.Timeout as te:
                 # Map client timeout to DEADLINE_EXCEEDED (504)
                 if api_key:
-                    gemini_key_manager.report_result(api_key, 504, None, status="DEADLINE_EXCEEDED")
+                    gemini_key_manager.report_result(
+                        api_key, 504, None, status="DEADLINE_EXCEEDED"
+                    )
                 raise GeminiAPIError(
                     504,
                     "DEADLINE_EXCEEDED",
@@ -246,7 +253,9 @@ def generate_text(
             except requests.ConnectionError as ce:
                 # Map to UNAVAILABLE (503)
                 if api_key:
-                    gemini_key_manager.report_result(api_key, 503, None, status="UNAVAILABLE")
+                    gemini_key_manager.report_result(
+                        api_key, 503, None, status="UNAVAILABLE"
+                    )
                 raise GeminiAPIError(
                     503,
                     "UNAVAILABLE",
@@ -257,7 +266,9 @@ def generate_text(
             except requests.RequestException as re:
                 if api_key:
                     # Treat as INTERNAL transient by default
-                    gemini_key_manager.report_result(api_key, 500, None, status="INTERNAL")
+                    gemini_key_manager.report_result(
+                        api_key, 500, None, status="INTERNAL"
+                    )
                 raise GeminiAPIError(
                     500,
                     "INTERNAL",
@@ -269,10 +280,16 @@ def generate_text(
             if resp.status_code == 429:
                 retry_after = resp.headers.get("Retry-After")
                 try:
-                    ra = float(retry_after) if retry_after and str(retry_after).isdigit() else None
+                    ra = (
+                        float(retry_after)
+                        if retry_after and str(retry_after).isdigit()
+                        else None
+                    )
                 except Exception:
                     ra = None
-                gemini_key_manager.report_result(api_key, 429, ra, status="RESOURCE_EXHAUSTED")
+                gemini_key_manager.report_result(
+                    api_key, 429, ra, status="RESOURCE_EXHAUSTED"
+                )
                 sleep_s = ra if ra is not None else base_delay * (2 ** (attempt - 1))
                 log_warning(
                     f"Gemini generate 429. Sleeping {sleep_s:.2f}s",
@@ -284,7 +301,9 @@ def generate_text(
 
             if resp.status_code >= 400:
                 err = _build_gemini_api_error(resp)
-                gemini_key_manager.report_result(api_key, resp.status_code, None, status=err.status)
+                gemini_key_manager.report_result(
+                    api_key, resp.status_code, None, status=err.status
+                )
                 # If not retriable, raise immediately (bypass retry loop)
                 if not _is_retriable(err.http_code, err.status):
                     raise err
@@ -302,11 +321,17 @@ def generate_text(
         except Exception as e:
             last_err = e
             # If it's a structured error and non-retriable, stop immediately
-            if isinstance(e, GeminiAPIError) and not _is_retriable(getattr(e, "http_code", 0), getattr(e, "status", None)):
+            if isinstance(e, GeminiAPIError) and not _is_retriable(
+                getattr(e, "http_code", 0), getattr(e, "status", None)
+            ):
                 log_error(
                     f"Non-retriable Gemini error: {e}",
                     "gemini_text_client",
-                    {"attempt": attempt, "http_code": getattr(e, "http_code", None), "status": getattr(e, "status", None)},
+                    {
+                        "attempt": attempt,
+                        "http_code": getattr(e, "http_code", None),
+                        "status": getattr(e, "status", None),
+                    },
                 )
                 raise
             sleep_s = base_delay * (2 ** (attempt - 1))

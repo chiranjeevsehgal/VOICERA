@@ -5,23 +5,24 @@ from fastapi import Request, Response, BackgroundTasks
 import time
 import logging
 from services.database import (
-    api_usage_collection, 
+    api_usage_collection,
     search_trends_collection,
     user_activity_collection,
-    transcription_stats_collection
+    transcription_stats_collection,
 )
 
 logger = logging.getLogger("voicera.analytics")
+
 
 async def track_api_usage(
     request: Request,
     response: Response,
     response_time: float,
-    user_id: Optional[str] = None
+    user_id: Optional[str] = None,
 ):
     """
     Track API usage for analytics.
-    
+
     Args:
         request: The FastAPI request object
         response: The FastAPI response object
@@ -36,34 +37,36 @@ async def track_api_usage(
         "ip_address": request.client.host if request.client else None,
         "user_agent": request.headers.get("user-agent"),
     }
-    
+
     if user_id:
         usage_data["user_id"] = user_id
-    
+
     try:
         await api_usage_collection.insert_one(usage_data)
     except Exception as e:
         logger.exception("Failed to track API usage: %s", e)
 
-def track_search_term(term: str, user_id: Optional[str] = None, background_tasks: Optional[BackgroundTasks] = None):
+
+def track_search_term(
+    term: str,
+    user_id: Optional[str] = None,
+    background_tasks: Optional[BackgroundTasks] = None,
+):
     """
     Track a search term for analytics.
-    
+
     Args:
         term: The search term
         user_id: Optional user ID if authenticated
         background_tasks: Optional BackgroundTasks object
     """
-    search_data = {
-        "timestamp": datetime.utcnow(),
-        "term": term,
-        "user_id": user_id
-    }
+    search_data = {"timestamp": datetime.utcnow(), "term": term, "user_id": user_id}
     if background_tasks is not None:
         background_tasks.add_task(_insert_search_trend, search_data)
     else:
         # If not using background tasks, still capture the event via logging
         logger.info("SEARCH: %s by user %s", term, user_id or "anonymous")
+
 
 async def _insert_search_trend(search_data: Dict[str, Any]):
     try:
@@ -71,16 +74,17 @@ async def _insert_search_trend(search_data: Dict[str, Any]):
     except Exception as e:
         logger.exception("Failed to track search trend: %s", e)
 
+
 def track_user_activity(
     user_id: str,
     feature: str,
     session_duration: Optional[float] = None,
     additional_data: Optional[Dict[str, Any]] = None,
-    background_tasks: Optional[BackgroundTasks] = None
+    background_tasks: Optional[BackgroundTasks] = None,
 ):
     """
     Track user activity for analytics.
-    
+
     Args:
         user_id: User ID
         feature: Feature/section being used
@@ -91,15 +95,15 @@ def track_user_activity(
     activity_data = {
         "timestamp": datetime.utcnow(),
         "user_id": user_id,
-        "feature": feature
+        "feature": feature,
     }
-    
+
     if session_duration is not None:
         activity_data["session_duration"] = session_duration
-    
+
     if additional_data:
         activity_data.update(additional_data)
-    
+
     if background_tasks is not None:
         background_tasks.add_task(_insert_user_activity, activity_data)
     else:
@@ -111,11 +115,13 @@ def track_user_activity(
             session_duration or "unknown",
         )
 
+
 async def _insert_user_activity(activity_data: Dict[str, Any]):
     try:
         await user_activity_collection.insert_one(activity_data)
     except Exception as e:
         logger.exception("Failed to track user activity: %s", e)
+
 
 def track_transcription(
     status: str,
@@ -124,11 +130,11 @@ def track_transcription(
     language: Optional[str] = None,
     user_id: Optional[str] = None,
     additional_data: Optional[Dict[str, Any]] = None,
-    background_tasks: Optional[BackgroundTasks] = None
+    background_tasks: Optional[BackgroundTasks] = None,
 ):
     """
     Track transcription statistics.
-    
+
     Args:
         status: Status of transcription (success/error)
         processing_time: Time taken to process in seconds
@@ -142,18 +148,18 @@ def track_transcription(
         "timestamp": datetime.utcnow(),
         "status": status,
         "processing_time": processing_time,
-        "audio_length": audio_length
+        "audio_length": audio_length,
     }
-    
+
     if language:
         transcription_data["language"] = language
-    
+
     if user_id:
         transcription_data["user_id"] = user_id
-    
+
     if additional_data:
         transcription_data.update(additional_data)
-    
+
     if background_tasks is not None:
         background_tasks.add_task(_insert_transcription_stats, transcription_data)
     else:
@@ -165,6 +171,7 @@ def track_transcription(
             user_id or "unknown",
             processing_time,
         )
+
 
 async def _insert_transcription_stats(stats_data: Dict[str, Any]):
     try:

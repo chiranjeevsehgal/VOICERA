@@ -5,7 +5,7 @@ from typing import List, Optional, Dict, Any
 from bson import ObjectId
 from datetime import datetime
 import hashlib
-from pydantic import BaseModel, HttpUrl # Import BaseModel and HttpUrl
+from pydantic import BaseModel, HttpUrl  # Import BaseModel and HttpUrl
 
 from services.auth import requires_role
 from services.database import (
@@ -24,6 +24,7 @@ from utils.logging import log_info
 from services.pinecone_service import count_vectors_by_file_id
 
 router = APIRouter()
+
 
 # Pydantic model for update operations (all fields optional for partial updates)
 class PodcastUpdate(BaseModel):
@@ -44,16 +45,18 @@ class PodcastUpdate(BaseModel):
     average_rating: Optional[float] = None
     transcription_status: Optional[str] = None  # Add transcription_status for updates
 
+
 # Helper functions
 def sanitize_mongo_doc(doc: Dict[str, Any]) -> Dict[str, Any]:
     """Convert MongoDB ObjectId to string and handle date formatting."""
     if not doc:
         return {}
-    
+
     # Convert ObjectId to string
     doc["id"] = str(doc.pop("_id")) if "_id" in doc else None
-    
+
     return doc
+
 
 # Podcasts Management
 @router.get("/audios", response_model=PodcastsResponse, status_code=status.HTTP_200_OK)
@@ -61,75 +64,81 @@ async def list_audios(
     page: int = Query(1, ge=1, description="Page number, starting from 1"),
     limit: int = Query(20, ge=1, le=100, description="Number of items per page"),
     sort_by: str = Query("created_at", description="Field to sort by"),
-    sort_order: int = Query(-1, description="Sort order: 1 for ascending, -1 for descending"),
+    sort_order: int = Query(
+        -1, description="Sort order: 1 for ascending, -1 for descending"
+    ),
     title_search: Optional[str] = Query(None, description="Search in podcast title"),
     author: Optional[str] = Query(None, description="Filter by author"),
     tag: Optional[str] = Query(None, description="Filter by tag"),
     language: Optional[str] = Query(None, description="Filter by language"),
     is_featured: Optional[bool] = Query(None, description="Filter by featured status"),
-    is_published: Optional[bool] = Query(None, description="Filter by published status"),
-    transcription_status: Optional[str] = Query(None, description="Filter by transcription status"),
-    current_user: Dict[str, Any] = Depends(requires_role("admin"))
+    is_published: Optional[bool] = Query(
+        None, description="Filter by published status"
+    ),
+    transcription_status: Optional[str] = Query(
+        None, description="Filter by transcription status"
+    ),
+    current_user: Dict[str, Any] = Depends(requires_role("admin")),
 ):
     """
     List and filter podcasts with pagination.
     """
     # Build the filter query
     filter_query = {}
-    
+
     if title_search:
         filter_query["title"] = {"$regex": title_search, "$options": "i"}
-    
+
     if author:
         filter_query["author"] = {"$regex": author, "$options": "i"}
-    
+
     if tag:
         filter_query["tags"] = tag
-    
+
     if language:
         filter_query["language"] = language
-    
+
     if is_featured is not None:
         filter_query["is_featured"] = is_featured
-    
+
     if is_published is not None:
         filter_query["is_published"] = is_published
-    
+
     if transcription_status:
         filter_query["transcription_status"] = transcription_status
-    
+
     # Get total count for pagination
     total_count = await podcasts_collection.count_documents(filter_query)
-    
+
     # Calculate skip for pagination
     skip = (page - 1) * limit
-    
+
     # Get podcasts with pagination and sorting
     cursor = podcasts_collection.find(filter_query)
     cursor = cursor.sort(sort_by, sort_order)
     cursor = cursor.skip(skip).limit(limit)
-    
+
     podcasts = await cursor.to_list(length=limit)
     # Convert MongoDB documents to Pydantic models
     sanitized_podcasts = [sanitize_mongo_doc(podcast) for podcast in podcasts]
-    
+
     log_info(
         f"Listed podcasts. Filters: {filter_query}, Total: {total_count}",
         "content_management",
-        {"page": page, "limit": limit}
-    )
-    
-    return PodcastsResponse(
-        podcasts=sanitized_podcasts,
-        total_count=total_count,
-        page=page,
-        limit=limit
+        {"page": page, "limit": limit},
     )
 
-@router.get("/audios/{audio_id}", response_model=Podcast, status_code=status.HTTP_200_OK)
+    return PodcastsResponse(
+        podcasts=sanitized_podcasts, total_count=total_count, page=page, limit=limit
+    )
+
+
+@router.get(
+    "/audios/{audio_id}", response_model=Podcast, status_code=status.HTTP_200_OK
+)
 async def get_audio_details(
     audio_id: str = Path(..., description="Audio ID"),
-    current_user: Dict[str, Any] = Depends(requires_role("admin"))
+    current_user: Dict[str, Any] = Depends(requires_role("admin")),
 ):
     """
     Get detailed information about a specific podcast.
@@ -138,31 +147,33 @@ async def get_audio_details(
         obj_id = ObjectId(audio_id)
     except Exception:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid audio ID format"
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid audio ID format"
         )
-    
+
     podcast = await podcasts_collection.find_one({"_id": obj_id})
-    
+
     if not podcast:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Audio with ID {audio_id} not found"
+            detail=f"Audio with ID {audio_id} not found",
         )
-    
+
     log_info(
         f"Viewed audio details. Audio ID: {audio_id}",
         "content_management",
-        {"audio_id": audio_id}
+        {"audio_id": audio_id},
     )
-    
+
     return sanitize_mongo_doc(podcast)
 
-@router.put("/audios/{audio_id}", response_model=Podcast, status_code=status.HTTP_200_OK)
+
+@router.put(
+    "/audios/{audio_id}", response_model=Podcast, status_code=status.HTTP_200_OK
+)
 async def update_audio(
     update_data: PodcastUpdate,
     audio_id: str = Path(..., description="Audio ID"),
-    current_user: Dict[str, Any] = Depends(requires_role("admin"))
+    current_user: Dict[str, Any] = Depends(requires_role("admin")),
 ):
     """
     Update details of a specific audio.
@@ -172,43 +183,40 @@ async def update_audio(
         obj_id = ObjectId(audio_id)
     except Exception:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid audio ID format"
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid audio ID format"
         )
-    
+
     existing_podcast = await podcasts_collection.find_one({"_id": obj_id})
     if not existing_podcast:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Audio with ID {audio_id} not found"
+            detail=f"Audio with ID {audio_id} not found",
         )
-    
+
     update_dict = update_data.dict(exclude_unset=True, exclude_none=True)
-    
+
     if not update_dict:
         return sanitize_mongo_doc(existing_podcast)
-    
+
     update_dict["updated_at"] = datetime.utcnow()
-    
-    await podcasts_collection.update_one(
-        {"_id": obj_id},
-        {"$set": update_dict}
-    )
-    
+
+    await podcasts_collection.update_one({"_id": obj_id}, {"$set": update_dict})
+
     updated_podcast = await podcasts_collection.find_one({"_id": obj_id})
-    
+
     log_info(
         f"Admin updated podcast. Podcast ID: {audio_id}, Changes: {update_dict}",
         "content_management",
-        {"admin_id": str(current_user["_id"]), "podcast_id": audio_id}
+        {"admin_id": str(current_user["_id"]), "podcast_id": audio_id},
     )
-    
+
     return sanitize_mongo_doc(updated_podcast)
+
 
 @router.delete("/audios/{audio_id}", status_code=status.HTTP_200_OK)
 async def delete_audio(
     audio_id: str = Path(..., description="Audio ID"),
-    current_user: Dict[str, Any] = Depends(requires_role("admin"))
+    current_user: Dict[str, Any] = Depends(requires_role("admin")),
 ):
     """
     Permanently delete an audio from the system.
@@ -216,25 +224,24 @@ async def delete_audio(
     - MongoDB collections: podcasts, transcripts, uploads, transcription_stats
     - Supabase buckets: audiofiles, audiofiles-embedded
     - Pinecone: all chunks associated with this audio
-    
+
     Only accessible to administrators.
     """
     try:
         obj_id = ObjectId(audio_id)
     except Exception:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid audio ID format"
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid audio ID format"
         )
-    
+
     # Find the podcast to get file information for deletion
     existing_podcast = await podcasts_collection.find_one({"_id": obj_id})
     if not existing_podcast:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Audio with ID {audio_id} not found"
+            detail=f"Audio with ID {audio_id} not found",
         )
-    
+
     deletion_summary = {
         "podcast_deleted": False,
         "transcripts_deleted": 0,
@@ -243,86 +250,99 @@ async def delete_audio(
         "supabase_files_deleted": [],
         "supabase_errors": [],
         "pinecone_deleted": False,
-        "pinecone_error": None
+        "pinecone_error": None,
     }
-    
+
     # Step 1: Delete from MongoDB collections
     try:
         # Delete podcast
         await podcasts_collection.delete_one({"_id": obj_id})
         deletion_summary["podcast_deleted"] = True
-        
+
         # Delete related transcripts - they may link by file_name or be orphaned (podcast_id: null)
         # Try multiple patterns to find related transcripts
         file_name = existing_podcast.get("title", "").replace(" ", "_")
         transcript_queries = []
-        
+
         # Add query for exact audio_id match (if any transcripts use this)
         transcript_queries.append({"podcast_id": audio_id})
-        
+
         # Add query for null podcast_id with matching user_id and timeframe
         user_id_str = str(existing_podcast.get("user_id", ""))
         created_at = existing_podcast.get("created_at")
         if user_id_str and created_at:
             # Find transcripts created around the same time (within 1 hour)
             from datetime import timedelta
+
             time_window_start = created_at - timedelta(hours=1)
             time_window_end = created_at + timedelta(hours=1)
-            transcript_queries.append({
-                "podcast_id": None,
-                "created_at": {"$gte": time_window_start, "$lte": time_window_end}
-            })
-        
+            transcript_queries.append(
+                {
+                    "podcast_id": None,
+                    "created_at": {"$gte": time_window_start, "$lte": time_window_end},
+                }
+            )
+
         transcript_delete_count = 0
         for query in transcript_queries:
             result = await transcripts_collection.delete_many(query)
             transcript_delete_count += result.deleted_count
         deletion_summary["transcripts_deleted"] = transcript_delete_count
-        
+
         # Delete related uploads - match by file_name pattern or user_id + timeframe
         upload_queries = []
         if file_name:
             # Try to match by filename patterns
-            upload_queries.append({"file_name": {"$regex": file_name.replace("_", ".*"), "$options": "i"}})
-        
+            upload_queries.append(
+                {"file_name": {"$regex": file_name.replace("_", ".*"), "$options": "i"}}
+            )
+
         # Match by user_id and creation timeframe
         if user_id_str and created_at:
-            upload_queries.append({
-                "user_id": user_id_str,
-                "created_at": {"$gte": time_window_start, "$lte": time_window_end}
-            })
-        
+            upload_queries.append(
+                {
+                    "user_id": user_id_str,
+                    "created_at": {"$gte": time_window_start, "$lte": time_window_end},
+                }
+            )
+
         upload_delete_count = 0
         for query in upload_queries:
             result = await uploads_collection.delete_many(query)
             upload_delete_count += result.deleted_count
         deletion_summary["uploads_deleted"] = upload_delete_count
-        
+
         # Delete related transcription stats - match by user_id (string) and timeframe
         stats_delete_count = 0
         if user_id_str and created_at:
-            stats_result = await transcription_stats_collection.delete_many({
-                "user_id": user_id_str,
-                "timestamp": {"$gte": time_window_start, "$lte": time_window_end}
-            })
+            stats_result = await transcription_stats_collection.delete_many(
+                {
+                    "user_id": user_id_str,
+                    "timestamp": {"$gte": time_window_start, "$lte": time_window_end},
+                }
+            )
             stats_delete_count = stats_result.deleted_count
         deletion_summary["transcription_stats_deleted"] = stats_delete_count
-        
+
     except Exception as e:
         log_info(
             f"Error deleting from MongoDB collections for audio {audio_id}: {str(e)}",
             "content_management_error",
-            {"admin_id": str(current_user["_id"]), "audio_id": audio_id, "error": str(e)}
+            {
+                "admin_id": str(current_user["_id"]),
+                "audio_id": audio_id,
+                "error": str(e),
+            },
         )
-    
+
     # Step 2: Delete from Supabase buckets
     try:
         from services.supabase_service import delete_file_from_supabase
-        
+
         # Extract file paths from URLs
         supabase_files_to_delete = []
         supabase_errors = []
-        
+
         for url_field in ["raw_audio_url", "embedded_audio_url", "audio_url"]:
             url = existing_podcast.get(url_field, "")
             if url:
@@ -332,8 +352,10 @@ async def delete_audio(
                     if "/storage/v1/object/public/" in url:
                         path_part = url.split("/storage/v1/object/public/", 1)[1]
                         if "?" in path_part:
-                            path_part = path_part.split("?", 1)[0]  # Remove query params
-                        
+                            path_part = path_part.split("?", 1)[
+                                0
+                            ]  # Remove query params
+
                         # Extract bucket name from URL and file path
                         path_segments = path_part.split("/", 1)
                         if len(path_segments) >= 2:
@@ -342,29 +364,40 @@ async def delete_audio(
                         else:
                             # Fallback if path format is unexpected
                             import os
+
                             if url_field == "embedded_audio_url":
-                                url_bucket = os.getenv("SUPABASE_BUCKET_EMBEDDED", "audiofiles-embedded")
+                                url_bucket = os.getenv(
+                                    "SUPABASE_BUCKET_EMBEDDED", "audiofiles-embedded"
+                                )
                             else:
-                                url_bucket = os.getenv("SUPABASE_BUCKET_ORIGINAL", "audiofiles")
+                                url_bucket = os.getenv(
+                                    "SUPABASE_BUCKET_ORIGINAL", "audiofiles"
+                                )
                             file_path = path_part
-                        
+
                         bucket_name = url_bucket
-                        
+
                         # Delete file
-                        delete_result = await delete_file_from_supabase(file_path, bucket_name)
+                        delete_result = await delete_file_from_supabase(
+                            file_path, bucket_name
+                        )
                         if delete_result.get("success"):
-                            supabase_files_to_delete.append(f"{bucket_name}/{file_path}")
+                            supabase_files_to_delete.append(
+                                f"{bucket_name}/{file_path}"
+                            )
                         else:
-                            supabase_errors.append(f"Failed to delete {bucket_name}/{file_path}")
+                            supabase_errors.append(
+                                f"Failed to delete {bucket_name}/{file_path}"
+                            )
                 except Exception as e:
                     supabase_errors.append(f"Error processing {url_field}: {str(e)}")
-        
+
         deletion_summary["supabase_files_deleted"] = supabase_files_to_delete
         deletion_summary["supabase_errors"] = supabase_errors
-        
+
     except Exception as e:
         deletion_summary["supabase_errors"] = [f"Supabase deletion error: {str(e)}"]
-    
+
     # Step 3: Delete from Pinecone
     try:
         # Generate file_id from the audio filename or use a derived identifier
@@ -378,42 +411,44 @@ async def delete_audio(
                     if "." in file_name:
                         file_name = file_name.rsplit(".", 1)[0]
                     break
-        
+
         # Use the actual file_id from the podcast document (this is what Pinecone uses)
         from services.pinecone_service import delete_by_file_id
+
         file_ids_to_try = []
-        
+
         # Generate file_id the same way it's created during indexing (SHA1 hash of URL)
         import hashlib
-        
+
         # Primary: Generate file_id from raw_audio_url (matches content_tracker.py logic)
         raw_audio_url = existing_podcast.get("raw_audio_url", "")
         if raw_audio_url:
-            podcast_file_id = hashlib.sha1(raw_audio_url.encode("utf-8")).hexdigest()[:12]
+            podcast_file_id = hashlib.sha1(raw_audio_url.encode("utf-8")).hexdigest()[
+                :12
+            ]
             file_ids_to_try.append(podcast_file_id)
-            
-        
+
         # Also try from embedded_audio_url if different
         embedded_audio_url = existing_podcast.get("embedded_audio_url", "")
         if embedded_audio_url and embedded_audio_url != raw_audio_url:
-            embedded_file_id = hashlib.sha1(embedded_audio_url.encode("utf-8")).hexdigest()[:12]
+            embedded_file_id = hashlib.sha1(
+                embedded_audio_url.encode("utf-8")
+            ).hexdigest()[:12]
             file_ids_to_try.append(embedded_file_id)
-            
-        
+
         # Also try audio_url if different from both above
         audio_url = existing_podcast.get("audio_url", "")
         if audio_url and audio_url not in [raw_audio_url, embedded_audio_url]:
             audio_file_id = hashlib.sha1(audio_url.encode("utf-8")).hexdigest()[:12]
             file_ids_to_try.append(audio_file_id)
-            
-        
+
         # Fallback: Generate file_ids using various heuristics
         file_ids_set = set()
         if file_name:
             file_ids_set.add(audio_id[:12])
             file_ids_set.add(file_name.replace(" ", "_")[:12])
             file_ids_set.add(f"{audio_id[:8]}_{audio_id[8:12]}")
-        
+
         # Hash-based IDs derived from Supabase URLs
         url_candidates = []
         for url_field in ["raw_audio_url", "embedded_audio_url", "audio_url"]:
@@ -431,53 +466,65 @@ async def delete_audio(
                     file_ids_set.add(fid2)
             except Exception:
                 pass
-        
+
         # Add fallback IDs to the list
-        file_ids_to_try.extend([fid for fid in file_ids_set if fid and fid not in file_ids_to_try])
-        
+        file_ids_to_try.extend(
+            [fid for fid in file_ids_set if fid and fid not in file_ids_to_try]
+        )
+
         if file_ids_to_try:
             deleted_any = False
             for file_id in file_ids_to_try:
                 try:
                     delete_result = await delete_by_file_id(file_id)
-                    
+
                     if delete_result.get("deleted_count", 0) > 0:
                         deletion_summary["pinecone_deleted"] = True
-                        deletion_summary["pinecone_vectors_deleted"] = delete_result.get("deleted_count", 0)
+                        deletion_summary["pinecone_vectors_deleted"] = (
+                            delete_result.get("deleted_count", 0)
+                        )
                         deleted_any = True
                         break
-                    elif delete_result.get("success") and delete_result.get("error") is None:
+                    elif (
+                        delete_result.get("success")
+                        and delete_result.get("error") is None
+                    ):
                         # Success but 0 vectors - this is fine, continue to next file_id
                         continue
                 except Exception as e:
                     continue
-            
+
             if not deleted_any:
-                deletion_summary["pinecone_error"] = f"No vectors found for any file_ids: {file_ids_to_try}"
+                deletion_summary["pinecone_error"] = (
+                    f"No vectors found for any file_ids: {file_ids_to_try}"
+                )
         else:
-            deletion_summary["pinecone_error"] = "Could not determine file_id candidates for Pinecone deletion"
-            
+            deletion_summary["pinecone_error"] = (
+                "Could not determine file_id candidates for Pinecone deletion"
+            )
+
     except Exception as e:
         deletion_summary["pinecone_error"] = f"Pinecone deletion error: {str(e)}"
-    
+
     log_info(
         f"Admin deleted audio with comprehensive cleanup. Audio ID: {audio_id}",
         "content_management",
         {
-            "admin_id": str(current_user["_id"]), 
+            "admin_id": str(current_user["_id"]),
             "audio_id": audio_id,
-            "deletion_summary": deletion_summary
-        }
+            "deletion_summary": deletion_summary,
+        },
     )
-    
+
     return {
-        "status": "success", 
+        "status": "success",
     }
+
 
 @router.get("/audios/{audio_id}/relations", status_code=status.HTTP_200_OK)
 async def get_audio_relations(
     audio_id: str = Path(..., description="Audio ID"),
-    current_user: Dict[str, Any] = Depends(requires_role("admin"))
+    current_user: Dict[str, Any] = Depends(requires_role("admin")),
 ):
     """
     Return a non-destructive view of all relations for a particular audio file across
@@ -488,15 +535,14 @@ async def get_audio_relations(
         obj_id = ObjectId(audio_id)
     except Exception:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid audio ID format"
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid audio ID format"
         )
 
     podcast = await podcasts_collection.find_one({"_id": obj_id})
     if not podcast:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Audio with ID {audio_id} not found"
+            detail=f"Audio with ID {audio_id} not found",
         )
 
     # Prepare base details
@@ -506,16 +552,19 @@ async def get_audio_relations(
 
     # Prepare transcript queries (reuse delete logic non-destructively)
     from datetime import timedelta
+
     transcript_queries = [{"podcast_id": audio_id}]
     # Also try when transcripts stored ObjectId reference (defensive)
     transcript_queries.append({"podcast_id": obj_id})
     if user_id_str and created_at:
         time_window_start = created_at - timedelta(hours=1)
         time_window_end = created_at + timedelta(hours=1)
-        transcript_queries.append({
-            "podcast_id": None,
-            "created_at": {"$gte": time_window_start, "$lte": time_window_end}
-        })
+        transcript_queries.append(
+            {
+                "podcast_id": None,
+                "created_at": {"$gte": time_window_start, "$lte": time_window_end},
+            }
+        )
 
     transcripts_total = 0
     transcript_ids_sample: List[str] = []
@@ -533,7 +582,7 @@ async def get_audio_relations(
             items = await cursor.to_list(length=5)
             for it in items:
                 if it.get("_id"):
-                    tid = str(it["_id"]) 
+                    tid = str(it["_id"])
                     if tid not in transcript_ids_sample:
                         transcript_ids_sample.append(tid)
         except Exception:
@@ -552,14 +601,22 @@ async def get_audio_relations(
         except Exception:
             pass
     if file_name:
-        upload_queries.append({"file_name": {"$regex": file_name.replace("_", ".*"), "$options": "i"}})
+        upload_queries.append(
+            {"file_name": {"$regex": file_name.replace("_", ".*"), "$options": "i"}}
+        )
     if user_id_str and created_at:
-        upload_queries.append({
-            "user_id": user_id_str,
-            "created_at": {"$gte": time_window_start, "$lte": time_window_end}
-        })
+        upload_queries.append(
+            {
+                "user_id": user_id_str,
+                "created_at": {"$gte": time_window_start, "$lte": time_window_end},
+            }
+        )
     # Match by exact Supabase file URLs (with and without query params)
-    url_fields = [podcast.get("raw_audio_url", ""), podcast.get("embedded_audio_url", ""), podcast.get("audio_url", "")]
+    url_fields = [
+        podcast.get("raw_audio_url", ""),
+        podcast.get("embedded_audio_url", ""),
+        podcast.get("audio_url", ""),
+    ]
     for u in [u for u in url_fields if u]:
         # direct
         upload_queries.append({"file_url": u})
@@ -579,7 +636,7 @@ async def get_audio_relations(
             items = await cursor.to_list(length=5)
             for it in items:
                 if it.get("_id"):
-                    uid = str(it["_id"]) 
+                    uid = str(it["_id"])
                     if uid not in upload_ids_sample:
                         upload_ids_sample.append(uid)
     except Exception:
@@ -589,10 +646,12 @@ async def get_audio_relations(
     stats_total = 0
     try:
         if user_id_str and created_at:
-            stats_total = await transcription_stats_collection.count_documents({
-                "user_id": user_id_str,
-                "timestamp": {"$gte": time_window_start, "$lte": time_window_end}
-            })
+            stats_total = await transcription_stats_collection.count_documents(
+                {
+                    "user_id": user_id_str,
+                    "timestamp": {"$gte": time_window_start, "$lte": time_window_end},
+                }
+            )
     except Exception:
         pass
 
@@ -614,11 +673,9 @@ async def get_audio_relations(
                 else:
                     url_bucket = None
                     file_path = path_part
-                supabase_files.append({
-                    "bucket": url_bucket,
-                    "path": file_path,
-                    "url_field": url_field
-                })
+                supabase_files.append(
+                    {"bucket": url_bucket, "path": file_path, "url_field": url_field}
+                )
         except Exception:
             continue
 
@@ -660,16 +717,20 @@ async def get_audio_relations(
             file_ids_to_try.append(file_name.replace(" ", "_")[:12])
 
         seen = set()
-        unique_ids = [fid for fid in file_ids_to_try if not (fid in seen or seen.add(fid))]
+        unique_ids = [
+            fid for fid in file_ids_to_try if not (fid in seen or seen.add(fid))
+        ]
 
         for fid in unique_ids:
             try:
                 cnt = await count_vectors_by_file_id(fid)
-                pinecone_items.append({
-                    "file_id": fid,
-                    "vectors": cnt.get("total_count", 0),
-                    "success": cnt.get("success", False)
-                })
+                pinecone_items.append(
+                    {
+                        "file_id": fid,
+                        "vectors": cnt.get("total_count", 0),
+                        "success": cnt.get("success", False),
+                    }
+                )
             except Exception:
                 pinecone_items.append({"file_id": fid, "vectors": 0, "success": False})
     except Exception:
@@ -679,20 +740,42 @@ async def get_audio_relations(
     nodes = []
     edges = []
     audio_node_id = f"audio:{audio_id}"
-    nodes.append({"id": audio_node_id, "label": base_audio.get("title") or "Audio", "type": "audio"})
+    nodes.append(
+        {
+            "id": audio_node_id,
+            "label": base_audio.get("title") or "Audio",
+            "type": "audio",
+        }
+    )
 
     # Mongo group nodes
     mongo_group_id = f"mongo:{audio_id}"
     nodes.append({"id": mongo_group_id, "label": "MongoDB", "type": "group"})
     edges.append({"from": audio_node_id, "to": mongo_group_id})
-    nodes.append({"id": f"transcripts:{audio_id}", "label": f"Transcripts ({transcripts_total})", "type": "transcripts"})
-    nodes.append({"id": f"uploads:{audio_id}", "label": f"Uploads ({uploads_total})", "type": "uploads"})
-    nodes.append({"id": f"stats:{audio_id}", "label": f"Stats ({stats_total})", "type": "stats"})
-    edges.extend([
-        {"from": mongo_group_id, "to": f"transcripts:{audio_id}"},
-        {"from": mongo_group_id, "to": f"uploads:{audio_id}"},
-        {"from": mongo_group_id, "to": f"stats:{audio_id}"},
-    ])
+    nodes.append(
+        {
+            "id": f"transcripts:{audio_id}",
+            "label": f"Transcripts ({transcripts_total})",
+            "type": "transcripts",
+        }
+    )
+    nodes.append(
+        {
+            "id": f"uploads:{audio_id}",
+            "label": f"Uploads ({uploads_total})",
+            "type": "uploads",
+        }
+    )
+    nodes.append(
+        {"id": f"stats:{audio_id}", "label": f"Stats ({stats_total})", "type": "stats"}
+    )
+    edges.extend(
+        [
+            {"from": mongo_group_id, "to": f"transcripts:{audio_id}"},
+            {"from": mongo_group_id, "to": f"uploads:{audio_id}"},
+            {"from": mongo_group_id, "to": f"stats:{audio_id}"},
+        ]
+    )
 
     # Supabase nodes
     supa_group_id = f"supabase:{audio_id}"
@@ -700,13 +783,13 @@ async def get_audio_relations(
     edges.append({"from": audio_node_id, "to": supa_group_id})
     for i, f in enumerate(supabase_files):
         nid = f"supa:{i}:{audio_id}"
-        bucket = f.get('bucket') or ''
-        path = f.get('path') or ''
-        first_dir = ''
+        bucket = f.get("bucket") or ""
+        path = f.get("path") or ""
+        first_dir = ""
         if path:
-            parts = path.split('/')
+            parts = path.split("/")
             if len(parts) > 0 and parts[0]:
-                first_dir = parts[0] + '/'
+                first_dir = parts[0] + "/"
         compact_label = f"{bucket}/{first_dir}" if bucket else first_dir
         nodes.append({"id": nid, "label": compact_label, "type": "supabase_file"})
         edges.append({"from": supa_group_id, "to": nid})
@@ -717,7 +800,13 @@ async def get_audio_relations(
     edges.append({"from": audio_node_id, "to": pine_group_id})
     for i, pi in enumerate(pinecone_items):
         nid = f"pine:{i}:{audio_id}"
-        nodes.append({"id": nid, "label": f"{pi.get('file_id')} ({pi.get('vectors', 0)})", "type": "pinecone"})
+        nodes.append(
+            {
+                "id": nid,
+                "label": f"{pi.get('file_id')} ({pi.get('vectors', 0)})",
+                "type": "pinecone",
+            }
+        )
         edges.append({"from": pine_group_id, "to": nid})
 
     # Helper to stringify ObjectId in nested structures (for safe JSON response)
@@ -746,24 +835,33 @@ async def get_audio_relations(
             },
         },
         "mongo": {
-            "transcripts": {"count": transcripts_total, "sample_ids": transcript_ids_sample, "queries": safe_transcript_queries},
-            "uploads": {"count": uploads_total, "sample_ids": upload_ids_sample, "queries": safe_upload_queries},
+            "transcripts": {
+                "count": transcripts_total,
+                "sample_ids": transcript_ids_sample,
+                "queries": safe_transcript_queries,
+            },
+            "uploads": {
+                "count": uploads_total,
+                "sample_ids": upload_ids_sample,
+                "queries": safe_upload_queries,
+            },
             "transcription_stats": {"count": stats_total},
         },
         "supabase": {"files": supabase_files},
         "pinecone": {"file_ids": pinecone_items},
-        "graph": {"nodes": nodes, "edges": edges}
+        "graph": {"nodes": nodes, "edges": edges},
     }
 
     log_info(
         f"Admin viewed audio relations. Audio ID: {audio_id}",
         "content_management",
-        {"admin_id": str(current_user["_id"]), "audio_id": audio_id}
+        {"admin_id": str(current_user["_id"]), "audio_id": audio_id},
     )
 
     # Encode and return safely to avoid ObjectId serialization issues
     safe_payload = jsonable_encoder(payload, custom_encoder={ObjectId: str})
     return JSONResponse(content=safe_payload, status_code=status.HTTP_200_OK)
+
 
 # Uploads Management
 @router.get("/uploads", response_model=UploadsResponse, status_code=status.HTTP_200_OK)
@@ -772,11 +870,13 @@ async def list_uploads(
     page: int = Query(1, ge=1, description="Page number, starting from 1"),
     limit: int = Query(20, ge=1, le=100, description="Number of items per page"),
     sort_by: str = Query("created_at", description="Field to sort by"),
-    sort_order: int = Query(-1, description="Sort order: 1 for ascending, -1 for descending"),
+    sort_order: int = Query(
+        -1, description="Sort order: 1 for ascending, -1 for descending"
+    ),
     user_id: Optional[str] = Query(None, description="Filter by user ID"),
     file_type: Optional[str] = Query(None, description="Filter by file type"),
     status: Optional[str] = Query(None, description="Filter by processing status"),
-    filename_search: Optional[str] = Query(None, description="Search in filename")
+    filename_search: Optional[str] = Query(None, description="Search in filename"),
 ):
     """
     List and filter user uploads with pagination.
@@ -784,58 +884,57 @@ async def list_uploads(
     """
     # Build the filter query
     filter_query = {}
-    
+
     if user_id:
         try:
             filter_query["user_id"] = user_id
         except Exception:
             raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Invalid user ID format"
+                status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid user ID format"
             )
-    
+
     if file_type:
         filter_query["file_type"] = file_type
-    
+
     if status:
         filter_query["status"] = status
-    
+
     if filename_search:
         filter_query["file_name"] = {"$regex": filename_search, "$options": "i"}
-    
+
     # Get total count for pagination
     total_count = await uploads_collection.count_documents(filter_query)
-    
+
     # Calculate skip for pagination
     skip = (page - 1) * limit
-    
+
     # Get uploads with pagination and sorting
     cursor = uploads_collection.find(filter_query)
     cursor = cursor.sort(sort_by, sort_order)
     cursor = cursor.skip(skip).limit(limit)
-    
+
     uploads = await cursor.to_list(length=limit)
-    
+
     # Convert MongoDB documents to Pydantic models
     sanitized_uploads = [sanitize_mongo_doc(upload) for upload in uploads]
-    
+
     log_info(
         f"Admin listed uploads. Filters: {filter_query}, Total: {total_count}",
         "content_management",
-        {"admin_id": str(current_user["_id"]), "page": page, "limit": limit}
-    )
-    
-    return UploadsResponse(
-        uploads=sanitized_uploads,
-        total_count=total_count,
-        page=page,
-        limit=limit
+        {"admin_id": str(current_user["_id"]), "page": page, "limit": limit},
     )
 
-@router.get("/uploads/{upload_id}", response_model=Upload, status_code=status.HTTP_200_OK)
+    return UploadsResponse(
+        uploads=sanitized_uploads, total_count=total_count, page=page, limit=limit
+    )
+
+
+@router.get(
+    "/uploads/{upload_id}", response_model=Upload, status_code=status.HTTP_200_OK
+)
 async def get_upload_details(
     upload_id: str = Path(..., description="Upload ID"),
-    current_user: Dict[str, Any] = Depends(requires_role("admin"))
+    current_user: Dict[str, Any] = Depends(requires_role("admin")),
 ):
     """
     Get detailed information about a specific upload.
@@ -845,22 +944,21 @@ async def get_upload_details(
         obj_id = ObjectId(upload_id)
     except Exception:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid upload ID format"
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid upload ID format"
         )
-    
+
     upload = await uploads_collection.find_one({"_id": obj_id})
-    
+
     if not upload:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Upload with ID {upload_id} not found"
+            detail=f"Upload with ID {upload_id} not found",
         )
-    
+
     log_info(
         f"Admin viewed upload details. Upload ID: {upload_id}",
         "content_management",
-        {"admin_id": str(current_user["_id"]), "upload_id": upload_id}
+        {"admin_id": str(current_user["_id"]), "upload_id": upload_id},
     )
-    
+
     return sanitize_mongo_doc(upload)

@@ -16,6 +16,7 @@ logger = logging.getLogger("voicera.db")
 # Initialize MongoDB connection
 MONGO_URI = os.getenv("MONGO_URI")
 
+
 def _mask_mongo_uri(uri: Optional[str]) -> str:
     if not uri:
         return "<missing>"
@@ -31,13 +32,24 @@ def _mask_mongo_uri(uri: Optional[str]) -> str:
     except Exception:
         return "<masked>"
 
+
 if not MONGO_URI:
-    logger.warning("MONGO_URI is not set; attempting default client. DB operations may fail.")
+    logger.warning(
+        "MONGO_URI is not set; attempting default client. DB operations may fail."
+    )
 
 try:
-    client = motor.motor_asyncio.AsyncIOMotorClient(MONGO_URI) if MONGO_URI else motor.motor_asyncio.AsyncIOMotorClient()
+    client = (
+        motor.motor_asyncio.AsyncIOMotorClient(MONGO_URI)
+        if MONGO_URI
+        else motor.motor_asyncio.AsyncIOMotorClient()
+    )
     db = client.voicera_db
-    logger.info("Initialized MongoDB client. uri=%s db=%s", _mask_mongo_uri(MONGO_URI), "voicera_db")
+    logger.info(
+        "Initialized MongoDB client. uri=%s db=%s",
+        _mask_mongo_uri(MONGO_URI),
+        "voicera_db",
+    )
 except Exception as e:
     logger.exception("Failed to initialize MongoDB client: %s", e)
     raise
@@ -49,7 +61,7 @@ ip_credits_collection = db.ip_credits
 
 # Analytics and monitoring collections
 api_usage_collection = db.api_usage
-transcription_stats_collection = db.transcription_stats  
+transcription_stats_collection = db.transcription_stats
 search_trends_collection = db.search_trends
 user_activity_collection = db.user_activity
 logs_collection = db.logs
