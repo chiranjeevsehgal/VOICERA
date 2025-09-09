@@ -4,7 +4,6 @@ import { FormsModule } from '@angular/forms';
 import { HttpClientModule } from '@angular/common/http';
 import { User, UserService } from '../../../services/admin/user.service';
 import { Toast } from 'primeng/toast';
-import { MessageService } from 'primeng/api';
 import { LucideAngularModule, Check, X, Users } from 'lucide-angular';
 import {
   getCurrentUserRole,
@@ -23,7 +22,7 @@ import { HotToastService } from '@ngxpert/hot-toast';
     HttpClientModule,
     LucideAngularModule,
   ],
-  providers: [MessageService, UserService],
+  providers: [UserService],
   templateUrl: './user-management.component.html',
   styles: ``,
 })
@@ -55,7 +54,6 @@ export class UserManagementComponent implements OnInit {
 
   constructor(
     private userService: UserService,
-    private messageService: MessageService,
     private toast: HotToastService,
   ) {}
 
@@ -100,12 +98,7 @@ export class UserManagementComponent implements OnInit {
         this.error = 'Failed to load users. Please try again.';
         this.loading = false;
 
-        this.messageService.add({
-          severity: 'error',
-          summary: 'Error',
-          detail: 'Failed to load users. Please try again.',
-          life: 5000,
-        });
+        this.toast.error("Failed to load users. Please try again.");
 
         // Fallback to empty array or show error message
         this.users = [];
@@ -235,14 +228,9 @@ export class UserManagementComponent implements OnInit {
         }
 
         this.updatingUsers.delete(user.id);
-        this.messageService.add({
-          severity: 'success',
-          summary: 'Success',
-          detail: `User ${user.name} has been ${
+        this.toast.success(`User ${user.name} has been ${
             newStatus === 'active' ? 'activated' : 'deactivated'
-          } successfully.`,
-          life: 4000,
-        });
+          } successfully.`);
       },
       error: (error) => {
         console.error('Error updating user status:', error);
@@ -260,12 +248,7 @@ export class UserManagementComponent implements OnInit {
 
         this.updatingUsers.delete(user.id);
 
-        this.messageService.add({
-          severity: 'error',
-          summary: 'Error',
-          detail: `Failed to update ${user.name}'s status. Please try again.`,
-          life: 5000,
-        });
+        this.toast.error(`Failed to update ${user.name}'s status. Please try again.`);
 
         // Clear error message after 5 seconds
         setTimeout(() => {
@@ -328,26 +311,16 @@ export class UserManagementComponent implements OnInit {
         this.totalCount = Math.max(0, this.totalCount - 1);
 
         // Show success message
-        this.messageService.add({
-          severity: 'success',
-          summary: 'Success',
-          detail: `User ${
+        this.toast.success(`User ${
             this.userToDelete!.name
-          } has been deleted successfully.`,
-          life: 4000,
-        });
+          } has been deleted successfully.`);
 
         this.closeDeleteModal();
         this.deletingUserId = '';
       },
       error: (error) => {
         console.error('Error deleting user:', error);
-        this.messageService.add({
-          severity: 'error',
-          summary: 'Error',
-          detail: `Failed to delete user. Please try again.`,
-          life: 5000,
-        });
+        this.toast.error(`Failed to delete user. Please try again.`);
         this.deletingUserId = '';
 
         // Clear error after 5 seconds
