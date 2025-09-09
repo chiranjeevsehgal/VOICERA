@@ -62,7 +62,8 @@ export class SemanticSearchService {
     query: string,
     limit: number = 5,
     minConfidence: number = 0.7,
-    minRelevance: number = 0.65
+    minRelevance: number = 0.65,
+    validateContent: boolean = false
   ): Observable<SearchResponse> {
     // Fetch latest token at call time
     const token = localStorage.getItem('vEra_auth_token') || '';
@@ -79,7 +80,7 @@ export class SemanticSearchService {
       .set('limit', String(limit))
       .set('min_confidence', String(minConfidence))
       .set('min_relevance', String(minRelevance))
-      .set('validate_content', 'false') // Turn it to true only if you want LLM Validation
+      .set('validate_content', String(validateContent));
 
     return this.http.get<SearchResponse>(url, { headers, params });
   }

@@ -58,6 +58,11 @@ export class SidebarComponent {
       icon: AudioLines,
     },
     {
+      id: 'bulk-upload',
+      label: 'Bulk Upload',
+      icon: Upload,
+    },
+    {
       id: 'gemini-keys',
       label: 'Gemini Keys',
       icon: KeyRound,

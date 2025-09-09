@@ -281,6 +281,9 @@
             *ngIf="currentView === 'audio-management'"
           ></app-audio-management>
 
+          <!-- Bulk Upload -->
+          <app-bulk-upload *ngIf="currentView === 'bulk-upload'"></app-bulk-upload>
+
           <!-- Gemini Keys -->
           <app-gemini-keys
             *ngIf="currentView === 'gemini-keys'"

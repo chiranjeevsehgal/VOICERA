@@ -57,6 +57,35 @@ export interface UpdateAudioRequest {
   title: string;
 }
 
+export interface RelationsNode {
+  id: string;
+  label: string;
+  type: string;
+}
+
+export interface RelationsEdge {
+  from: string;
+  to: string;
+}
+
+export interface AudioRelationsResponse {
+  audio: {
+    id: string;
+    title?: string;
+    author?: string;
+    created_at?: string;
+    urls?: Record<string, string | null>;
+  };
+  mongo: {
+    transcripts: { count: number; sample_ids?: string[]; queries?: any[] };
+    uploads: { count: number; sample_ids?: string[]; queries?: any[] };
+    transcription_stats: { count: number };
+  };
+  supabase: { files: Array<{ bucket?: string | null; path: string; url_field: string }>; };
+  pinecone: { file_ids: Array<{ file_id: string; vectors: number; success: boolean }>; };
+  graph: { nodes: RelationsNode[]; edges: RelationsEdge[] };
+}
+
 @Injectable({
   providedIn: 'root',
 })
@@ -102,10 +131,17 @@ export class AudioService {
     );
   }
 
-    updateAudio(audioId: string, updateData: UpdateAudioRequest): Observable<Podcast> {
+  updateAudio(audioId: string, updateData: UpdateAudioRequest): Observable<Podcast> {
     return this.http.put<Podcast>(
       `${this.baseUrl}/api/audios/${audioId}`,
       updateData,
+      { headers: this.getHeaders() }
+    );
+  }
+
+  getAudioRelations(audioId: string): Observable<AudioRelationsResponse> {
+    return this.http.get<AudioRelationsResponse>(
+      `${this.baseUrl}/api/audios/${audioId}/relations`,
       { headers: this.getHeaders() }
     );
   }

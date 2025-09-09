@@ -840,6 +840,34 @@ async def delete_by_file_id(file_id: str) -> Dict[str, Any]:
         error_msg = f"Error deleting vectors for file_id {file_id}: {str(e)}"
         return {"success": False, "deleted_count": 0, "error": error_msg}
 
+async def count_vectors_by_file_id(file_id: str) -> Dict[str, Any]:
+    """
+    Count Pinecone vectors that have metadata.file_id == file_id without deleting anything.
+    Returns a dict with keys: success (bool), total_count (int), error (str|None).
+    """
+    global index
+    if not index:
+        if not init_pinecone():
+            msg = "Failed to initialize Pinecone"
+            return {"success": False, "total_count": 0, "error": msg}
+    try:
+        # Use a filtered query to count matches reliably
+        dummy_vector = [0.0] * EMBEDDING_DIMENSION
+        try:
+            resp = index.query(
+                vector=dummy_vector,
+                top_k=10000,
+                include_metadata=False,
+                filter={"file_id": {"$eq": file_id}},
+            )
+            matches = resp.matches if hasattr(resp, "matches") else []
+            total_count = len(matches)
+        except Exception:
+            total_count = 0
+        return {"success": True, "total_count": total_count, "error": None}
+    except Exception as e:
+        return {"success": False, "total_count": 0, "error": str(e)}
+
 def test_pinecone_connection():
     """Test Pinecone connection and index status"""
     try:

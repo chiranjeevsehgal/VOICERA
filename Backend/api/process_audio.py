@@ -15,6 +15,9 @@ import json
 import threading
 import asyncio
 
+import os
+import re
+
 from services.auth import get_current_user, requires_role
 from services.ip_utils import get_ip_for_request
 from services.job_tracker import create_job, get_job_status, clean_old_jobs
@@ -24,6 +27,44 @@ from api.upload import AUDIO_MIME_TYPES
 from services.background_processor import run_processing_in_thread
 
 router = APIRouter()
+
+# Limit concurrent background processing threads for bulk uploads to reduce memory spikes
+MAX_CONCURRENT_BULK_THREADS = 4
+_thread_semaphore = threading.Semaphore(MAX_CONCURRENT_BULK_THREADS)
+
+
+def _run_with_semaphore(
+    job_id: str,
+    file_content: bytes,
+    file_info: Dict[str, Any],
+    custom_filename: Optional[str],
+    transcription_options: str,
+    enhanced_user: Dict[str, Any],
+    detected_ip: str,
+    background_tasks: BackgroundTasks,
+):
+    try:
+        _thread_semaphore.acquire()
+        run_processing_in_thread(
+            job_id,
+            file_content,
+            file_info,
+            custom_filename,
+            transcription_options,
+            enhanced_user,
+            detected_ip,
+            background_tasks,
+        )
+    finally:
+        _thread_semaphore.release()
+
+
+def sanitize_filename(name: str) -> str:
+    """Return a safe filename limited to common characters and strip path components."""
+    base = os.path.basename(name or "").strip()
+    safe = re.sub(r"[^A-Za-z0-9._\-\s]", "_", base)
+    # Avoid empty names after sanitization
+    return safe[:255] if safe else base[:255]
 
 
 @router.on_event("startup")
@@ -118,7 +159,6 @@ async def process_audio_bulk(
     background_tasks: BackgroundTasks,
     files: List[UploadFile] = File(...),
     custom_filenames: Optional[str] = Form(None),
-    transcription_options: Optional[str] = Form("{}"),
     current_user: dict = Depends(requires_role("admin")),
     detected_ip: str = Depends(get_ip_for_request),
 ):
@@ -136,16 +176,14 @@ async def process_audio_bulk(
 
     # Validate transcription options format
     try:
-        transcription_opts = json.loads(transcription_options or "{}")
-        if not isinstance(transcription_opts, dict):
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="transcription_options must be a valid JSON object",
-            )
+        if custom_filenames:
+            filename_map = json.loads(custom_filenames) or {}
+        else:
+            filename_map = {}
     except json.JSONDecodeError as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Invalid JSON in transcription_options: {str(e)}",
+            detail=f"Invalid JSON in custom_filenames: {str(e)}",
         )
 
     filename_map: Dict[str, str] = {}
@@ -191,27 +229,36 @@ async def process_audio_bulk(
                 )
                 continue
 
-            # Read file content and reset pointer for each file
-            file_content = await file.read()
-            if len(file_content) == 0:
-                # If file is empty after read, try to seek to beginning and read again
-                await file.seek(0)
-                file_content = await file.read()
+            # Read file content in chunks to enforce size limit without large memory spikes
+            total_read = 0
+            buffer = bytearray()
+            try:
+                while True:
+                    chunk = await file.read(1024 * 1024)  # 1MB chunks
+                    if not chunk:
+                        break
+                    buffer.extend(chunk)
+                    total_read += len(chunk)
+                    if total_read > MAX_FILE_SIZE_BYTES:
+                        failed_files.append(
+                            {
+                                "file": file.filename,
+                                "error": f"File exceeds {MAX_FILE_SIZE_MB}MB limit",
+                            }
+                        )
+                        buffer = None  # signal oversize
+                        break
+            finally:
+                # Always reset file pointer after reading
+                try:
+                    await file.seek(0)
+                except Exception:
+                    pass
 
-            # Always reset file pointer after reading
-            await file.seek(0)
-
-            # Validate file size
-            if len(file_content) > MAX_FILE_SIZE_BYTES:
-                failed_files.append(
-                    {
-                        "file": file.filename,
-                        "error": f"File exceeds {MAX_FILE_SIZE_MB}MB limit",
-                    }
-                )
+            if buffer is None:
                 continue
 
-            if len(file_content) == 0:
+            if total_read == 0:
                 failed_files.append(
                     {
                         "file": file.filename,
@@ -220,12 +267,17 @@ async def process_audio_bulk(
                 )
                 continue
 
+            file_content = bytes(buffer)
+
             # Get custom filename if provided
             custom_name = None
             if str(idx) in filename_map:
                 custom_name = filename_map[str(idx)]
             elif file.filename in filename_map:
                 custom_name = filename_map[file.filename]
+
+            if custom_name:
+                custom_name = sanitize_filename(custom_name)
 
             # Create job and file info
             job_id = create_job()
@@ -235,15 +287,15 @@ async def process_audio_bulk(
                 "size": len(file_content),
             }
 
-            # Start processing thread
+            # Start processing thread with concurrency gating
             thread = threading.Thread(
-                target=run_processing_in_thread,
+                target=_run_with_semaphore,
                 args=(
                     job_id,
                     file_content,
                     file_info,
                     custom_name,
-                    transcription_options,
+                    filename_map,
                     enhanced_user,
                     detected_ip,
                     background_tasks,

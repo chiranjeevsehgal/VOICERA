@@ -12,20 +12,11 @@ import { ApplicationLogsComponent } from '../../../components/admin/application-
 import { GeminiKeysComponent } from '../../../components/admin/gemini-keys/gemini-keys.component';
 import { shouldUseMockData } from '../../../utils/role.utils';
 import { Handshake, LucideAngularModule } from 'lucide-angular';
+import { BulkUploadComponent } from '../../../components/admin/bulk-upload/bulk-upload.component';
 
 @Component({
   selector: 'app-dashboard',
-  imports: [
-    CommonModule,
-    SidebarComponent,
-    UserManagementComponent,
-    CreditManagementComponent,
-    AudioManagementComponent,
-    UsageLogsComponent,
-    ApplicationLogsComponent,
-    GeminiKeysComponent,
-    LucideAngularModule,
-  ],
+  imports: [CommonModule, SidebarComponent, UserManagementComponent, CreditManagementComponent, AudioManagementComponent, UsageLogsComponent, ApplicationLogsComponent, GeminiKeysComponent, LucideAngularModule, BulkUploadComponent],
   templateUrl: './dashboard.component.html',
   styles: ``,
 })
@@ -126,6 +117,7 @@ export class AdminDashboardComponent implements OnInit, OnDestroy {
       'gemini-keys',
       'logs',
       'application-logs',
+      'bulk-upload',
     ];
     return validViews.includes(view);
   }
@@ -159,6 +151,7 @@ export class AdminDashboardComponent implements OnInit, OnDestroy {
       'gemini-keys': 'Gemini Keys',
       logs: 'Usage Logs',
       'application-logs': 'Application Logs',
+      'bulk-upload': 'Bulk Upload',
     };
     return titles[this.currentView] || 'Dashboard';
   }
@@ -172,6 +165,7 @@ export class AdminDashboardComponent implements OnInit, OnDestroy {
       'gemini-keys': 'Monitor Gemini API keys and rate limits',
       logs: 'View API usage metrics and endpoint counts',
       'application-logs': 'View and search application log files',
+      'bulk-upload': 'Upload multiple audio files and track processing jobs',
     };
     return descriptions[this.currentView] || 'Manage your application';
   }
