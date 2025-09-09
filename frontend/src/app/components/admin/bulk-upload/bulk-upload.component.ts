@@ -126,7 +126,7 @@ export class BulkUploadComponent implements OnDestroy {
   startUpload(): void {
     // Check if we're in mock/guest mode
     if (shouldUseMockData()) {
-      this.toast.error(
+      this.toast.info(
         'Bulk upload is not allowed in guest mode.',
         {
           duration: 5000,
