@@ -185,7 +185,8 @@ Return ONLY the JSON object, no other text or formatting.""".format(
             # Get validation from LLM via REST client with retry and circuit breaker
             gemini_breaker = ServiceCircuitBreakers.get_gemini_breaker()
             response_text = await gemini_breaker.call(
-                lambda: generate_text(
+                lambda: asyncio.to_thread(
+                    generate_text,
                     model_name=config.model_name,
                     messages=[validation_prompt],
                     system_prompt=None,
@@ -672,15 +673,19 @@ async def generate_answer(
             query=request.query
         )
         
-        # Generate the answer via REST Gemini client
-        response_text = generate_text(
-            model_name=config.model_name,
-            messages=[formatted_prompt],
-            system_prompt=None,
-            temperature=0.3,
-            max_output_tokens=1024,
-            top_p=0.95,
-            top_k=40,
+        # Generate the answer via REST Gemini client with circuit breaker
+        gemini_breaker = ServiceCircuitBreakers.get_gemini_breaker()
+        response_text = await gemini_breaker.call(
+            lambda: asyncio.to_thread(
+                generate_text,
+                model_name=config.model_name,
+                messages=[formatted_prompt],
+                system_prompt=None,
+                temperature=0.3,
+                max_output_tokens=1024,
+                top_p=0.95,
+                top_k=40,
+            )
         )
         
         # Return the generated answer
@@ -798,15 +803,19 @@ async def search_and_answer(
         
         log_info(f"Sending prompt to LLM (length: {len(full_prompt)} chars)", "search.search_and_answer", {"prompt_length": len(full_prompt)})
         
-        # Generate the answer via REST Gemini client
-        response_text = generate_text(
-            model_name=config.model_name,
-            messages=[full_prompt],
-            system_prompt=None,
-            temperature=0.2,
-            max_output_tokens=1024,
-            top_p=0.95,
-            top_k=40,
+        # Generate the answer via REST Gemini client with circuit breaker
+        gemini_breaker = ServiceCircuitBreakers.get_gemini_breaker()
+        response_text = await gemini_breaker.call(
+            lambda: asyncio.to_thread(
+                generate_text,
+                model_name=config.model_name,
+                messages=[full_prompt],
+                system_prompt=None,
+                temperature=0.2,
+                max_output_tokens=1024,
+                top_p=0.95,
+                top_k=40,
+            )
         )
         
         log_info(f"LLM response received (length: {len(response_text)} chars)", "search.search_and_answer", {"response_length": len(response_text)})
