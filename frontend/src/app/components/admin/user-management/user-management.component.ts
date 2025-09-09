@@ -5,12 +5,24 @@ import { HttpClientModule } from '@angular/common/http';
 import { User, UserService } from '../../../services/admin/user.service';
 import { Toast } from 'primeng/toast';
 import { MessageService } from 'primeng/api';
-import { LucideAngularModule, Check, X } from 'lucide-angular';
+import { LucideAngularModule, Check, X, Users } from 'lucide-angular';
+import {
+  getCurrentUserRole,
+  shouldUseMockData,
+} from '../../../utils/role.utils';
+import * as mockUserData from '../../../utils/mockData/mockUsers.json';
+import { HotToastService } from '@ngxpert/hot-toast';
 
 @Component({
   selector: 'app-user-management',
   standalone: true,
-  imports: [Toast, CommonModule, FormsModule, HttpClientModule, LucideAngularModule],
+  imports: [
+    Toast,
+    CommonModule,
+    FormsModule,
+    HttpClientModule,
+    LucideAngularModule,
+  ],
   providers: [MessageService, UserService],
   templateUrl: './user-management.component.html',
   styles: ``,
@@ -19,6 +31,7 @@ export class UserManagementComponent implements OnInit {
   users: User[] = [];
   readonly Check = Check;
   readonly X = X;
+  readonly Users = Users; 
   filteredUsers: User[] = [];
   searchQuery: string = '';
   selectedRole: string = 'all';
@@ -42,7 +55,8 @@ export class UserManagementComponent implements OnInit {
 
   constructor(
     private userService: UserService,
-    private messageService: MessageService
+    private messageService: MessageService,
+    private toast: HotToastService
   ) {}
 
   ngOnInit() {
@@ -53,6 +67,24 @@ export class UserManagementComponent implements OnInit {
     this.loading = true;
     this.error = '';
 
+    // Check if we should use mock data
+    if (shouldUseMockData()) {
+      // Mock data response with proper typing
+      const mockResponse = mockUserData as any;
+
+      // Process mock data the same way as API response
+      this.totalCount = mockResponse.total_count;
+      this.users = mockResponse.users.map((apiUser: any) =>
+        this.userService.transformApiUser(apiUser)
+      );
+      this.filteredUsers = [...this.users];
+      this.loading = false;
+      this.refreshing = false;
+
+      return;
+    }
+
+    // Normal API call flow
     this.userService.getUsers().subscribe({
       next: (response) => {
         this.totalCount = response.total_count;
@@ -165,6 +197,10 @@ export class UserManagementComponent implements OnInit {
 
   toggleUserStatus(user: User) {
     // Prevent multiple simultaneous updates for the same user
+    if (shouldUseMockData()) {
+      this.toast.info('User status modifications are disabled in the guest environment.');
+      return;
+    }
     if (this.updatingUsers.has(user.id)) {
       return;
     }
@@ -242,7 +278,7 @@ export class UserManagementComponent implements OnInit {
   }
 
   refreshUsers() {
-    this.refreshing = true; 
+    this.refreshing = true;
     this.loadUsers();
   }
 
@@ -260,6 +296,10 @@ export class UserManagementComponent implements OnInit {
   }
 
   openDeleteModal(user: User, mode: 'deactivate' | 'delete' = 'delete') {
+    if (shouldUseMockData()) {
+      this.toast.info('User deletion is restricted in the guest environment.');
+      return;
+    }
     this.userToDelete = user;
     this.deleteMode = mode;
     this.showDeleteModal = true;

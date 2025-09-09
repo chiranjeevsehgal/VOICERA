@@ -10,17 +10,18 @@ import { AudioManagementComponent } from '../../../components/admin/audio-manage
 import { UsageLogsComponent } from '../../../components/admin/usage-logs/usage-logs.component';
 import { ApplicationLogsComponent } from '../../../components/admin/application-logs/application-logs.component';
 import { GeminiKeysComponent } from '../../../components/admin/gemini-keys/gemini-keys.component';
+import { shouldUseMockData } from '../../../utils/role.utils';
+import { Handshake, LucideAngularModule } from 'lucide-angular';
 import { BulkUploadComponent } from '../../../components/admin/bulk-upload/bulk-upload.component';
 import { ApplicationStatusComponent } from '../../../components/admin/application-status/application-status.component';
 
 @Component({
   selector: 'app-dashboard',
-  imports: [CommonModule, SidebarComponent, UserManagementComponent, CreditManagementComponent, AudioManagementComponent, UsageLogsComponent, ApplicationLogsComponent, GeminiKeysComponent, BulkUploadComponent, ApplicationStatusComponent],
+  imports: [CommonModule, SidebarComponent, UserManagementComponent, CreditManagementComponent, AudioManagementComponent, UsageLogsComponent, ApplicationLogsComponent, GeminiKeysComponent, BulkUploadComponent, ApplicationStatusComponent, LucideAngularModule],
   templateUrl: './dashboard.component.html',
-  styles: ``
+  styles: ``,
 })
-export class AdminDashboardComponent implements OnInit, OnDestroy  {
-  
+export class AdminDashboardComponent implements OnInit, OnDestroy {
   // Sidebar state management
   isSidebarOpen: boolean = false;
   isMobile: boolean = false;
@@ -28,10 +29,12 @@ export class AdminDashboardComponent implements OnInit, OnDestroy  {
   userProfile: UserProfile | null = null;
   userInitials: string = 'A';
   isLoadingProfile: boolean = true;
+  isDemoMode: boolean = false;
+  showDemoTooltip: boolean = false;
   private destroy$ = new Subject<void>();
-
+  readonly Handshake = Handshake;
   private readonly CURRENT_VIEW_KEY = 'vEra_admin_current-view';
-  
+
   // Responsive breakpoint detection
   @HostListener('window:resize', ['$event'])
   onResize(event: any) {
@@ -44,7 +47,22 @@ export class AdminDashboardComponent implements OnInit, OnDestroy  {
     this.checkScreenSize();
     this.loadCurrentView();
     this.loadUserData();
-    this.subscribeToProfileData(); 
+    this.subscribeToProfileData();
+
+    // Check if we're in demo mode
+    this.isDemoMode = shouldUseMockData();
+  }
+
+  toggleDemoTooltip(): void {
+    this.showDemoTooltip = !this.showDemoTooltip;
+  }
+
+  @HostListener('document:click', ['$event'])
+  onDocumentClick(event: Event): void {
+    const target = event.target as HTMLElement;
+    if (!target.closest('.demo-tooltip-container')) {
+      this.showDemoTooltip = false;
+    }
   }
 
   ngOnDestroy() {
@@ -70,7 +88,9 @@ export class AdminDashboardComponent implements OnInit, OnDestroy  {
     if (names.length === 1) {
       return names[0].charAt(0).toUpperCase();
     }
-    return (names[0].charAt(0) + names[names.length - 1].charAt(0)).toUpperCase();
+    return (
+      names[0].charAt(0) + names[names.length - 1].charAt(0)
+    ).toUpperCase();
   }
 
   private loadCurrentView(): void {
@@ -85,14 +105,14 @@ export class AdminDashboardComponent implements OnInit, OnDestroy  {
   private saveCurrentView(): void {
     localStorage.setItem(this.CURRENT_VIEW_KEY, this.currentView);
   }
-  
+
   private loadUserData(): void {
     this.adminService.loadUserData();
   }
 
   private isValidView(view: string): boolean {
     const validViews = [
-      'user-management', 
+      'user-management',
       'audio-management',
       'credit-management',
       'gemini-keys',
@@ -131,7 +151,7 @@ export class AdminDashboardComponent implements OnInit, OnDestroy  {
       'credit-management': 'Credits',
       'audio-management': 'Audio Management',
       'gemini-keys': 'Gemini Keys',
-      'logs': 'Usage Logs',
+      logs: 'Usage Logs',
       'application-logs': 'Application Logs',
       'bulk-upload': 'Bulk Upload',
       'application-status': 'Application Status',
@@ -146,7 +166,7 @@ export class AdminDashboardComponent implements OnInit, OnDestroy  {
       'credit-management': 'Manage IP credits',
       'audio-management': 'Upload, organize and manage audio content',
       'gemini-keys': 'Monitor Gemini API keys and rate limits',
-      'logs': 'View API usage metrics and endpoint counts',
+      logs: 'View API usage metrics and endpoint counts',
       'application-logs': 'View and search application log files',
       'bulk-upload': 'Upload multiple audio files and track processing jobs',
       'application-status': 'Monitor system health, circuit breakers, and rate limiting',

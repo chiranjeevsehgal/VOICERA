@@ -7,6 +7,10 @@ import {
   CreditService,
 } from '../../../services/admin/credit.service';
 import { HotToastService } from '@ngxpert/hot-toast';
+import {
+  shouldUseMockData,
+} from '../../../utils/role.utils';
+import * as mockCreditData from '../../../utils/mockData/mockIps.json';
 
 @Component({
   selector: 'app-credit-management',
@@ -43,6 +47,24 @@ export class CreditManagementComponent implements OnInit {
     this.loading = true;
     this.error = '';
 
+    // Check if we should use mock data
+    if (shouldUseMockData()) {
+      // Mock data response with proper typing
+      const mockResponse = mockCreditData as any;
+
+      // Process mock data the same way as API response
+      this.totalCount = mockResponse.total_count;
+      this.credits = mockResponse.ip_credits.map((apiCredit: any) =>
+        this.creditService.transformApiCredit(apiCredit)
+      );
+      this.filteredCredits = [...this.credits];
+      this.loading = false;
+      this.refreshing = false;
+
+      return;
+    }
+
+    // Normal API call flow
     this.creditService.getIPCredits().subscribe({
       next: (response) => {
         this.totalCount = response.total_count;
@@ -109,6 +131,11 @@ export class CreditManagementComponent implements OnInit {
   }
 
   openEditModal(credit: IPCredit) {
+    if (shouldUseMockData()) {
+      this.toast.info('Credit modifications are disabled in the guest environment.');
+      return;
+    }
+    
     this.creditToEdit = credit;
     this.newCreditAmount = credit.credits;
     this.showEditModal = true;
@@ -123,6 +150,13 @@ export class CreditManagementComponent implements OnInit {
 
   confirmUpdateCredits() {
     if (!this.creditToEdit || this.newCreditAmount < 0) return;
+
+    // Additional check in case modal somehow opened in mock mode
+    if (shouldUseMockData()) {
+      this.toast.info('Credit modifications are disabled in the guest environment.');
+      this.closeEditModal();
+      return;
+    }
 
     this.updatingCredits = true;
 
