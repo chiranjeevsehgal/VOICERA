@@ -17,7 +17,7 @@ import { ApplicationStatusComponent } from '../../../components/admin/applicatio
 
 @Component({
   selector: 'app-dashboard',
-  imports: [CommonModule, SidebarComponent, UserManagementComponent, CreditManagementComponent, AudioManagementComponent, UsageLogsComponent, ApplicationLogsComponent, GeminiKeysComponent, BulkUploadComponent, ApplicationStatusComponent],
+  imports: [CommonModule, SidebarComponent, UserManagementComponent, CreditManagementComponent, AudioManagementComponent, UsageLogsComponent, ApplicationLogsComponent, GeminiKeysComponent, BulkUploadComponent, ApplicationStatusComponent, LucideAngularModule],
   templateUrl: './dashboard.component.html',
   styles: ``,
 })
