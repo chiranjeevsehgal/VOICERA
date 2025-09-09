@@ -3,6 +3,10 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClientModule } from '@angular/common/http';
 import { BulkUploadService, BulkUploadResponse, JobStatus } from '../../../services/admin/bulk-upload.service';
+import {
+  shouldUseMockData,
+} from '../../../utils/role.utils';
+import { HotToastService } from '@ngxpert/hot-toast';
 
 interface UploadFileRow {
   file: File;
@@ -39,7 +43,10 @@ export class BulkUploadComponent implements OnDestroy {
   private trackingTimer: any = null;
   pollIntervalMs = 2500;
 
-  constructor(private bulkService: BulkUploadService) {}
+  constructor(
+    private bulkService: BulkUploadService,
+    private toast: HotToastService
+  ) {}
 
   ngOnDestroy(): void {
     this.stopTracking();
@@ -117,6 +124,18 @@ export class BulkUploadComponent implements OnDestroy {
   }
 
   startUpload(): void {
+    // Check if we're in mock/guest mode
+    if (shouldUseMockData()) {
+      this.toast.error(
+        'Bulk upload is not allowed in guest mode.',
+        {
+          duration: 5000,
+          position: 'top-center'
+        }
+      );
+      return;
+    }
+
     const options = this.parseOptions();
     if (!options) return;
     if (this.files.length === 0) return;
@@ -150,6 +169,11 @@ export class BulkUploadComponent implements OnDestroy {
   }
 
   trackProgress(): void {
+    if (shouldUseMockData()) {
+      this.toast.info('Progress tracking is disabled in guest mode.');
+      return;
+    }
+
     if (this.tracking) return;
     this.tracking = true;
     this.trackingTimer = setInterval(() => {
