@@ -9,6 +9,7 @@ import {
 } from '../../../services/admin/gemini-keys.service';
 import { shouldUseMockData } from '../../../utils/role.utils';
 import * as mockGeminiKeysData from '../../../utils/mockData/mockKeys.json';
+import { HotToastService } from '@ngxpert/hot-toast';
 
 @Component({
   selector: 'app-gemini-keys',
@@ -21,7 +22,6 @@ import * as mockGeminiKeysData from '../../../utils/mockData/mockKeys.json';
 export class GeminiKeysComponent implements OnInit {
   loading = false;
   refreshing = false;
-  error = '';
 
   data: GeminiKeysStatusResponse | null = null;
 
@@ -108,7 +108,7 @@ export class GeminiKeysComponent implements OnInit {
     },
   ];
 
-  constructor(private gemini: GeminiKeysService) {}
+  constructor(private gemini: GeminiKeysService, private toast: HotToastService) {}
 
   ngOnInit(): void {
     this.loadStatus();
@@ -118,7 +118,6 @@ export class GeminiKeysComponent implements OnInit {
     if (!this.refreshing) {
       this.loading = true;
     }
-    this.error = '';
 
     // Check if we should use mock data
     if (shouldUseMockData()) {
@@ -143,8 +142,7 @@ export class GeminiKeysComponent implements OnInit {
         this.refreshing = false;
       },
       error: (err) => {
-        console.error('Failed to load Gemini Keys status', err);
-        this.error = 'Failed to load Gemini Keys status. Please try again.';
+        this.toast.error('Failed to load Gemini Keys status. Please try again.');
         this.loading = false;
         this.refreshing = false;
       },

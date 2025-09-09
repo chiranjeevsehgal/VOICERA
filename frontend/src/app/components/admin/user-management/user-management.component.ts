@@ -38,7 +38,6 @@ export class UserManagementComponent implements OnInit {
   showAddUserModal: boolean = false;
   loading: boolean = false;
   refreshing: boolean = false;
-  error: string = '';
   totalCount: number = 0;
   updatingUsers: Set<string> = new Set();
   userToDelete: User | null = null;
@@ -63,7 +62,6 @@ export class UserManagementComponent implements OnInit {
 
   loadUsers() {
     this.loading = true;
-    this.error = '';
 
     // Check if we should use mock data
     if (shouldUseMockData()) {
@@ -95,12 +93,11 @@ export class UserManagementComponent implements OnInit {
       },
       error: (error) => {
         console.error('Error loading users:', error);
-        this.error = 'Failed to load users. Please try again.';
+        this.toast.error("Failed to load users. Please try again.");
         this.loading = false;
 
-        this.toast.error("Failed to load users. Please try again.");
 
-        // Fallback to empty array or show error message
+        // Fallback to empty array 
         this.users = [];
         this.filteredUsers = [];
       },
@@ -250,10 +247,6 @@ export class UserManagementComponent implements OnInit {
 
         this.toast.error(`Failed to update ${user.name}'s status. Please try again.`);
 
-        // Clear error message after 5 seconds
-        setTimeout(() => {
-          this.error = '';
-        }, 5000);
       },
     });
   }
@@ -323,10 +316,6 @@ export class UserManagementComponent implements OnInit {
         this.toast.error(`Failed to delete user. Please try again.`);
         this.deletingUserId = '';
 
-        // Clear error after 5 seconds
-        setTimeout(() => {
-          this.error = '';
-        }, 5000);
       },
     });
   }

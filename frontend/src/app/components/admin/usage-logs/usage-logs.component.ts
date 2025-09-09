@@ -10,6 +10,7 @@ import {
 } from '../../../services/admin/analytics.service';
 import { shouldUseMockData } from '../../../utils/role.utils';
 import * as mockUsage from '../../../utils/mockData/mockUsageData.json';
+import { HotToastService } from '@ngxpert/hot-toast';
 
 interface EndpointEntry {
   endpoint: string;
@@ -38,7 +39,6 @@ interface IPEntry {
 export class UsageLogsComponent implements OnInit, OnDestroy {
   loading = false;
   refreshing = false;
-  error = '';
 
   totalRequests = 0;
   averageResponseTime = 0; // in ms
@@ -64,7 +64,7 @@ export class UsageLogsComponent implements OnInit, OnDestroy {
   // IP details modal
   selectedIPDetails: IPDetailedAnalytics | null = null;
 
-  constructor(private analytics: AnalyticsService) {}
+  constructor(private analytics: AnalyticsService, private toast: HotToastService) {}
 
   ngOnInit(): void {
     this.loadAnalytics();
@@ -148,7 +148,6 @@ export class UsageLogsComponent implements OnInit, OnDestroy {
 
   applyFilters(): void {
     this.loading = true;
-    this.error = '';
     const filters: any = {};
     if (this.selectedDays) filters.days = this.selectedDays;
     if (this.filterIP) filters.ip_address = this.filterIP.trim();
@@ -342,7 +341,7 @@ export class UsageLogsComponent implements OnInit, OnDestroy {
       },
       error: (err) => {
         console.error('Failed to load usage analytics', err);
-        this.error = 'Failed to load usage analytics. Please try again.';
+        this.toast.error('Failed to load usage analytics. Please try again.');
         this.loading = false;
         this.refreshing = false;
       },
@@ -365,7 +364,6 @@ export class UsageLogsComponent implements OnInit, OnDestroy {
 
   // IP details modal actions
   viewIPDetails(ip: string): void {
-    this.error = '';
     // Mock IP details in Guest mode
     if (shouldUseMockData()) {
       const data = mockUsage as any;
@@ -421,7 +419,7 @@ export class UsageLogsComponent implements OnInit, OnDestroy {
         },
         error: (err) => {
           console.error('Failed to load IP details', err);
-          this.error = 'Failed to load IP details.';
+          this.toast.error('Failed to load IP details. Please try again.');
         },
       });
   }
@@ -467,7 +465,6 @@ export class UsageLogsComponent implements OnInit, OnDestroy {
 
   private loadRealTime(): void {
     this.loading = this.endpointEntries.length === 0; // show overlay on first load
-    this.error = '';
     // Mock real-time analytics for Guest mode
     if (shouldUseMockData()) {
       const data = mockUsage as any as UsageAnalyticsResponse;
@@ -587,7 +584,7 @@ export class UsageLogsComponent implements OnInit, OnDestroy {
       },
       error: (err) => {
         console.error('Failed to load real-time analytics', err);
-        this.error = 'Failed to load real-time analytics.';
+        this.toast.error('Failed to load real-time analytics. Please try again.');
         this.loading = false;
         this.refreshing = false;
       },

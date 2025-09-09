@@ -36,7 +36,6 @@ export class AudioManagementComponent implements OnInit, OnDestroy {
   selectedAuthor: string = '';
   loading: boolean = false;
   refreshing: boolean = false;
-  error: string = '';
   showDeleteModal: boolean = false;
   podcastToDelete: Podcast | null = null;
   deleting: boolean = false;
@@ -169,7 +168,6 @@ export class AudioManagementComponent implements OnInit, OnDestroy {
       // Only set loading if not refreshing
       this.loading = this.currentPage === 1;
     }
-    this.error = '';
 
     const filters = {
       title_search: this.searchQuery || undefined,
@@ -243,10 +241,9 @@ export class AudioManagementComponent implements OnInit, OnDestroy {
         },
         error: (error) => {
           console.error('Error loading podcasts:', error);
-          this.error = 'Failed to load podcasts. Please try again.';
+          this.toast.error('Failed to load podcasts. Please try again.');
           this.loading = false;
           this.refreshing = false;
-          this.toast.error('Failed to load podcasts. Please try again.');
           this.podcasts = [];
           this.filteredPodcasts = [];
         },
