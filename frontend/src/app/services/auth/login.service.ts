@@ -10,6 +10,14 @@ interface LoginResponse {
   token_type: string;
 }
 
+interface GuestLoginResponse {
+  status: boolean;
+  detail?: string;
+  access_token: string;
+  token_type: string;
+  role?: string;
+}
+
 @Injectable({
   providedIn: 'root',
 })
@@ -25,10 +33,26 @@ export class LoginService {
     formData.append('password', userDetails.password);
 
     return this.http.post<LoginResponse>(apiUrl, formData).pipe(
-      tap((resposne) => {
-        if (resposne.status == true) {
-          localStorage.setItem('vEra_auth_token', resposne.access_token);
+      tap((response) => {
+        if (response.status == true) {
+          localStorage.setItem('vEra_auth_token', response.access_token);
         }
+      })
+    );
+  }
+
+  guestLogin(): Observable<GuestLoginResponse> {
+    const apiUrl = `${environment.backendApiUrl}/api/auth/guest`;
+    
+    return this.http.post<GuestLoginResponse>(apiUrl, {}).pipe(
+      tap((response) => {
+        if (response.status === true) {
+          localStorage.setItem('vEra_auth_token', response.access_token);
+        }
+      }),
+      catchError((error) => {
+        console.error('Guest login failed:', error);
+        return throwError(() => error);
       })
     );
   }

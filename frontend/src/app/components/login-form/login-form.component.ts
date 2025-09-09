@@ -3,6 +3,7 @@ import { LoginService } from '../../services/auth/login.service';
 import { environment } from '../../../environments/environment';
 import { Router } from '@angular/router';
 import { HotToastService } from '@ngxpert/hot-toast';
+import { CommonModule } from '@angular/common';
 
 @Component({
   selector: 'app-login-form',
@@ -13,9 +14,11 @@ import { HotToastService } from '@ngxpert/hot-toast';
       50% { transform: scaleY(0.5); }
     }
   `,
-  imports: [],
+  imports: [CommonModule],
 })
 export class LoginFormComponent {
+  isGuestLoading = false;
+
   constructor(
     private loginService: LoginService,
     private ngZone: NgZone,
@@ -29,6 +32,32 @@ export class LoginFormComponent {
     } else if (provider === 'github') {
       this.signInWithGitHub();
     }
+  }
+
+  guestSignIn() {
+    this.isGuestLoading = true;
+    
+    this.loginService.guestLogin().subscribe({
+      next: (response) => {
+        this.ngZone.run(() => {
+          if (response.status) {
+            localStorage.setItem('vEra_auth_token', response.access_token);
+            this.toast.success('Welcome! Signed in as guest');
+            this.router.navigate(['/dashboard']); // Navigate to your main app
+          } else {
+            this.toast.error(response.detail || 'Guest login failed');
+          }
+          this.isGuestLoading = false;
+        });
+      },
+      error: (error) => {
+        this.ngZone.run(() => {
+          console.error('Guest login error:', error);
+          this.toast.error('Failed to sign in as guest. Please try again.');
+          this.isGuestLoading = false;
+        });
+      }
+    });
   }
 
   private signInWithGoogle() {
