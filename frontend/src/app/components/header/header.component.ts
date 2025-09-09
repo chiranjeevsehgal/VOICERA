@@ -15,10 +15,12 @@ import {
 import { Subject, takeUntil } from 'rxjs';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { getCurrentUserRole } from '../../utils/role.utils';
+import { ArrowRight, LucideAngularModule } from 'lucide-angular';
 
 @Component({
   selector: 'app-header',
-  imports: [CommonModule, FormsModule, RouterModule],
+  imports: [CommonModule, FormsModule, RouterModule, LucideAngularModule],
   templateUrl: './header.component.html',
   styles: ``,
 })
@@ -27,7 +29,7 @@ export class HeaderComponent implements OnInit, OnDestroy {
   @ViewChild('mobileMenu') mobileMenu!: ElementRef;
   @ViewChild('profileDropdown') profileDropdown!: ElementRef;
   @ViewChild('mobileProfileDropdown') mobileProfileDropdown!: ElementRef;
-
+  readonly ArrowRight = ArrowRight;
   userProfile: UserProfile | null = null;
   credits: number = 0;
   userInitials: string = '';
@@ -35,6 +37,7 @@ export class HeaderComponent implements OnInit, OnDestroy {
   showMobileMenu: boolean = false;
   isLoadingProfile: boolean = true;
   isLoadingCredits: boolean = true;
+  userRole: string = '';
 
   private destroy$ = new Subject<void>();
 
@@ -43,8 +46,20 @@ export class HeaderComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     this.loadUserData();
     this.subscribeToProfileData();
+    this.userRole = getCurrentUserRole() || '';
   }
 
+  // Method to navigate to admin side
+  navigateToAdminSide(): void {
+    this.router.navigate(['/admin/dashboard']);
+  }
+
+  // Method to check if user can access admin side
+  canAccessAdminSide(): boolean {
+    return this.userRole === 'admin' || this.userRole === 'guest';
+  }
+
+  // ... rest of your existing methods remain unchanged
   ngOnDestroy(): void {
     this.destroy$.next();
     this.destroy$.complete();
@@ -160,5 +175,4 @@ export class HeaderComponent implements OnInit, OnDestroy {
   onLogoClick(): void {
     this.router.navigate(['/library']);
   }
-
 }
