@@ -16,6 +16,9 @@ import asyncio
 from services.database import podcasts_collection, uploads_collection
 from utils.analytics import track_search_term, track_user_activity
 from utils.logging import log_error, log_info, log_warning
+from services.retry_service import retry_decorator, CommonRetryConfigs
+from services.circuit_breaker import ServiceCircuitBreakers
+from requests.exceptions import RequestException, ConnectionError, Timeout
 
 router = APIRouter()
 
@@ -179,16 +182,20 @@ Return ONLY the JSON object, no other text or formatting.""".format(
                 time_context=time_context
             )
             
-            # Get validation from LLM via REST client
-            response_text = generate_text(
-                model_name=config.model_name,
-                messages=[validation_prompt],
-                system_prompt=None,
-                temperature=0.1,
-                max_output_tokens=1024,
-                top_p=0.95,
-                top_k=40,
-            ).strip()
+            # Get validation from LLM via REST client with retry and circuit breaker
+            gemini_breaker = ServiceCircuitBreakers.get_gemini_breaker()
+            response_text = await gemini_breaker.call(
+                lambda: generate_text(
+                    model_name=config.model_name,
+                    messages=[validation_prompt],
+                    system_prompt=None,
+                    temperature=0.1,
+                    max_output_tokens=1024,
+                    top_p=0.95,
+                    top_k=40,
+                )
+            )
+            response_text = response_text.strip()
             
             # Clean up the response text to ensure it's valid JSON
             # Remove any markdown formatting or extra text

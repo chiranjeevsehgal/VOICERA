@@ -13,10 +13,11 @@ import { GeminiKeysComponent } from '../../../components/admin/gemini-keys/gemin
 import { shouldUseMockData } from '../../../utils/role.utils';
 import { Handshake, LucideAngularModule } from 'lucide-angular';
 import { BulkUploadComponent } from '../../../components/admin/bulk-upload/bulk-upload.component';
+import { ApplicationStatusComponent } from '../../../components/admin/application-status/application-status.component';
 
 @Component({
   selector: 'app-dashboard',
-  imports: [CommonModule, SidebarComponent, UserManagementComponent, CreditManagementComponent, AudioManagementComponent, UsageLogsComponent, ApplicationLogsComponent, GeminiKeysComponent, LucideAngularModule, BulkUploadComponent],
+  imports: [CommonModule, SidebarComponent, UserManagementComponent, CreditManagementComponent, AudioManagementComponent, UsageLogsComponent, ApplicationLogsComponent, GeminiKeysComponent, BulkUploadComponent, ApplicationStatusComponent],
   templateUrl: './dashboard.component.html',
   styles: ``,
 })
@@ -118,6 +119,7 @@ export class AdminDashboardComponent implements OnInit, OnDestroy {
       'logs',
       'application-logs',
       'bulk-upload',
+      'application-status',
     ];
     return validViews.includes(view);
   }
@@ -152,6 +154,7 @@ export class AdminDashboardComponent implements OnInit, OnDestroy {
       logs: 'Usage Logs',
       'application-logs': 'Application Logs',
       'bulk-upload': 'Bulk Upload',
+      'application-status': 'Application Status',
     };
     return titles[this.currentView] || 'Dashboard';
   }
@@ -166,6 +169,7 @@ export class AdminDashboardComponent implements OnInit, OnDestroy {
       logs: 'View API usage metrics and endpoint counts',
       'application-logs': 'View and search application log files',
       'bulk-upload': 'Upload multiple audio files and track processing jobs',
+      'application-status': 'Monitor system health, circuit breakers, and rate limiting',
     };
     return descriptions[this.currentView] || 'Manage your application';
   }

@@ -1,16 +1,7 @@
 import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import {
-  AudioLines,
-  ClipboardCheck,
-  KeyRound,
-  LucideAngularModule,
-  Users,
-  Wallet,
-  FileText,
-  Upload,
-} from 'lucide-angular';
+import { AudioLines, ClipboardCheck, KeyRound, LucideAngularModule, Users, Wallet, FileText, Upload, Activity } from 'lucide-angular';
 import { Router } from '@angular/router';
 import { ProfileService } from '../../../services/auth/profile.service';
 import { AdminAuthService } from '../../../services/admin/admin.auth.service';
@@ -77,6 +68,11 @@ export class SidebarComponent {
       id: 'application-logs',
       label: 'Application Logs',
       icon: FileText,
+    },
+    {
+      id: 'application-status',
+      label: 'Application Status',
+      icon: Activity,
     },
   ];
 
