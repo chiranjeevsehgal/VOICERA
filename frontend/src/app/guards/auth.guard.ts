@@ -21,11 +21,6 @@ const getRoleFromToken = (token: string): string | null => {
 export const authGuard: CanActivateFn = (route, state) => {
   const router = inject(Router);
 
-  // Allow unauthenticated access to admin login page even though guard is on parent 'admin' route
-  if (state.url.startsWith('/admin/login')) {
-    return true;
-  }
-
   const token = localStorage.getItem('vEra_auth_token');
 
   if (!token) {
@@ -37,7 +32,7 @@ export const authGuard: CanActivateFn = (route, state) => {
   // Restrict access to admin dashboard to admin role only
   if (state.url.startsWith('/admin/')) {
     const role = getRoleFromToken(token);
-    if (role !== 'admin') {
+    if (role === 'user') {
       router.navigate(['/library']);
       return false;
     }
