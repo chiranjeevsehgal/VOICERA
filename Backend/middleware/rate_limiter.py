@@ -1,5 +1,6 @@
 import time
-from typing import Dict, Optional, Tuple
+import os
+from typing import Dict, Optional, Tuple, List
 from fastapi import Request, HTTPException, status
 from fastapi.responses import JSONResponse
 import logging
@@ -28,12 +29,88 @@ class RateLimiter:
         self.local_cache: Dict[str, Dict] = {}  # Fallback when Redis unavailable
         self.cleanup_interval = 300  # Clean local cache every 5 minutes
         self.last_cleanup = time.time()
+        self.excluded_ips = self._load_excluded_ips()
+
+    def _load_excluded_ips(self) -> List[str]:
+        """
+        Load excluded IPs from environment variable EXCLUDED_IPS
+        Expected format: "IP1,IP2,IP3"
+        
+        Returns:
+            List of IP addresses to exclude from rate limiting
+        """
+        excluded_ips_str = os.getenv("EXCLUDED_IPS", "")
+        logger.info(f"Environment EXCLUDED_IPS value: '{excluded_ips_str}'")
+        
+        if not excluded_ips_str:
+            logger.warning("No EXCLUDED_IPS environment variable found or it's empty")
+            return []
+        
+        # Split by comma and strip whitespace
+        excluded_ips = [ip.strip() for ip in excluded_ips_str.split(",") if ip.strip()]
+        logger.info(f"Loaded {len(excluded_ips)} excluded IPs from environment: {excluded_ips}")
+        return excluded_ips
+    
+    def _is_ip_excluded(self, ip: str) -> bool:
+        """
+        Check if an IP address is in the excluded list
+        
+        Args:
+            ip: IP address to check
+            
+        Returns:
+            True if IP should be excluded from rate limiting
+        """
+        return ip in self.excluded_ips
+    
+    def _extract_ip_from_key(self, key: str) -> Optional[str]:
+        """
+        Extract IP address from rate limit key
+        Assumes key format like "ip:192.168.1.1" or similar
+        
+        Args:
+            key: Rate limit key
+            
+        Returns:
+            IP address if found, None otherwise
+        """
+        if ":" in key:
+            parts = key.split(":")
+            # Look for IP-like pattern in the key parts
+            for part in parts:
+                if self._looks_like_ip(part):
+                    return part
+        return None
+    
+    def _looks_like_ip(self, text: str) -> bool:
+        """
+        Simple check if text looks like an IP address
+        
+        Args:
+            text: Text to check
+            
+        Returns:
+            True if text appears to be an IP address
+        """
+        parts = text.split(".")
+        if len(parts) != 4:
+            return False
+        
+        try:
+            for part in parts:
+                num = int(part)
+                if num < 0 or num > 255:
+                    return False
+            return True
+        except ValueError:
+            return False
 
     async def is_allowed(
         self, key: str, limit: int, window_seconds: int, identifier: str = "request"
     ) -> Tuple[bool, dict]:
         """
         Check if request is allowed using sliding window algorithm
+        IPs in EXCLUDED_IPS environment variable will bypass rate limiting
 
         Args:
             key: Unique identifier for the rate limit (e.g., "ip:192.168.1.1")
@@ -44,6 +121,23 @@ class RateLimiter:
         Returns:
             Tuple of (is_allowed, rate_limit_info)
         """
+        # Check if this IP is excluded from rate limiting
+        ip = self._extract_ip_from_key(key)
+        logger.debug(f"Rate limit check - Key: '{key}', Extracted IP: '{ip}', Excluded IPs: {self.excluded_ips}")
+        
+        if ip and self._is_ip_excluded(ip):
+            logger.info(f"IP {ip} is excluded from rate limiting - allowing unlimited access")
+            return True, {
+                "allowed": True,
+                "limit": "unlimited",
+                "remaining": "unlimited",
+                "reset_time": None,
+                "excluded": True,
+                "window_seconds": window_seconds,
+            }
+        elif ip:
+            logger.debug(f"IP {ip} is NOT in excluded list, applying rate limiting")
+        
         current_time = time.time()
         window_start = current_time - window_seconds
 
