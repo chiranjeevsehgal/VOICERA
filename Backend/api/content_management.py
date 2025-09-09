@@ -1,4 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Query, Path
+from fastapi.responses import JSONResponse
+from fastapi.encoders import jsonable_encoder
 from typing import List, Optional, Dict, Any
 from bson import ObjectId
 from datetime import datetime
@@ -19,6 +21,7 @@ from models.content import (
     UploadsResponse,
 )
 from utils.logging import log_info
+from services.pinecone_service import count_vectors_by_file_id
 
 router = APIRouter()
 
@@ -133,7 +136,7 @@ async def get_audio_details(
     """
     try:
         obj_id = ObjectId(audio_id)
-    except:
+    except Exception:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Invalid audio ID format"
@@ -167,7 +170,7 @@ async def update_audio(
     """
     try:
         obj_id = ObjectId(audio_id)
-    except:
+    except Exception:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Invalid audio ID format"
@@ -218,7 +221,7 @@ async def delete_audio(
     """
     try:
         obj_id = ObjectId(audio_id)
-    except:
+    except Exception:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Invalid audio ID format"
@@ -471,6 +474,297 @@ async def delete_audio(
         "status": "success", 
     }
 
+@router.get("/audios/{audio_id}/relations", status_code=status.HTTP_200_OK)
+async def get_audio_relations(
+    audio_id: str = Path(..., description="Audio ID"),
+    current_user: Dict[str, Any] = Depends(requires_role("admin"))
+):
+    """
+    Return a non-destructive view of all relations for a particular audio file across
+    MongoDB collections (podcasts, transcripts, uploads, transcription_stats),
+    Supabase storage (by parsing stored URLs), and Pinecone vectors (by file_id).
+    """
+    try:
+        obj_id = ObjectId(audio_id)
+    except Exception:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid audio ID format"
+        )
+
+    podcast = await podcasts_collection.find_one({"_id": obj_id})
+    if not podcast:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Audio with ID {audio_id} not found"
+        )
+
+    # Prepare base details
+    base_audio = sanitize_mongo_doc(dict(podcast))
+    created_at = podcast.get("created_at")
+    user_id_str = str(podcast.get("user_id", ""))
+
+    # Prepare transcript queries (reuse delete logic non-destructively)
+    from datetime import timedelta
+    transcript_queries = [{"podcast_id": audio_id}]
+    # Also try when transcripts stored ObjectId reference (defensive)
+    transcript_queries.append({"podcast_id": obj_id})
+    if user_id_str and created_at:
+        time_window_start = created_at - timedelta(hours=1)
+        time_window_end = created_at + timedelta(hours=1)
+        transcript_queries.append({
+            "podcast_id": None,
+            "created_at": {"$gte": time_window_start, "$lte": time_window_end}
+        })
+
+    transcripts_total = 0
+    transcript_ids_sample: List[str] = []
+    # If podcast stores transcript_id, account for it directly
+    if podcast.get("transcript_id"):
+        try:
+            transcript_ids_sample.append(str(podcast.get("transcript_id")))
+            transcripts_total += 1
+        except Exception:
+            pass
+    for q in transcript_queries:
+        try:
+            transcripts_total += await transcripts_collection.count_documents(q)
+            cursor = transcripts_collection.find(q, {"_id": 1}).limit(5)
+            items = await cursor.to_list(length=5)
+            for it in items:
+                if it.get("_id"):
+                    tid = str(it["_id"]) 
+                    if tid not in transcript_ids_sample:
+                        transcript_ids_sample.append(tid)
+        except Exception:
+            pass
+
+    # Prepare upload queries similarly
+    file_name = podcast.get("title", "").replace(" ", "_")
+    upload_queries = []
+    # Direct link via podcast_id if uploads were associated post-processing
+    upload_queries.append({"podcast_id": audio_id})
+    # If podcast has stored upload_id, include direct _id match
+    podcast_upload_id = podcast.get("upload_id")
+    if podcast_upload_id:
+        try:
+            upload_queries.append({"_id": ObjectId(str(podcast_upload_id))})
+        except Exception:
+            pass
+    if file_name:
+        upload_queries.append({"file_name": {"$regex": file_name.replace("_", ".*"), "$options": "i"}})
+    if user_id_str and created_at:
+        upload_queries.append({
+            "user_id": user_id_str,
+            "created_at": {"$gte": time_window_start, "$lte": time_window_end}
+        })
+    # Match by exact Supabase file URLs (with and without query params)
+    url_fields = [podcast.get("raw_audio_url", ""), podcast.get("embedded_audio_url", ""), podcast.get("audio_url", "")]
+    for u in [u for u in url_fields if u]:
+        # direct
+        upload_queries.append({"file_url": u})
+        upload_queries.append({"supabase_url": u})
+        # without query params
+        if "?" in u:
+            u2 = u.split("?", 1)[0]
+            upload_queries.append({"file_url": u2})
+            upload_queries.append({"supabase_url": u2})
+
+    uploads_total = 0
+    upload_ids_sample: List[str] = []
+    try:
+        for q in upload_queries:
+            uploads_total += await uploads_collection.count_documents(q)
+            cursor = uploads_collection.find(q, {"_id": 1, "file_name": 1}).limit(5)
+            items = await cursor.to_list(length=5)
+            for it in items:
+                if it.get("_id"):
+                    uid = str(it["_id"]) 
+                    if uid not in upload_ids_sample:
+                        upload_ids_sample.append(uid)
+    except Exception:
+        pass
+
+    # Transcription stats count
+    stats_total = 0
+    try:
+        if user_id_str and created_at:
+            stats_total = await transcription_stats_collection.count_documents({
+                "user_id": user_id_str,
+                "timestamp": {"$gte": time_window_start, "$lte": time_window_end}
+            })
+    except Exception:
+        pass
+
+    # Supabase files by parsing URLs in the podcast document
+    supabase_files = []
+    for url_field in ["raw_audio_url", "embedded_audio_url", "audio_url"]:
+        url = podcast.get(url_field, "")
+        if not url:
+            continue
+        try:
+            if "/storage/v1/object/public/" in url:
+                path_part = url.split("/storage/v1/object/public/", 1)[1]
+                if "?" in path_part:
+                    path_part = path_part.split("?", 1)[0]
+                path_segments = path_part.split("/", 1)
+                if len(path_segments) >= 2:
+                    url_bucket = path_segments[0]
+                    file_path = path_segments[1]
+                else:
+                    url_bucket = None
+                    file_path = path_part
+                supabase_files.append({
+                    "bucket": url_bucket,
+                    "path": file_path,
+                    "url_field": url_field
+                })
+        except Exception:
+            continue
+
+    # Pinecone file_ids and vector counts
+    pinecone_items = []
+    try:
+        url_candidates = []
+        raw_audio_url = podcast.get("raw_audio_url", "")
+        embedded_audio_url = podcast.get("embedded_audio_url", "")
+        audio_url = podcast.get("audio_url", "")
+        podcast_file_id = podcast.get("file_id")
+        if raw_audio_url:
+            url_candidates.append(("raw_audio_url", raw_audio_url))
+        if embedded_audio_url:
+            url_candidates.append(("embedded_audio_url", embedded_audio_url))
+        if audio_url and audio_url not in [raw_audio_url, embedded_audio_url]:
+            url_candidates.append(("audio_url", audio_url))
+
+        file_ids_to_try: List[str] = []
+        # Try the stored podcast.file_id first if available
+        if podcast_file_id:
+            file_ids_to_try.append(str(podcast_file_id))
+        for field, u in url_candidates:
+            try:
+                fid = hashlib.sha1(u.encode("utf-8")).hexdigest()[:12]
+                file_ids_to_try.append(fid)
+                # Also hash URL without query params as indexing may use clean URL
+                if "?" in u:
+                    u2 = u.split("?", 1)[0]
+                    fid2 = hashlib.sha1(u2.encode("utf-8")).hexdigest()[:12]
+                    file_ids_to_try.append(fid2)
+            except Exception:
+                pass
+
+        # Fallback simple heuristics
+        if audio_id:
+            file_ids_to_try.append(audio_id[:12])
+        if file_name:
+            file_ids_to_try.append(file_name.replace(" ", "_")[:12])
+
+        seen = set()
+        unique_ids = [fid for fid in file_ids_to_try if not (fid in seen or seen.add(fid))]
+
+        for fid in unique_ids:
+            try:
+                cnt = await count_vectors_by_file_id(fid)
+                pinecone_items.append({
+                    "file_id": fid,
+                    "vectors": cnt.get("total_count", 0),
+                    "success": cnt.get("success", False)
+                })
+            except Exception:
+                pinecone_items.append({"file_id": fid, "vectors": 0, "success": False})
+    except Exception:
+        pass
+
+    # Build a simple graph model (nodes + edges)
+    nodes = []
+    edges = []
+    audio_node_id = f"audio:{audio_id}"
+    nodes.append({"id": audio_node_id, "label": base_audio.get("title") or "Audio", "type": "audio"})
+
+    # Mongo group nodes
+    mongo_group_id = f"mongo:{audio_id}"
+    nodes.append({"id": mongo_group_id, "label": "MongoDB", "type": "group"})
+    edges.append({"from": audio_node_id, "to": mongo_group_id})
+    nodes.append({"id": f"transcripts:{audio_id}", "label": f"Transcripts ({transcripts_total})", "type": "transcripts"})
+    nodes.append({"id": f"uploads:{audio_id}", "label": f"Uploads ({uploads_total})", "type": "uploads"})
+    nodes.append({"id": f"stats:{audio_id}", "label": f"Stats ({stats_total})", "type": "stats"})
+    edges.extend([
+        {"from": mongo_group_id, "to": f"transcripts:{audio_id}"},
+        {"from": mongo_group_id, "to": f"uploads:{audio_id}"},
+        {"from": mongo_group_id, "to": f"stats:{audio_id}"},
+    ])
+
+    # Supabase nodes
+    supa_group_id = f"supabase:{audio_id}"
+    nodes.append({"id": supa_group_id, "label": "Supabase", "type": "group"})
+    edges.append({"from": audio_node_id, "to": supa_group_id})
+    for i, f in enumerate(supabase_files):
+        nid = f"supa:{i}:{audio_id}"
+        bucket = f.get('bucket') or ''
+        path = f.get('path') or ''
+        first_dir = ''
+        if path:
+            parts = path.split('/')
+            if len(parts) > 0 and parts[0]:
+                first_dir = parts[0] + '/'
+        compact_label = f"{bucket}/{first_dir}" if bucket else first_dir
+        nodes.append({"id": nid, "label": compact_label, "type": "supabase_file"})
+        edges.append({"from": supa_group_id, "to": nid})
+
+    # Pinecone nodes
+    pine_group_id = f"pinecone:{audio_id}"
+    nodes.append({"id": pine_group_id, "label": "Pinecone", "type": "group"})
+    edges.append({"from": audio_node_id, "to": pine_group_id})
+    for i, pi in enumerate(pinecone_items):
+        nid = f"pine:{i}:{audio_id}"
+        nodes.append({"id": nid, "label": f"{pi.get('file_id')} ({pi.get('vectors', 0)})", "type": "pinecone"})
+        edges.append({"from": pine_group_id, "to": nid})
+
+    # Helper to stringify ObjectId in nested structures (for safe JSON response)
+    def _stringify_object_ids(obj):
+        if isinstance(obj, ObjectId):
+            return str(obj)
+        if isinstance(obj, list):
+            return [_stringify_object_ids(x) for x in obj]
+        if isinstance(obj, dict):
+            return {k: _stringify_object_ids(v) for k, v in obj.items()}
+        return obj
+
+    safe_transcript_queries = _stringify_object_ids(transcript_queries)
+    safe_upload_queries = _stringify_object_ids(upload_queries)
+
+    payload = {
+        "audio": {
+            "id": audio_id,
+            "title": base_audio.get("title"),
+            "author": base_audio.get("author"),
+            "created_at": base_audio.get("created_at"),
+            "urls": {
+                "raw_audio_url": podcast.get("raw_audio_url"),
+                "embedded_audio_url": podcast.get("embedded_audio_url"),
+                "audio_url": podcast.get("audio_url"),
+            },
+        },
+        "mongo": {
+            "transcripts": {"count": transcripts_total, "sample_ids": transcript_ids_sample, "queries": safe_transcript_queries},
+            "uploads": {"count": uploads_total, "sample_ids": upload_ids_sample, "queries": safe_upload_queries},
+            "transcription_stats": {"count": stats_total},
+        },
+        "supabase": {"files": supabase_files},
+        "pinecone": {"file_ids": pinecone_items},
+        "graph": {"nodes": nodes, "edges": edges}
+    }
+
+    log_info(
+        f"Admin viewed audio relations. Audio ID: {audio_id}",
+        "content_management",
+        {"admin_id": str(current_user["_id"]), "audio_id": audio_id}
+    )
+
+    # Encode and return safely to avoid ObjectId serialization issues
+    safe_payload = jsonable_encoder(payload, custom_encoder={ObjectId: str})
+    return JSONResponse(content=safe_payload, status_code=status.HTTP_200_OK)
+
 # Uploads Management
 @router.get("/uploads", response_model=UploadsResponse, status_code=status.HTTP_200_OK)
 async def list_uploads(
@@ -494,7 +788,7 @@ async def list_uploads(
     if user_id:
         try:
             filter_query["user_id"] = user_id
-        except:
+        except Exception:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Invalid user ID format"
@@ -549,7 +843,7 @@ async def get_upload_details(
     """
     try:
         obj_id = ObjectId(upload_id)
-    except:
+    except Exception:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Invalid upload ID format"

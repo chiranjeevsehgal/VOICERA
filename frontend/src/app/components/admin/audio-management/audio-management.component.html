@@ -185,7 +185,10 @@
         <!-- Actions Row -->
         <div class="flex items-center justify-end mt-3 space-x-2">
           <!-- Playing animation (mobile) - reserved space to avoid layout shift -->
-          <span class="inline-flex items-center" style="width: 24px; height: 24px">
+          <span
+            class="inline-flex items-center"
+            style="width: 24px; height: 24px"
+          >
             <dotlottie-wc
               src="https://lottie.host/145e2d05-36b6-424f-901e-b51c57906e78/C001cjJaRa.lottie"
               style="width: 24px; height: 24px"
@@ -329,7 +332,10 @@
             >
               <div class="flex items-center justify-end space-x-3">
                 <!-- Playing animation (desktop) - reserved space to avoid layout shift -->
-                <span class="inline-flex items-center" style="width: 48px; height: 48px">
+                <span
+                  class="inline-flex items-center"
+                  style="width: 48px; height: 48px"
+                >
                   <dotlottie-wc
                     src="https://lottie.host/145e2d05-36b6-424f-901e-b51c57906e78/C001cjJaRa.lottie"
                     style="width: 48px; height: 48px"
@@ -400,6 +406,26 @@
                       stroke-linejoin="round"
                       stroke-width="2"
                       d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                    />
+                  </svg>
+                </button>
+
+                <button
+                  (click)="openRelationsModal(podcast)"
+                  class="text-sky-600 cursor-pointer hover:text-sky-900 p-1.5 lg:p-2 rounded-lg hover:bg-sky-50 transition-colors duration-200"
+                  title="View relations"
+                >
+                  <svg
+                    class="w-3.5 h-3.5 lg:w-4 lg:h-4"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M18 9l-6 6-6-6"
                     />
                   </svg>
                 </button>
@@ -534,6 +560,362 @@
   </div>
 </div>
 
+<!-- Relations Modal -->
+<div
+  *ngIf="showRelationsModal"
+  class="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm bg-black/50 p-4"
+>
+  <div
+    class="bg-white rounded-2xl shadow-lg border border-gray-200 max-w-5xl w-full mx-4"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="relations-title"
+    (click)="$event.stopPropagation()"
+  >
+    <div
+      class="flex items-center justify-between p-4 sm:p-6 border-b border-gray-200"
+    >
+      <div class="flex items-center space-x-3">
+        <div
+          class="w-8 sm:w-10 h-8 sm:h-10 rounded-full bg-sky-100 flex items-center justify-center"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="24"
+            height="24"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            class="lucide lucide-workflow-icon lucide-workflow"
+          >
+            <rect width="8" height="8" x="3" y="3" rx="2" />
+            <path d="M7 11v4a2 2 0 0 0 2 2h4" />
+            <rect width="8" height="8" x="13" y="13" rx="2" />
+          </svg>
+        </div>
+        <h3
+          id="relations-title"
+          class="text-lg sm:text-xl font-bold text-gray-900"
+        >
+          Audio Relations
+        </h3>
+      </div>
+      <button
+        (click)="closeRelationsModal()"
+        class="w-8 h-8 bg-gray-100 cursor-pointer rounded-full flex items-center justify-center text-gray-400 hover:text-gray-600 hover:bg-gray-200 transition-all duration-200"
+      >
+        <svg
+          class="w-5 h-5"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M6 18L18 6M6 6l12 12"
+          />
+        </svg>
+      </button>
+    </div>
+
+    <!-- Modal Content (scrollable) -->
+    <div class="p-4 sm:p-6 max-h-[80vh] overflow-y-auto">
+      <!-- Controls -->
+      <div
+        class="flex flex-wrap items-center gap-2 mb-3 sticky top-0 z-10 bg-white/80 backdrop-blur rounded-md p-2"
+      >
+        <button
+          (click)="toggleGroup('mongo')"
+          class="px-2 py-1 text-xs rounded-lg border cursor-pointer"
+          [class.bg-gray-100]="!showMongo"
+        >
+          {{ showMongo ? "Hide" : "Show" }} Mongo
+        </button>
+        <button
+          (click)="toggleGroup('supabase')"
+          class="px-2 py-1 text-xs rounded-lg border cursor-pointer"
+          [class.bg-gray-100]="!showSupabase"
+        >
+          {{ showSupabase ? "Hide" : "Show" }} Supabase
+        </button>
+        <button
+          (click)="toggleGroup('pinecone')"
+          class="px-2 py-1 text-xs rounded-lg border cursor-pointer"
+          [class.bg-gray-100]="!showPinecone"
+        >
+          {{ showPinecone ? "Hide" : "Show" }} Pinecone
+        </button>
+        <span class="ml-auto"></span>
+        <button
+          (click)="resetView()"
+          class="px-2 py-1 text-xs rounded-lg border cursor-pointer"
+        >
+          Reset View
+        </button>
+      </div>
+
+      <div
+        *ngIf="relationsLoading"
+        class="flex items-center justify-center py-16"
+      >
+        <div
+          class="animate-spin rounded-full h-10 w-10 border-b-2 border-sky-600"
+        ></div>
+      </div>
+
+      <div
+        *ngIf="!relationsLoading && relationsError"
+        class="text-red-600 text-sm"
+      >
+        {{ relationsError }}
+      </div>
+
+      <div *ngIf="!relationsLoading && relationsData" class="space-y-4">
+        <!-- Summary badges -->
+        <div class="flex flex-wrap gap-2">
+          <span
+            class="px-2 py-1 text-xs rounded-full bg-indigo-100 text-indigo-700"
+            >Audio:
+            {{ relationsData.audio.title || relationsData.audio.id }}</span
+          >
+          <span
+            class="px-2 py-1 text-xs rounded-full bg-green-100 text-green-700"
+            >Transcripts: {{ relationsData.mongo.transcripts.count || 0 }}</span
+          >
+          <span class="px-2 py-1 text-xs rounded-full bg-cyan-100 text-cyan-700"
+            >Uploads: {{ relationsData.mongo.uploads.count || 0 }}</span
+          >
+          <span class="px-2 py-1 text-xs rounded-full bg-rose-100 text-rose-700"
+            >Stats:
+            {{ relationsData.mongo.transcription_stats.count || 0 }}</span
+          >
+          <span
+            class="px-2 py-1 text-xs rounded-full bg-emerald-100 text-emerald-700"
+            >Supabase files:
+            {{ relationsData.supabase.files.length || 0 }}</span
+          >
+          <span
+            class="px-2 py-1 text-xs rounded-full bg-amber-100 text-amber-700"
+            >Pinecone IDs:
+            {{ relationsData.pinecone.file_ids.length || 0 }}</span
+          >
+        </div>
+
+        <!-- SVG Graph -->
+        <div class="overflow-x-auto border rounded-xl">
+          <svg
+            [attr.width]="svgWidth"
+            [attr.height]="svgHeight"
+            class="block cursor-move"
+            (wheel)="onWheel($event)"
+            (mousedown)="onMouseDown($event)"
+            (mousemove)="onMouseMove($event)"
+            (mouseup)="onMouseUp()"
+            (mouseleave)="onMouseLeave()"
+          >
+            <g [attr.transform]="graphTransform">
+              <!-- group backgrounds -->
+              <g>
+                <g *ngFor="let gr of groupRects">
+                  <rect
+                    [attr.x]="gr.x"
+                    [attr.y]="gr.y"
+                    [attr.width]="gr.width"
+                    [attr.height]="gr.height"
+                    [attr.fill]="gr.color"
+                    fill-opacity="0.05"
+                    [attr.stroke]="gr.color"
+                    stroke-width="1.5"
+                    rx="12"
+                    ry="12"
+                  ></rect>
+                  <text
+                    [attr.x]="gr.x + gr.width / 2"
+                    [attr.y]="gr.y - 8"
+                    text-anchor="middle"
+                    font-size="12"
+                    class="fill-gray-500"
+                  >
+                    {{ gr.label }}
+                  </text>
+                </g>
+              </g>
+              <!-- edges -->
+              <g stroke="#cbd5e1" stroke-width="1.5">
+                <line
+                  *ngFor="let e of edgesDraw"
+                  [attr.x1]="e.x1"
+                  [attr.y1]="e.y1"
+                  [attr.x2]="e.x2"
+                  [attr.y2]="e.y2"
+                />
+              </g>
+              <!-- nodes -->
+              <g>
+                <g
+                  *ngFor="let n of positionedNodes"
+                  class="cursor-pointer"
+                  (click)="onNodeClick(n)"
+                  (mouseenter)="onNodeMouseEnter(n, $event)"
+                  (mouseleave)="onNodeMouseLeave()"
+                >
+                  <circle
+                    [attr.cx]="n.x"
+                    [attr.cy]="n.y"
+                    [attr.r]="n.r"
+                    [attr.fill]="n.color"
+                    fill-opacity="0.15"
+                    [attr.stroke]="n.color"
+                    stroke-width="2"
+                  ></circle>
+                  <text
+                    [attr.x]="n.x"
+                    [attr.y]="n.y + n.r + 14"
+                    text-anchor="middle"
+                    font-size="12"
+                    class="fill-gray-700"
+                  >
+                    {{ n.label }}
+                  </text>
+                </g>
+              </g>
+            </g>
+          </svg>
+        </div>
+
+        <!-- Tooltip overlay -->
+        <div
+          *ngIf="tooltip"
+          class="fixed z-[60] px-2 py-1 text-xs bg-black text-white rounded"
+          [ngStyle]="{ left: tooltip.x + 'px', top: tooltip.y + 'px' }"
+        >
+          {{ tooltip.label }}
+        </div>
+
+        <!-- Selected details -->
+        <div
+          *ngIf="selectedDetails"
+          class="mt-3 p-3 border rounded-xl bg-gray-50 max-h-64 overflow-y-auto"
+        >
+          <div class="text-sm text-gray-700 font-semibold mb-2">Details</div>
+          <ng-container [ngSwitch]="selectedDetails?.type">
+            <div *ngSwitchCase="'audio'" class="space-y-1 text-sm">
+              <div>
+                <span class="text-gray-500">Title:</span>
+                {{ selectedDetails.title || "-" }}
+              </div>
+              <div>
+                <span class="text-gray-500">Author:</span>
+                {{ selectedDetails.author || "-" }}
+              </div>
+              <div>
+                <span class="text-gray-500">Created:</span>
+                {{ selectedDetails.created_at | date : "medium" }}
+              </div>
+              <div *ngIf="selectedDetails.urls">
+                <div class="text-gray-500">URLs:</div>
+                <ul class="list-disc pl-5">
+                  <li *ngIf="selectedDetails.urls.raw_audio_url">
+                    Raw: {{ selectedDetails.urls.raw_audio_url }}
+                  </li>
+                  <li *ngIf="selectedDetails.urls.embedded_audio_url">
+                    Embedded: {{ selectedDetails.urls.embedded_audio_url }}
+                  </li>
+                  <li *ngIf="selectedDetails.urls.audio_url">
+                    Audio: {{ selectedDetails.urls.audio_url }}
+                  </li>
+                </ul>
+              </div>
+            </div>
+
+            <div *ngSwitchCase="'transcripts'" class="space-y-2 text-sm">
+              <div>
+                <span class="text-gray-500">Count:</span>
+                {{ selectedDetails.count }}
+              </div>
+              <div *ngIf="selectedDetails.queries?.length" class="space-y-1">
+                <button
+                  class="text-xs text-sky-700 underline"
+                  (click)="toggleQueries('transcripts')"
+                >
+                  {{ showTranscriptQueries ? "Hide" : "Show" }} queries
+                </button>
+                <pre
+                  *ngIf="showTranscriptQueries"
+                  class="bg-white rounded-lg p-2 overflow-auto text-xs border"
+                  >{{ selectedDetails.queries | json }}</pre
+                >
+              </div>
+            </div>
+
+            <div *ngSwitchCase="'uploads'" class="space-y-2 text-sm">
+              <div>
+                <span class="text-gray-500">Count:</span>
+                {{ selectedDetails.count }}
+              </div>
+              <div *ngIf="selectedDetails.queries?.length" class="space-y-1">
+                <button
+                  class="text-xs text-sky-700 underline"
+                  (click)="toggleQueries('uploads')"
+                >
+                  {{ showUploadQueries ? "Hide" : "Show" }} queries
+                </button>
+                <pre
+                  *ngIf="showUploadQueries"
+                  class="bg-white rounded-lg p-2 overflow-auto text-xs border"
+                  >{{ selectedDetails.queries | json }}</pre
+                >
+              </div>
+            </div>
+
+            <div *ngSwitchCase="'stats'" class="space-y-1 text-sm">
+              <div>
+                <span class="text-gray-500">Transcription stats entries:</span>
+                {{ selectedDetails.count }}
+              </div>
+            </div>
+
+            <div *ngSwitchCase="'supabase_file'" class="space-y-1 text-sm">
+              <div>
+                <span class="text-gray-500">Bucket:</span>
+                {{ selectedDetails.bucket || "-" }}
+              </div>
+              <div>
+                <span class="text-gray-500">Path:</span>
+                {{ selectedDetails.path || "-" }}
+              </div>
+              <div>
+                <span class="text-gray-500">Field:</span>
+                {{ selectedDetails.url_field || "-" }}
+              </div>
+            </div>
+
+            <div *ngSwitchCase="'pinecone'" class="space-y-1 text-sm">
+              <div>
+                <span class="text-gray-500">File ID:</span>
+                {{ selectedDetails.file_id }}
+              </div>
+              <div>
+                <span class="text-gray-500">Vectors:</span>
+                {{ selectedDetails.vectors }}
+              </div>
+              <div>
+                <span class="text-gray-500">Success:</span>
+                {{ selectedDetails.success }}
+              </div>
+            </div>
+          </ng-container>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- Edit Audio Modal -->
 <div
   *ngIf="showEditModal"
@@ -568,7 +950,10 @@
             />
           </svg>
         </div>
-        <h3 id="edit-audio-title" class="text-lg sm:text-xl font-bold text-gray-900">
+        <h3
+          id="edit-audio-title"
+          class="text-lg sm:text-xl font-bold text-gray-900"
+        >
           Edit Audio
         </h3>
       </div>
@@ -702,7 +1087,10 @@
             />
           </svg>
         </div>
-        <h3 id="delete-audio-title" class="text-lg sm:text-xl font-bold text-gray-900">
+        <h3
+          id="delete-audio-title"
+          class="text-lg sm:text-xl font-bold text-gray-900"
+        >
           Delete Audio
         </h3>
       </div>
