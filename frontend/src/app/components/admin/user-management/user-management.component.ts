@@ -6,11 +6,21 @@ import { User, UserService } from '../../../services/admin/user.service';
 import { Toast } from 'primeng/toast';
 import { MessageService } from 'primeng/api';
 import { LucideAngularModule, Check, X } from 'lucide-angular';
+import {
+  getCurrentUserRole,
+  shouldUseMockData,
+} from '../../../utils/role.utils';
 
 @Component({
   selector: 'app-user-management',
   standalone: true,
-  imports: [Toast, CommonModule, FormsModule, HttpClientModule, LucideAngularModule],
+  imports: [
+    Toast,
+    CommonModule,
+    FormsModule,
+    HttpClientModule,
+    LucideAngularModule,
+  ],
   providers: [MessageService, UserService],
   templateUrl: './user-management.component.html',
   styles: ``,
@@ -47,6 +57,10 @@ export class UserManagementComponent implements OnInit {
 
   ngOnInit() {
     this.loadUsers();
+
+    const role = getCurrentUserRole();
+    console.log('Component - User Role:', role);
+    console.log('shouldUseMockData:', shouldUseMockData());
   }
 
   loadUsers() {
@@ -242,7 +256,7 @@ export class UserManagementComponent implements OnInit {
   }
 
   refreshUsers() {
-    this.refreshing = true; 
+    this.refreshing = true;
     this.loadUsers();
   }
 
