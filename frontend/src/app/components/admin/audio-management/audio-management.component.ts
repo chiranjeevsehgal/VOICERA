@@ -12,6 +12,8 @@ import {
 import { HotToastService } from '@ngxpert/hot-toast';
 import { Subject } from 'rxjs';
 import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
+import { shouldUseMockData } from '../../../utils/role.utils';
+import * as mockAudioData from '../../../utils/mockData/mockAudioFiles.json';
 
 @Component({
   selector: 'app-audio-management',
@@ -39,6 +41,8 @@ export class AudioManagementComponent implements OnInit, OnDestroy {
   editForm = {
     title: '',
   };
+  // In-memory cache of mock podcasts for Guest mode
+  private mockAllPodcasts: Podcast[] = [];
 
   // Relations modal state
   showRelationsModal: boolean = false;
@@ -143,6 +147,57 @@ export class AudioManagementComponent implements OnInit, OnDestroy {
       title_search: this.searchQuery || undefined,
       author: this.selectedAuthor || undefined,
     };
+
+    // Guest/Mock mode: load from JSON with filtering and pagination
+    if (shouldUseMockData()) {
+      // Initialize mock cache on first use
+      if (this.mockAllPodcasts.length === 0) {
+        const src = (mockAudioData as any)?.podcasts || [];
+        this.mockAllPodcasts = src.map((p: any) => ({
+          id: p.id,
+          title: p.title || '',
+          description: p.description ?? '',
+          image_url: p.image_url ?? null,
+          embedded_audio_url: p.embedded_audio_url,
+          duration_seconds: Number(p.duration_seconds) || 0,
+          author: p.author || 'Unknown',
+          published_date: p.published_date || new Date().toISOString(),
+          tags: Array.isArray(p.tags) ? p.tags : null,
+          language: p.language || 'en',
+          created_at: p.created_at || p.published_date || new Date().toISOString(),
+          updated_at: p.updated_at || p.created_at || new Date().toISOString(),
+          views: typeof p.views === 'number' ? p.views : null,
+          likes: typeof p.likes === 'number' ? p.likes : null,
+          average_rating: typeof p.average_rating === 'number' ? p.average_rating : null,
+          is_featured: !!p.is_featured,
+          is_published: p.is_published !== false,
+        }));
+      }
+
+      const query = (filters.title_search || '').toLowerCase();
+      const author = (filters.author || '').toLowerCase();
+      let list = this.mockAllPodcasts.filter((p) => {
+        const matchesTitle = !query || p.title.toLowerCase().includes(query);
+        const matchesAuthor = !author || (p.author || '').toLowerCase().includes(author);
+        return matchesTitle && matchesAuthor;
+      });
+
+      this.totalCount = list.length;
+      this.totalPages = Math.ceil(this.totalCount / this.limit) || 1;
+      const start = (this.currentPage - 1) * this.limit;
+      const end = start + this.limit;
+      const pageItems = list.slice(start, end);
+
+      // Simulate small network delay
+      setTimeout(() => {
+        this.podcasts = pageItems;
+        this.filteredPodcasts = [...this.podcasts];
+        this.loading = false;
+        this.refreshing = false;
+      }, 300);
+
+      return;
+    }
 
     this.audioService
       .getAudios(this.currentPage, this.limit, filters)
@@ -282,6 +337,33 @@ export class AudioManagementComponent implements OnInit, OnDestroy {
     if (!this.podcastToDelete) return;
 
     this.deleting = true;
+    // Mock deletion in Guest mode
+    if (shouldUseMockData()) {
+      const toDeleteId = this.podcastToDelete.id;
+      setTimeout(() => {
+        // Update mock cache
+        this.mockAllPodcasts = this.mockAllPodcasts.filter(p => p.id !== toDeleteId);
+        // Remove from local arrays
+        this.podcasts = this.podcasts.filter((p) => p.id !== toDeleteId);
+        this.filteredPodcasts = this.filteredPodcasts.filter((p) => p.id !== toDeleteId);
+        // Update total count/pages
+        this.totalCount = Math.max(0, this.totalCount - 1);
+        this.totalPages = Math.ceil(this.totalCount / this.limit) || 1;
+        // Stop playback if needed
+        if (this.currentlyPlaying === toDeleteId) {
+          if (this.audioElement) this.audioElement.pause();
+          this.currentlyPlaying = null;
+        }
+        this.toast.success(`Audio "${this.podcastToDelete!.title}" deleted successfully (mock)`);
+        this.closeDeleteModal();
+        if (this.filteredPodcasts.length === 0 && this.currentPage > 1) {
+          this.currentPage--;
+          this.loadPodcasts();
+        }
+        this.deleting = false;
+      }, 250);
+      return;
+    }
 
     this.audioService.deleteAudio(this.podcastToDelete.id).subscribe({
       next: (response) => {
@@ -387,6 +469,27 @@ export class AudioManagementComponent implements OnInit, OnDestroy {
     const updateData = {
       title: this.editForm.title.trim(),
     };
+    // Mock update in Guest mode
+    if (shouldUseMockData()) {
+      const id = this.podcastToEdit.id;
+      const newTitle = updateData.title;
+      setTimeout(() => {
+        // Update cache
+        this.mockAllPodcasts = this.mockAllPodcasts.map(p => p.id === id ? { ...p, title: newTitle } : p);
+        // Update local arrays
+        const podcastIndex = this.podcasts.findIndex((p) => p.id === id);
+        if (podcastIndex !== -1) {
+          this.podcasts[podcastIndex] = { ...this.podcasts[podcastIndex], title: newTitle };
+        }
+        const filteredIndex = this.filteredPodcasts.findIndex((p) => p.id === id);
+        if (filteredIndex !== -1) {
+          this.filteredPodcasts[filteredIndex] = { ...this.filteredPodcasts[filteredIndex], title: newTitle };
+        }
+        this.toast.success(`Audio "${newTitle}" updated successfully (mock)`);
+        this.closeEditModal();
+      }, 250);
+      return;
+    }
 
     this.audioService.updateAudio(this.podcastToEdit.id, updateData).subscribe({
       next: (updatedPodcast) => {
@@ -432,6 +535,15 @@ export class AudioManagementComponent implements OnInit, OnDestroy {
     this.relationsData = null;
     this.positionedNodes = [];
     this.graphEdges = [];
+
+    // Mock mode: relations not available
+    if (shouldUseMockData()) {
+      const msg = 'Relations view is not available in Guest mode';
+      this.relationsLoading = false;
+      this.relationsError = msg;
+      this.toast.warning(msg);
+      return;
+    }
 
     this.audioService.getAudioRelations(podcast.id).subscribe({
       next: (data) => {

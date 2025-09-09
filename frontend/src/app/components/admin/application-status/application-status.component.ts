@@ -23,6 +23,13 @@ import {
   Settings
 } from 'lucide-angular';
 
+import {
+  shouldUseMockData,
+} from '../../../utils/role.utils';
+import * as mockHealthData from '../../../utils/mockData/mockHealth.json';
+import * as mockCircuitBreakersData from '../../../utils/mockData/mockCircuitBreakers.json';
+import * as mockRateLimitsData from '../../../utils/mockData/mockRateLimits.json';
+
 @Component({
   selector: 'app-application-status',
   standalone: true,
@@ -76,6 +83,20 @@ export class ApplicationStatusComponent implements OnInit {
   async loadAllData() {
     this.loading = true;
     this.error = '';
+    // Use mock data for Guests
+    if (shouldUseMockData()) {
+      const health = mockHealthData as SystemHealthResponse;
+      const circuits = mockCircuitBreakersData as CircuitBreakersResponse;
+      const rateLimits = mockRateLimitsData as RateLimitsResponse;
+      await new Promise((resolve) => setTimeout(resolve, 500));
+      this.systemHealth = health;
+      this.circuitBreakers = circuits;
+      this.rateLimits = rateLimits;
+      this.lastRefresh = new Date();
+      this.loading = false;
+      this.refreshing = false;
+      return;
+    }
 
     try {
       // Load all data in parallel
@@ -114,6 +135,19 @@ export class ApplicationStatusComponent implements OnInit {
     }
 
     this.resettingCircuitBreakers = true;
+    // Simulate reset in Guest/Mock mode
+    if (shouldUseMockData()) {
+      await new Promise((resolve) => setTimeout(resolve, 400));
+      this.messageService.add({
+        severity: 'success',
+        summary: 'Success',
+        detail: 'Circuit breakers reset (mock)'
+      });
+      // Refresh data after reset
+      await this.loadAllData();
+      this.resettingCircuitBreakers = false;
+      return;
+    }
 
     try {
       const result = await this.systemHealthService.resetCircuitBreakers().toPromise();
