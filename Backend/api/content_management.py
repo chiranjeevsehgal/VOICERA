@@ -65,7 +65,8 @@ async def list_audios(
     language: Optional[str] = Query(None, description="Filter by language"),
     is_featured: Optional[bool] = Query(None, description="Filter by featured status"),
     is_published: Optional[bool] = Query(None, description="Filter by published status"),
-    transcription_status: Optional[str] = Query(None, description="Filter by transcription status")
+    transcription_status: Optional[str] = Query(None, description="Filter by transcription status"),
+    current_user: Dict[str, Any] = Depends(requires_role("admin"))
 ):
     """
     List and filter podcasts with pagination.
@@ -124,7 +125,8 @@ async def list_audios(
 
 @router.get("/audios/{audio_id}", response_model=Podcast, status_code=status.HTTP_200_OK)
 async def get_audio_details(
-    audio_id: str = Path(..., description="Audio ID")
+    audio_id: str = Path(..., description="Audio ID"),
+    current_user: Dict[str, Any] = Depends(requires_role("admin"))
 ):
     """
     Get detailed information about a specific podcast.
