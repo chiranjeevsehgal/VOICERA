@@ -44,6 +44,7 @@ except Exception as e:
 
 # Export collections
 users_collection = db.users
+guests_collection = db.guests
 ip_credits_collection = db.ip_credits
 
 # Analytics and monitoring collections
