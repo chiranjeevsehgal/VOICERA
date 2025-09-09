@@ -60,10 +60,6 @@ export class UserManagementComponent implements OnInit {
 
   ngOnInit() {
     this.loadUsers();
-
-    const role = getCurrentUserRole();
-    console.log('Component - User Role:', role);
-    console.log('shouldUseMockData:', shouldUseMockData());
   }
 
   loadUsers() {
