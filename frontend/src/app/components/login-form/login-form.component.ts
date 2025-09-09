@@ -43,7 +43,7 @@ export class LoginFormComponent {
           if (response.status) {
             localStorage.setItem('vEra_auth_token', response.access_token);
             this.toast.success('Welcome! Signed in as guest');
-            this.router.navigate(['/dashboard']); // Navigate to your main app
+            this.router.navigate(['/library']);
           } else {
             this.toast.error(response.detail || 'Guest login failed');
           }

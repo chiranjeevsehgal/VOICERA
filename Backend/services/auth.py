@@ -9,6 +9,8 @@ from dotenv import load_dotenv
 from services.database import db, users_collection, guests_collection
 from bson import ObjectId
 from bson.errors import InvalidId
+import random
+import string
 
 load_dotenv()
 
@@ -76,11 +78,9 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
 
-async def get_next_guest_count() -> int:
-    """Get the next guest count using in-memory counter"""
-    global guest_counter
-    guest_counter += 1
-    return guest_counter
+async def get_next_guest_count() -> str:
+    """Get a 4-digit random hash for guest identification"""
+    return ''.join(random.choices(string.ascii_lowercase + string.digits, k=4))
 
 async def get_guest(uid: str) -> Optional[Dict[str, Any]]:
     """Get guest user by ID from guests collection"""

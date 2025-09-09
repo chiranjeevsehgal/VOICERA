@@ -65,19 +65,19 @@ async def login_user(
 async def guest_login():
     try:
         # Get the next guest count
-        guest_count = await get_next_guest_count()
+        guest_hash  = await get_next_guest_count()
         
         # Generate guest credentials
-        guest_email = f"guest_vera{guest_count}@gmail.com"
-        guest_name = f"Guest User {guest_count}"
+        guest_email = f"guest_{guest_hash}@gmail.com"
+        guest_name = f"Guest User"
         
         # Create guest user data (no password needed)
         guest_user_data = {
             "email": guest_email,
-            "name": guest_name,
+            "full_name": guest_name,
             "role": "guest",
             "status": "active",
-            "guest_id": guest_count,
+            "guest_id": guest_hash ,
             "created_at": datetime.utcnow(),
             "last_login": datetime.utcnow()
         }
@@ -92,7 +92,7 @@ async def guest_login():
             "role": "guest",
             "userId": str(guest_user_id),
             "is_guest": True,
-            "guest_id": guest_count
+            "guest_id": guest_hash 
         }
         
         access_token_expires = timedelta(minutes=GUEST_ACCESS_TOKEN_EXPIRE_MINUTES)
