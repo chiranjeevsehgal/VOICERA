@@ -3,6 +3,10 @@ import { CommonModule } from '@angular/common';
 import { HttpClientModule } from '@angular/common/http';
 import { FormsModule } from '@angular/forms';
 import { GeminiKeysService, GeminiKeysStatusResponse, GeminiKeyStatusItem } from '../../../services/admin/gemini-keys.service';
+import {
+  shouldUseMockData,
+} from '../../../utils/role.utils';
+import * as mockGeminiKeysData from '../../../utils/mockData/mockKeys.json';
 
 @Component({
   selector: 'app-gemini-keys',
@@ -91,6 +95,22 @@ export class GeminiKeysComponent implements OnInit {
     }
     this.error = '';
 
+    // Check if we should use mock data
+    if (shouldUseMockData()) {
+      // Mock data response with proper typing
+      const mockResponse = mockGeminiKeysData as GeminiKeysStatusResponse;
+
+      // Simulate API delay for realistic behavior
+      setTimeout(() => {
+        this.data = mockResponse;
+        this.loading = false;
+        this.refreshing = false;
+      }, 500);
+
+      return;
+    }
+
+    // Normal API call flow
     this.gemini.getStatus().subscribe({
       next: (resp) => {
         this.data = resp;
