@@ -10,6 +10,9 @@ from services.auth import get_current_user
 from utils.content_tracker import create_podcast, create_transcript, update_podcast_transcription_status
 from utils.analytics import track_transcription
 from utils.logging import log_info, log_warning, log_error
+from services.retry_service import retry_decorator, CommonRetryConfigs
+from services.circuit_breaker import ServiceCircuitBreakers
+from requests.exceptions import RequestException, ConnectionError, Timeout
 
 # Load environment variables
 load_dotenv()
@@ -154,15 +157,21 @@ async def transcribe_audio(
             query_string = "&".join([f"{k}={v}" for k, v in query_params.items()])
             deepgram_url = f"{deepgram_url}?{query_string}"
         
-        # Make request to Deepgram API
-        response = requests.post(
-            deepgram_url,
-            headers={
-                "Authorization": f"Token {DEEPGRAM_API_KEY}",
-                "Content-Type": "application/json"
-            },
-            json=body_params,
-        )
+        # Make request to Deepgram API with circuit breaker protection
+        deepgram_breaker = ServiceCircuitBreakers.get_deepgram_breaker()
+        
+        async def make_deepgram_request():
+            return requests.post(
+                deepgram_url,
+                headers={
+                    "Authorization": f"Token {DEEPGRAM_API_KEY}",
+                    "Content-Type": "application/json"
+                },
+                json=body_params,
+                timeout=30
+            )
+        
+        response = await deepgram_breaker.call(make_deepgram_request)
         
         # Log request details for debugging
         log_info(f"Making Deepgram API request", "transcribe", {"url": deepgram_url, "body_params": body_params})

@@ -1,6 +1,6 @@
 from fastapi import FastAPI, Depends, Request
 from fastapi.middleware.cors import CORSMiddleware
-from api import health, transcribe, embedding, upload, llm_translation, supabase_upload, auth, ip_detection, search, credit_management, oauth, admin, content_management, send_email, process_audio
+from api import health, transcribe, embedding, upload, llm_translation, supabase_upload, auth, ip_detection, search, credit_management, oauth, admin, content_management, send_email, process_audio, system_health
 import uvicorn
 import time
 import logging
@@ -13,6 +13,8 @@ from utils.logging_config import setup_logging
 setup_logging()
 logger = logging.getLogger("voicera.main")
 from middleware.user_status import UserStatusMiddleware
+from middleware.rate_limiter import rate_limit_middleware, initialize_rate_limiter
+import os
 
 # Create a middleware class for API usage tracking
 class APIUsageMiddleware(BaseHTTPMiddleware):
@@ -67,12 +69,20 @@ class APIUsageMiddleware(BaseHTTPMiddleware):
 
         return response
 
+# Initialize rate limiter with optional Redis support
+redis_url = os.getenv("REDIS_URL")  # e.g., "redis://localhost:6379"
+initialize_rate_limiter(redis_url)
+
 # Create FastAPI application with concurrency settings
 app = FastAPI(
     title="VOICERA Backend", 
     description="Backend for VOICERA",
     version="1.0.0"
 )
+
+# Add rate limiting middleware (first to catch requests early)
+app.middleware("http")(rate_limit_middleware)
+
 # Add user status checking middleware
 app.add_middleware(UserStatusMiddleware)
 
@@ -141,6 +151,9 @@ app.include_router(admin.router, prefix="/api", tags=["admin"])
 
 # Content Management Router
 app.include_router(content_management.router, prefix="/api", tags=["content"])
+
+# System Health Router (for monitoring circuit breakers and rate limits)
+app.include_router(system_health.router, prefix="/api", tags=["system"])
 
 # This allows the file to be run directly with the appropriate settings
 if __name__ == "__main__":
