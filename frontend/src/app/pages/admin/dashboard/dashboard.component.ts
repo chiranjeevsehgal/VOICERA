@@ -1,5 +1,6 @@
 import { Component, HostListener, OnDestroy, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { Router } from '@angular/router';
 import { SidebarComponent } from '../../../components/admin/sidebar/sidebar.component';
 import { UserManagementComponent } from '../../../components/admin/user-management/user-management.component';
 import { AdminAuthService } from '../../../services/admin/admin.auth.service';
@@ -10,8 +11,8 @@ import { AudioManagementComponent } from '../../../components/admin/audio-manage
 import { UsageLogsComponent } from '../../../components/admin/usage-logs/usage-logs.component';
 import { ApplicationLogsComponent } from '../../../components/admin/application-logs/application-logs.component';
 import { GeminiKeysComponent } from '../../../components/admin/gemini-keys/gemini-keys.component';
-import { shouldUseMockData } from '../../../utils/role.utils';
-import { Handshake, LucideAngularModule } from 'lucide-angular';
+import { shouldUseMockData, getCurrentUserRole } from '../../../utils/role.utils';
+import { Handshake, LucideAngularModule, ArrowLeft } from 'lucide-angular';
 import { BulkUploadComponent } from '../../../components/admin/bulk-upload/bulk-upload.component';
 import { ApplicationStatusComponent } from '../../../components/admin/application-status/application-status.component';
 
@@ -31,8 +32,10 @@ export class AdminDashboardComponent implements OnInit, OnDestroy {
   isLoadingProfile: boolean = true;
   isDemoMode: boolean = false;
   showDemoTooltip: boolean = false;
+  userRole: string = '';
   private destroy$ = new Subject<void>();
   readonly Handshake = Handshake;
+  readonly ArrowLeft = ArrowLeft;
   private readonly CURRENT_VIEW_KEY = 'vEra_admin_current-view';
 
   // Responsive breakpoint detection
@@ -41,7 +44,10 @@ export class AdminDashboardComponent implements OnInit, OnDestroy {
     this.checkScreenSize();
   }
 
-  constructor(private adminService: AdminAuthService) {}
+  constructor(
+    private adminService: AdminAuthService,
+    private router: Router
+  ) {}
 
   ngOnInit() {
     this.checkScreenSize();
@@ -49,8 +55,19 @@ export class AdminDashboardComponent implements OnInit, OnDestroy {
     this.loadUserData();
     this.subscribeToProfileData();
 
-    // Check if we're in demo mode
+    // Check if we're in demo mode and get user role
     this.isDemoMode = shouldUseMockData();
+    this.userRole = getCurrentUserRole() || '';;
+  }
+
+  // Method to navigate to user side
+  navigateToUserSide(): void {
+    this.router.navigate(['/library']);
+  }
+
+  // Method to check if user can access user side
+  canAccessUserSide(): boolean {
+    return this.userRole === 'admin' || this.userRole === 'guest';
   }
 
   toggleDemoTooltip(): void {
@@ -65,6 +82,7 @@ export class AdminDashboardComponent implements OnInit, OnDestroy {
     }
   }
 
+  // ... rest of your existing methods remain unchanged
   ngOnDestroy() {
     this.destroy$.next();
     this.destroy$.complete();

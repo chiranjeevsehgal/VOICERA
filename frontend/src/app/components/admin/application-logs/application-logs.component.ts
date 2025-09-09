@@ -4,6 +4,11 @@ import { HttpClientModule } from '@angular/common/http';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { LogsService, LogFile, LogFilesResponse } from '../../../services/admin/logs.service';
+import {
+  shouldUseMockData,
+} from '../../../utils/role.utils';
+import * as mockLogsData from '../../../utils/mockData/mockLogs.json';
+import { HotToastService } from '@ngxpert/hot-toast';
 
 @Component({
   selector: 'app-application-logs',
@@ -33,7 +38,8 @@ export class ApplicationLogsComponent implements OnInit {
 
   constructor(
     private logsService: LogsService,
-    private router: Router
+    private router: Router,
+    private toast: HotToastService
   ) {}
 
   ngOnInit(): void {
@@ -44,6 +50,24 @@ export class ApplicationLogsComponent implements OnInit {
     this.loading = true;
     this.error = '';
     
+    // Check if we should use mock data
+    if (shouldUseMockData()) {
+      // Mock data response with proper typing
+      const mockResponse = mockLogsData as LogFilesResponse;
+
+      // Simulate API delay for realistic behavior
+      setTimeout(() => {
+        this.logFiles = mockResponse.log_files;
+        this.totalFiles = mockResponse.total_count;
+        this.applySearch();
+        this.loading = false;
+        this.refreshing = false;
+      }, 500);
+
+      return;
+    }
+
+    // Normal API call flow
     this.logsService.getLogFiles().subscribe({
       next: (response: LogFilesResponse) => {
         this.logFiles = response.log_files;
@@ -126,10 +150,6 @@ export class ApplicationLogsComponent implements OnInit {
     this.applySearch();
   }
 
-  toggleDensity(): void {
-    this.density = this.density === 'comfortable' ? 'compact' : 'comfortable';
-  }
-
   toggleRecentOnly(): void {
     this.showRecentOnly = !this.showRecentOnly;
     this.applySearch();
@@ -145,6 +165,11 @@ export class ApplicationLogsComponent implements OnInit {
   }
 
   viewLogFile(filename: string): void {
+    if (shouldUseMockData()) {
+      this.toast.info('Log file viewing is disabled in the guest environment.');
+      return;
+    }
+    
     this.router.navigate(['/admin/application-logs', filename]);
   }
 

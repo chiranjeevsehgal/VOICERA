@@ -76,8 +76,33 @@
           </div>
         </div>
 
-        <!-- Right Side: Demo Mode + Profile -->
+        <!-- Right Side: Move to User Side + Demo Mode + Profile -->
         <div class="flex items-center space-x-2 sm:space-x-3 lg:space-x-4">
+          <!-- Move to User Side Button -->
+          <button
+            *ngIf="canAccessUserSide()"
+            (click)="navigateToUserSide()"
+            class="hidden sm:flex items-center space-x-1.5 lg:space-x-2 px-2 lg:px-3 py-1.5 lg:py-2 bg-gradient-to-r from-indigo-50 to-purple-50 border border-indigo-200 rounded-lg lg:rounded-xl cursor-pointer transition-all duration-200 hover:shadow-md hover:from-indigo-100 hover:to-purple-100 group"
+          >
+            <lucide-icon
+              [img]="ArrowLeft"
+              class="w-3 lg:w-4 h-3 lg:h-4 text-indigo-600"
+            ></lucide-icon>
+            <span class="text-xs lg:text-sm font-medium text-indigo-700">User</span
+            >
+          </button>
+          <!-- Mobile Version - Move to User Side -->
+          <button
+            *ngIf="canAccessUserSide()"
+            (click)="navigateToUserSide()"
+            class="sm:hidden flex items-center space-x-0.5 px-1 py-0.5 bg-gradient-to-r from-indigo-50 to-purple-50 border border-indigo-200 rounded cursor-pointer"
+          >
+            <lucide-icon
+              [img]="ArrowLeft"
+              class="w-3 h-3 text-indigo-600"
+            ></lucide-icon>
+            <span class="text-[10px] font-medium text-indigo-700">User</span>
+          </button>
           <!-- Demo Mode Indicator -->
           <div *ngIf="isDemoMode" class="demo-tooltip-container relative">
             <!-- Desktop/Tablet Version -->
@@ -282,7 +307,9 @@
           ></app-audio-management>
 
           <!-- Bulk Upload -->
-          <app-bulk-upload *ngIf="currentView === 'bulk-upload'"></app-bulk-upload>
+          <app-bulk-upload
+            *ngIf="currentView === 'bulk-upload'"
+          ></app-bulk-upload>
 
           <!-- Gemini Keys -->
           <app-gemini-keys
@@ -293,10 +320,14 @@
           <app-usage-logs *ngIf="currentView === 'logs'"></app-usage-logs>
 
           <!-- Application Logs -->
-          <app-application-logs *ngIf="currentView === 'application-logs'"></app-application-logs>
+          <app-application-logs
+            *ngIf="currentView === 'application-logs'"
+          ></app-application-logs>
 
           <!-- Application Status -->
-          <app-application-status *ngIf="currentView === 'application-status'"></app-application-status>
+          <app-application-status
+            *ngIf="currentView === 'application-status'"
+          ></app-application-status>
         </div>
       </div>
     </main>
