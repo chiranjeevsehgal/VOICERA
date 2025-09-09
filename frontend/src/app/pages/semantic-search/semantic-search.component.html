@@ -148,7 +148,7 @@
           id="advanced-config-panel"
           class="mt-3 sm:mt-4 bg-white border border-gray-200 rounded-xl p-3 sm:p-4 shadow-sm"
         >
-          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 items-end">
+          <div class="grid grid-cols-1 sm:grid-cols-4 gap-3 sm:gap-4 items-end">
             <!-- Limit control -->
             <div class="flex flex-col">
               <label for="resultLimit" class="text-xs text-gray-600 mb-1">Limit</label>
@@ -193,6 +193,21 @@
                 class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
               />
               <span class="text-xs text-gray-500 mt-1">{{ minRelevance }}</span>
+            </div>
+
+            <!-- Validate Content (LLM) toggle -->
+            <div class="flex flex-col">
+              <label for="validateContent" class="text-xs text-gray-600 mb-1">Validate Content (LLM)</label>
+              <div class="flex items-center">
+                <input
+                  type="checkbox"
+                  id="validateContent"
+                  [(ngModel)]="validateContent"
+                  [disabled]="loading"
+                  class="h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
+                />
+                <span class="ml-2 text-xs text-gray-500">Enable content validation</span>
+              </div>
             </div>
           </div>
         </div>
