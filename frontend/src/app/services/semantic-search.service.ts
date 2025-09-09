@@ -63,7 +63,7 @@ export class SemanticSearchService {
     limit: number = 5,
     minConfidence: number = 0.7,
     minRelevance: number = 0.65,
-    validateContent: boolean = false
+    validateContent: boolean = false,
   ): Observable<SearchResponse> {
     // Fetch latest token at call time
     const token = localStorage.getItem('vEra_auth_token') || '';
@@ -95,14 +95,25 @@ export class SemanticSearchService {
     transcript: string;
     history?: { role: 'user' | 'assistant' | 'system'; content: string }[];
     context?: string;
-  }): Observable<{ result_id: string; search_query: string; answer: string; model?: string; }> {
-    const token = localStorage.getItem('vEra_auth_token') || this.authToken || '';
+  }): Observable<{
+    result_id: string;
+    search_query: string;
+    answer: string;
+    model?: string;
+  }> {
+    const token =
+      localStorage.getItem('vEra_auth_token') || this.authToken || '';
     const headers = new HttpHeaders({
       Authorization: `Bearer ${token}`,
       'Content-Type': 'application/json',
     });
 
     const url = `${this.baseUrl}/api/search-and-answer`;
-    return this.http.post<{ result_id: string; search_query: string; answer: string; model?: string; }>(url, payload, { headers });
+    return this.http.post<{
+      result_id: string;
+      search_query: string;
+      answer: string;
+      model?: string;
+    }>(url, payload, { headers });
   }
 }

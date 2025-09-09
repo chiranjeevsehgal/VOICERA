@@ -20,25 +20,22 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
       }
 
       // Check for inactive account (403)
-      console.log(error);      
-      console.log(error.status);      
-      console.log(error.error);      
-      if (
-        error.status === 403 &&
-        error.error?.code === 'ACCOUNT_INACTIVE'
-      ) {
+      console.log(error);
+      console.log(error.status);
+      console.log(error.error);
+      if (error.status === 403 && error.error?.code === 'ACCOUNT_INACTIVE') {
         handleAccountInactive(router, toast);
       }
 
       return throwError(() => error);
-    })
+    }),
   );
 };
 
 function handleTokenExpiration(router: Router, toast: HotToastService): void {
   // Show  toast notification
   toast.error('Your session has expired. Please sign in again.', {
-        id: 'session_expired',
+    id: 'session_expired',
   });
 
   // Remove from localStorage
@@ -54,9 +51,12 @@ function handleTokenExpiration(router: Router, toast: HotToastService): void {
 
 function handleAccountInactive(router: Router, toast: HotToastService): void {
   // Show error toast
-  toast.error('Your account is inactive. Please contact support for assistance.',{
-    id: 'account_inactive',
-  });
+  toast.error(
+    'Your account is inactive. Please contact support for assistance.',
+    {
+      id: 'account_inactive',
+    },
+  );
 
   // Remove from localStorage
   localStorage.removeItem('vEra_auth_token');

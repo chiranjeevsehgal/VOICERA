@@ -1,791 +1,791 @@
 {
-    "total_requests": 10092,
-    "endpoint_counts": {
-        "GET /api/listAudioFiles": 3804,
-        "GET /api/check-credits": 2480,
-        "GET /api/admin/users": 256,
-        "GET /api/audios": 249,
-        "GET /api/admin/analytics/usage": 228,
-        "GET /api/search": 199,
-        "POST /api/extract": 187,
-        "GET /api/system/health": 181,
-        "GET /api/system/circuit-breakers": 180,
-        "GET /api/system/rate-limits": 179,
-        "GET /api/admin/log-files": 167,
-        "GET /api/admin/gemini-keys/status": 164,
-        "POST /api/credit": 133,
-        "POST /api/process_audio": 123,
-        "GET /api/admin/ip-credits": 121,
-        "POST /api/search-and-answer": 111,
-        "GET /api/auth/users/profile": 96,
-        "GET /api/job-status/719073a9-cdfd-4430-bfee-d1629a78e038": 52,
-        "OPTIONS /api/check-credits": 49,
-        "OPTIONS /api/listAudioFiles": 47,
-        "POST /api/auth/google-login": 37,
-        "GET /api/admin/log-files/2025-09-08.log": 37,
-        "OPTIONS /api/admin/analytics/usage": 37,
-        "GET /api/job-status/0dd7fbb5-3246-465f-9219-6cc8e2ce4531": 33,
-        "POST /api/auth/oauth/callback": 30,
-        "OPTIONS /api/process_audio": 26,
-        "POST /api/auth/guest": 24,
-        "GET /api/admin/analytics/real-time": 22,
-        "OPTIONS /api/audios": 21,
-        "GET /api/job-status/fc71ca5f-5314-43be-86b4-d5b00282c3ea": 20,
-        "OPTIONS /api/search": 20,
-        "POST /api/auth/login": 19,
-        "GET /api/job-status/2b81b6c5-76c9-4c3b-8f59-ea7e4ed268f7": 19,
-        "GET /api/job-status/a229ce9a-f7bd-4fe6-a847-5e8d13818f97": 18,
-        "GET /api/job-status/ff7b9762-9015-4319-8844-e9ca7487f6f4": 17,
-        "GET /api/job-status/72e78503-30b2-4c5a-8d6a-e287281fd43e": 16,
-        "GET /api/job-status/327e31fe-f354-4566-a871-7cd30467a134": 16,
-        "PUT /api/admin/users/68b92a5f457a25e2a2147a3b": 16,
-        "OPTIONS /api/admin/users": 15,
-        "GET /api/admin/analytics/ip-details/127.0.0.1": 15,
-        "POST /api/process_audio_bulk": 15,
-        "GET /api/job-status/d1c3bda9-9a65-4dd8-8ce0-404a10c23782": 14,
-        "OPTIONS /api/extract": 14,
-        "GET /api/admin/log-files/2025-09-05.log": 14,
-        "GET /api/job-status/d52843fe-fa16-463d-ab41-f136ae21fcc6": 14,
-        "GET /api/job-status/48707bd1-cf5a-4a26-b25c-2e65612095de": 13,
-        "GET /api/job-status/1730b5f7-c433-4c99-9138-07d30f1682c4": 13,
-        "GET /api/audios/68bfaeacd8e1e2b91bd51af7/relations": 13,
-        "GET /api/job-status/3b9c8cb5-011e-428c-b5f1-4f06b3722b30": 13,
-        "GET /api/job-status/c2d1988f-134f-4303-a031-1a861d6a7885": 12,
-        "GET /api/config/public-mode": 11,
-        "OPTIONS /api/admin/ip-credits": 11,
-        "GET /api/job-status/04942e3c-891d-42af-bdca-6682c5053cf1": 11,
-        "GET /api/job-status/d2a33d8c-f810-4382-aba0-7d3b620d7be9": 10,
-        "GET /api/job-status/bf371eca-7636-4522-8c5a-c1978680b349": 9,
-        "GET /api/admin/log-files/2025-09-09.log": 9,
-        "GET /api/job-status/81dd5664-0d76-43d7-b709-38f5bd1f051b": 9,
-        "PUT /api/admin/ip-credits/127.0.0.1/credits": 8,
-        "GET /api/job-status/a094229e-ce17-4d83-9c30-90ddce3c394d": 8,
-        "POST /api/mail/get-otp": 8,
-        "GET /api/job-status/57737da9-97b3-446d-b13b-e5e6642dcc70": 8,
-        "GET /admin/log-files": 7,
-        "GET /api/job-status/a80601e9-ded5-4ffa-a297-2c28f0195bd9": 7,
-        "GET /api/job-status/e615c9d4-767e-4f4c-85e4-cbccb88412fc": 7,
-        "GET /api/job-status/d3afb089-43db-4051-99a7-69275b0058f4": 7,
-        "GET /api/job-status/fe88d596-2848-497d-a7c9-959b5e9349d8": 7,
-        "GET /api/job-status/f59b95d1-d714-481b-9cdb-cb63d1b1e375": 7,
-        "GET /api/job-status/827a7938-f977-44f6-8970-512c328a4abb": 7,
-        "OPTIONS /api/auth/users/profile": 6,
-        "GET /api/job-status/3dd9e0a1-a7f2-4241-943b-8175d7bdf242": 6,
-        "DELETE /api/admin/cleanup/audio-uploads": 6,
-        "GET /api/job-status/1bb27ed3-26a0-4f27-a139-a9a10d3ece15": 6,
-        "GET /api/job-status/9fd4d5ef-e937-4c0f-876d-ff593f6e16ce": 6,
-        "GET /api/job-status/beaf246f-80b3-4f0e-b287-679da152bd17": 6,
-        "GET /api/job-status/5470dd73-0a33-47f7-a0db-0c5d06bef960": 6,
-        "GET /api/job-status/dc90a65b-5a94-4cab-a213-cba530237476": 6,
-        "GET /api/job-status/1a6b646d-92b3-4d4a-ba7c-73491f9e5923": 6,
-        "GET /api/job-status/f7b6ffd9-1b93-4b08-a3fc-78a0942ff4df": 6,
-        "GET /api/job-status/cb9e2f8e-78c9-4320-ac95-3191a946816b": 5,
-        "GET /api/job-status/cf348905-1a66-43e0-9ab0-6e1d4f4ee95e": 5,
-        "GET /api/job-status/09fe09e2-3fd6-40ab-b2ce-14c9a35027d8": 5,
-        "GET /api/job-status/6e86bb48-43ae-4f32-9b63-bc32d770df8f": 5,
-        "GET /api/job-status/82a638e8-4161-444b-8355-93f039ced358": 5,
-        "GET /api/job-status/fa7954a8-dbfb-4fb7-9917-96f01542a662": 5,
-        "GET /api/job-status/361bc313-71dc-4fcc-ae50-89e65dcc8ea0": 5,
-        "GET /api/job-status/2eb2d587-67b5-419f-b65e-17b368809381": 5,
-        "GET /api/job-status/c4c2fb45-b276-4432-8020-c140b2d1d6f9": 5,
-        "GET /api/job-status/f466d3e7-dddb-4130-b319-fdd372ce3c06": 5,
-        "GET /api/job-status/2ef3cdec-5016-48d6-9a05-2a2f6ed9a649": 5,
-        "GET /api/job-status/ae1e9ade-7953-4091-9b11-4c7cd1c122be": 5,
-        "GET /api/job-status/07f5b497-c5a0-4ac7-ab5f-137f9fb861a9": 4,
-        "GET /api/job-status/edb1e4b1-94a7-4ed7-8d94-04de20b1911b": 4,
-        "PUT /api/admin/users/68b680a192d22617778aec03": 4,
-        "GET /api/job-status/a3d4c932-aba4-4d78-b8a3-08be598b8bfb": 4,
-        "GET /api/job-status/2b64f13d-274a-401d-a540-f9648aefe97a": 4,
-        "GET /api/job-status/b4a2e804-d1d3-41e8-a424-7d39d60c5ed3": 4,
-        "GET /api/job-status/006f7568-0aeb-4953-accc-cc566347966c": 4,
-        "GET /api/job-status/b6a1a661-14a1-4a28-b68c-41fc6a847d21": 4,
-        "OPTIONS /api/auth/google-login": 4,
-        "GET /api/job-status/de1d4a24-cc84-44a3-accd-121ad4ca32f4": 4
+  "total_requests": 10092,
+  "endpoint_counts": {
+    "GET /api/listAudioFiles": 3804,
+    "GET /api/check-credits": 2480,
+    "GET /api/admin/users": 256,
+    "GET /api/audios": 249,
+    "GET /api/admin/analytics/usage": 228,
+    "GET /api/search": 199,
+    "POST /api/extract": 187,
+    "GET /api/system/health": 181,
+    "GET /api/system/circuit-breakers": 180,
+    "GET /api/system/rate-limits": 179,
+    "GET /api/admin/log-files": 167,
+    "GET /api/admin/gemini-keys/status": 164,
+    "POST /api/credit": 133,
+    "POST /api/process_audio": 123,
+    "GET /api/admin/ip-credits": 121,
+    "POST /api/search-and-answer": 111,
+    "GET /api/auth/users/profile": 96,
+    "GET /api/job-status/719073a9-cdfd-4430-bfee-d1629a78e038": 52,
+    "OPTIONS /api/check-credits": 49,
+    "OPTIONS /api/listAudioFiles": 47,
+    "POST /api/auth/google-login": 37,
+    "GET /api/admin/log-files/2025-09-08.log": 37,
+    "OPTIONS /api/admin/analytics/usage": 37,
+    "GET /api/job-status/0dd7fbb5-3246-465f-9219-6cc8e2ce4531": 33,
+    "POST /api/auth/oauth/callback": 30,
+    "OPTIONS /api/process_audio": 26,
+    "POST /api/auth/guest": 24,
+    "GET /api/admin/analytics/real-time": 22,
+    "OPTIONS /api/audios": 21,
+    "GET /api/job-status/fc71ca5f-5314-43be-86b4-d5b00282c3ea": 20,
+    "OPTIONS /api/search": 20,
+    "POST /api/auth/login": 19,
+    "GET /api/job-status/2b81b6c5-76c9-4c3b-8f59-ea7e4ed268f7": 19,
+    "GET /api/job-status/a229ce9a-f7bd-4fe6-a847-5e8d13818f97": 18,
+    "GET /api/job-status/ff7b9762-9015-4319-8844-e9ca7487f6f4": 17,
+    "GET /api/job-status/72e78503-30b2-4c5a-8d6a-e287281fd43e": 16,
+    "GET /api/job-status/327e31fe-f354-4566-a871-7cd30467a134": 16,
+    "PUT /api/admin/users/68b92a5f457a25e2a2147a3b": 16,
+    "OPTIONS /api/admin/users": 15,
+    "GET /api/admin/analytics/ip-details/127.0.0.1": 15,
+    "POST /api/process_audio_bulk": 15,
+    "GET /api/job-status/d1c3bda9-9a65-4dd8-8ce0-404a10c23782": 14,
+    "OPTIONS /api/extract": 14,
+    "GET /api/admin/log-files/2025-09-05.log": 14,
+    "GET /api/job-status/d52843fe-fa16-463d-ab41-f136ae21fcc6": 14,
+    "GET /api/job-status/48707bd1-cf5a-4a26-b25c-2e65612095de": 13,
+    "GET /api/job-status/1730b5f7-c433-4c99-9138-07d30f1682c4": 13,
+    "GET /api/audios/68bfaeacd8e1e2b91bd51af7/relations": 13,
+    "GET /api/job-status/3b9c8cb5-011e-428c-b5f1-4f06b3722b30": 13,
+    "GET /api/job-status/c2d1988f-134f-4303-a031-1a861d6a7885": 12,
+    "GET /api/config/public-mode": 11,
+    "OPTIONS /api/admin/ip-credits": 11,
+    "GET /api/job-status/04942e3c-891d-42af-bdca-6682c5053cf1": 11,
+    "GET /api/job-status/d2a33d8c-f810-4382-aba0-7d3b620d7be9": 10,
+    "GET /api/job-status/bf371eca-7636-4522-8c5a-c1978680b349": 9,
+    "GET /api/admin/log-files/2025-09-09.log": 9,
+    "GET /api/job-status/81dd5664-0d76-43d7-b709-38f5bd1f051b": 9,
+    "PUT /api/admin/ip-credits/127.0.0.1/credits": 8,
+    "GET /api/job-status/a094229e-ce17-4d83-9c30-90ddce3c394d": 8,
+    "POST /api/mail/get-otp": 8,
+    "GET /api/job-status/57737da9-97b3-446d-b13b-e5e6642dcc70": 8,
+    "GET /admin/log-files": 7,
+    "GET /api/job-status/a80601e9-ded5-4ffa-a297-2c28f0195bd9": 7,
+    "GET /api/job-status/e615c9d4-767e-4f4c-85e4-cbccb88412fc": 7,
+    "GET /api/job-status/d3afb089-43db-4051-99a7-69275b0058f4": 7,
+    "GET /api/job-status/fe88d596-2848-497d-a7c9-959b5e9349d8": 7,
+    "GET /api/job-status/f59b95d1-d714-481b-9cdb-cb63d1b1e375": 7,
+    "GET /api/job-status/827a7938-f977-44f6-8970-512c328a4abb": 7,
+    "OPTIONS /api/auth/users/profile": 6,
+    "GET /api/job-status/3dd9e0a1-a7f2-4241-943b-8175d7bdf242": 6,
+    "DELETE /api/admin/cleanup/audio-uploads": 6,
+    "GET /api/job-status/1bb27ed3-26a0-4f27-a139-a9a10d3ece15": 6,
+    "GET /api/job-status/9fd4d5ef-e937-4c0f-876d-ff593f6e16ce": 6,
+    "GET /api/job-status/beaf246f-80b3-4f0e-b287-679da152bd17": 6,
+    "GET /api/job-status/5470dd73-0a33-47f7-a0db-0c5d06bef960": 6,
+    "GET /api/job-status/dc90a65b-5a94-4cab-a213-cba530237476": 6,
+    "GET /api/job-status/1a6b646d-92b3-4d4a-ba7c-73491f9e5923": 6,
+    "GET /api/job-status/f7b6ffd9-1b93-4b08-a3fc-78a0942ff4df": 6,
+    "GET /api/job-status/cb9e2f8e-78c9-4320-ac95-3191a946816b": 5,
+    "GET /api/job-status/cf348905-1a66-43e0-9ab0-6e1d4f4ee95e": 5,
+    "GET /api/job-status/09fe09e2-3fd6-40ab-b2ce-14c9a35027d8": 5,
+    "GET /api/job-status/6e86bb48-43ae-4f32-9b63-bc32d770df8f": 5,
+    "GET /api/job-status/82a638e8-4161-444b-8355-93f039ced358": 5,
+    "GET /api/job-status/fa7954a8-dbfb-4fb7-9917-96f01542a662": 5,
+    "GET /api/job-status/361bc313-71dc-4fcc-ae50-89e65dcc8ea0": 5,
+    "GET /api/job-status/2eb2d587-67b5-419f-b65e-17b368809381": 5,
+    "GET /api/job-status/c4c2fb45-b276-4432-8020-c140b2d1d6f9": 5,
+    "GET /api/job-status/f466d3e7-dddb-4130-b319-fdd372ce3c06": 5,
+    "GET /api/job-status/2ef3cdec-5016-48d6-9a05-2a2f6ed9a649": 5,
+    "GET /api/job-status/ae1e9ade-7953-4091-9b11-4c7cd1c122be": 5,
+    "GET /api/job-status/07f5b497-c5a0-4ac7-ab5f-137f9fb861a9": 4,
+    "GET /api/job-status/edb1e4b1-94a7-4ed7-8d94-04de20b1911b": 4,
+    "PUT /api/admin/users/68b680a192d22617778aec03": 4,
+    "GET /api/job-status/a3d4c932-aba4-4d78-b8a3-08be598b8bfb": 4,
+    "GET /api/job-status/2b64f13d-274a-401d-a540-f9648aefe97a": 4,
+    "GET /api/job-status/b4a2e804-d1d3-41e8-a424-7d39d60c5ed3": 4,
+    "GET /api/job-status/006f7568-0aeb-4953-accc-cc566347966c": 4,
+    "GET /api/job-status/b6a1a661-14a1-4a28-b68c-41fc6a847d21": 4,
+    "OPTIONS /api/auth/google-login": 4,
+    "GET /api/job-status/de1d4a24-cc84-44a3-accd-121ad4ca32f4": 4
+  },
+  "user_counts": {
+    "68b1354b9ed94b110c03eb2a": 3609,
+    "68b92a5f457a25e2a2147a3b": 2390,
+    "682ef8673909efaa1662728f": 1529,
+    "68b680a192d22617778aec03": 954,
+    "68be795046d558a8f2b5ca65": 145,
+    "68bf15670f6dacd8671658d2": 101,
+    "68bfb3edf39e4349fa4829d1": 75,
+    "68bfb0ada24cf08a047d7b80": 72,
+    "68bab0869cfa8ebb55594ef9": 47,
+    "68bfc82a17f4035edfcc7350": 40,
+    "68bfe607856a1bb081d2dd9a": 27,
+    "68bfaed0a24cf08a047d7b55": 26,
+    "68bfc1e317f4035edfcc731d": 26,
+    "68bfefabf595ca673a9d6a60": 21,
+    "68bfb3a817f4035edfcc7302": 17,
+    "68bfcdc117f4035edfcc7381": 17,
+    "68bff12ff595ca673a9d6a7d": 17,
+    "68be790546d558a8f2b5ca5d": 15,
+    "68be77d58e282a772269bd9f": 14,
+    "68bff0766a68a6625f1fafbf": 13,
+    "68bfc26d17f4035edfcc7337": 11,
+    "68bfac34d44f5a3a5a30fd72": 10,
+    "68bfb2b6a24cf08a047d7bd8": 10,
+    "68bfec71b17de40497746d8f": 5,
+    "68bfea0eb17de40497746d6d": 5,
+    "68bfb567f39e4349fa482a25": 5,
+    "68bfd935856a1bb081d2dd8c": 4,
+    "68be5a1afb5c391fe02ede4f": 3,
+    "68bfab2a54d2251cf925c834": 3,
+    "68bfed3a8ad2ada195ab0bab": 3,
+    "68bff23af595ca673a9d6a91": 3,
+    "68bfadd32fca2618ab3684ff": 2
+  },
+  "ip_counts": {
+    "127.0.0.1": 10092
+  },
+  "status_counts": {
+    "200": 7011,
+    "202": 131,
+    "400": 2,
+    "401": 426,
+    "403": 2455,
+    "404": 26,
+    "405": 2,
+    "422": 6,
+    "500": 33
+  },
+  "hourly_distribution": {
+    "3": 214,
+    "4": 839,
+    "5": 653,
+    "6": 1763,
+    "7": 2036,
+    "8": 709,
+    "9": 1249,
+    "10": 458,
+    "11": 442,
+    "12": 144,
+    "13": 65,
+    "14": 232,
+    "15": 130,
+    "16": 544,
+    "17": 220,
+    "18": 262,
+    "19": 132
+  },
+  "date_range": {
+    "start": "2025-09-03T11:11:56.912000",
+    "end": "2025-09-09T09:24:20.259000"
+  },
+  "average_response_time": 545.51308678579,
+  "min_response_time": 0.0,
+  "max_response_time": 74018.85628700256,
+  "endpoint_details": [
+    {
+      "endpoint": "GET /api/listAudioFiles",
+      "count": 3804,
+      "avg_response_time": 202.76083385906762,
+      "success_rate": 0.3086225026288118
     },
-    "user_counts": {
-        "68b1354b9ed94b110c03eb2a": 3609,
-        "68b92a5f457a25e2a2147a3b": 2390,
-        "682ef8673909efaa1662728f": 1529,
-        "68b680a192d22617778aec03": 954,
-        "68be795046d558a8f2b5ca65": 145,
-        "68bf15670f6dacd8671658d2": 101,
-        "68bfb3edf39e4349fa4829d1": 75,
-        "68bfb0ada24cf08a047d7b80": 72,
-        "68bab0869cfa8ebb55594ef9": 47,
-        "68bfc82a17f4035edfcc7350": 40,
-        "68bfe607856a1bb081d2dd9a": 27,
-        "68bfaed0a24cf08a047d7b55": 26,
-        "68bfc1e317f4035edfcc731d": 26,
-        "68bfefabf595ca673a9d6a60": 21,
-        "68bfb3a817f4035edfcc7302": 17,
-        "68bfcdc117f4035edfcc7381": 17,
-        "68bff12ff595ca673a9d6a7d": 17,
-        "68be790546d558a8f2b5ca5d": 15,
-        "68be77d58e282a772269bd9f": 14,
-        "68bff0766a68a6625f1fafbf": 13,
-        "68bfc26d17f4035edfcc7337": 11,
-        "68bfac34d44f5a3a5a30fd72": 10,
-        "68bfb2b6a24cf08a047d7bd8": 10,
-        "68bfec71b17de40497746d8f": 5,
-        "68bfea0eb17de40497746d6d": 5,
-        "68bfb567f39e4349fa482a25": 5,
-        "68bfd935856a1bb081d2dd8c": 4,
-        "68be5a1afb5c391fe02ede4f": 3,
-        "68bfab2a54d2251cf925c834": 3,
-        "68bfed3a8ad2ada195ab0bab": 3,
-        "68bff23af595ca673a9d6a91": 3,
-        "68bfadd32fca2618ab3684ff": 2
+    {
+      "endpoint": "GET /api/check-credits",
+      "count": 2480,
+      "avg_response_time": 243.1764473838191,
+      "success_rate": 0.9701612903225807
     },
-    "ip_counts": {
-        "127.0.0.1": 10092
+    {
+      "endpoint": "GET /api/admin/users",
+      "count": 256,
+      "avg_response_time": 212.0418706908822,
+      "success_rate": 0.8359375
     },
-    "status_counts": {
-        "200": 7011,
-        "202": 131,
-        "400": 2,
-        "401": 426,
-        "403": 2455,
-        "404": 26,
-        "405": 2,
-        "422": 6,
-        "500": 33
+    {
+      "endpoint": "GET /api/audios",
+      "count": 249,
+      "avg_response_time": 225.85214381237105,
+      "success_rate": 0.9236947791164659
     },
-    "hourly_distribution": {
-        "3": 214,
-        "4": 839,
-        "5": 653,
-        "6": 1763,
-        "7": 2036,
-        "8": 709,
-        "9": 1249,
-        "10": 458,
-        "11": 442,
-        "12": 144,
-        "13": 65,
-        "14": 232,
-        "15": 130,
-        "16": 544,
-        "17": 220,
-        "18": 262,
-        "19": 132
+    {
+      "endpoint": "GET /api/admin/analytics/usage",
+      "count": 228,
+      "avg_response_time": 342.9033390262671,
+      "success_rate": 0.9254385964912281
     },
-    "date_range": {
-        "start": "2025-09-03T11:11:56.912000",
-        "end": "2025-09-09T09:24:20.259000"
+    {
+      "endpoint": "GET /api/search",
+      "count": 199,
+      "avg_response_time": 12202.44672550029,
+      "success_rate": 1.0
     },
-    "average_response_time": 545.51308678579,
-    "min_response_time": 0.0,
-    "max_response_time": 74018.85628700256,
-    "endpoint_details": [
-        {
-            "endpoint": "GET /api/listAudioFiles",
-            "count": 3804,
-            "avg_response_time": 202.76083385906762,
-            "success_rate": 0.3086225026288118
-        },
-        {
-            "endpoint": "GET /api/check-credits",
-            "count": 2480,
-            "avg_response_time": 243.1764473838191,
-            "success_rate": 0.9701612903225807
-        },
-        {
-            "endpoint": "GET /api/admin/users",
-            "count": 256,
-            "avg_response_time": 212.0418706908822,
-            "success_rate": 0.8359375
-        },
-        {
-            "endpoint": "GET /api/audios",
-            "count": 249,
-            "avg_response_time": 225.85214381237105,
-            "success_rate": 0.9236947791164659
-        },
-        {
-            "endpoint": "GET /api/admin/analytics/usage",
-            "count": 228,
-            "avg_response_time": 342.9033390262671,
-            "success_rate": 0.9254385964912281
-        },
-        {
-            "endpoint": "GET /api/search",
-            "count": 199,
-            "avg_response_time": 12202.44672550029,
-            "success_rate": 1.0
-        },
-        {
-            "endpoint": "POST /api/extract",
-            "count": 187,
-            "avg_response_time": 2153.375150048159,
-            "success_rate": 0.9572192513368984
-        },
-        {
-            "endpoint": "GET /api/system/health",
-            "count": 181,
-            "avg_response_time": 359.9518807553455,
-            "success_rate": 0.9723756906077348
-        },
-        {
-            "endpoint": "GET /api/system/circuit-breakers",
-            "count": 180,
-            "avg_response_time": 161.3413241174486,
-            "success_rate": 0.9777777777777777
-        },
-        {
-            "endpoint": "GET /api/system/rate-limits",
-            "count": 179,
-            "avg_response_time": 149.78770836771534,
-            "success_rate": 0.9832402234636871
-        },
-        {
-            "endpoint": "GET /api/admin/log-files",
-            "count": 167,
-            "avg_response_time": 136.120345064266,
-            "success_rate": 0.8622754491017964
-        },
-        {
-            "endpoint": "GET /api/admin/gemini-keys/status",
-            "count": 164,
-            "avg_response_time": 162.69821364705155,
-            "success_rate": 0.926829268292683
-        },
-        {
-            "endpoint": "POST /api/credit",
-            "count": 133,
-            "avg_response_time": 189.42131673483024,
-            "success_rate": 1.0
-        },
-        {
-            "endpoint": "POST /api/process_audio",
-            "count": 123,
-            "avg_response_time": 195.7921225850175,
-            "success_rate": 0.983739837398374
-        },
-        {
-            "endpoint": "GET /api/admin/ip-credits",
-            "count": 121,
-            "avg_response_time": 216.8434257349692,
-            "success_rate": 0.768595041322314
-        },
-        {
-            "endpoint": "POST /api/search-and-answer",
-            "count": 111,
-            "avg_response_time": 2891.7830892511315,
-            "success_rate": 0.8198198198198198
-        },
-        {
-            "endpoint": "GET /api/auth/users/profile",
-            "count": 96,
-            "avg_response_time": 111.68341835339864,
-            "success_rate": 0.9791666666666666
-        },
-        {
-            "endpoint": "GET /api/job-status/719073a9-cdfd-4430-bfee-d1629a78e038",
-            "count": 52,
-            "avg_response_time": 120.76002817887526,
-            "success_rate": 0.9615384615384616
-        },
-        {
-            "endpoint": "OPTIONS /api/check-credits",
-            "count": 49,
-            "avg_response_time": 2.6218307261564293,
-            "success_rate": 1.0
-        },
-        {
-            "endpoint": "OPTIONS /api/listAudioFiles",
-            "count": 47,
-            "avg_response_time": 2.005353887030419,
-            "success_rate": 1.0
-        },
-        {
-            "endpoint": "POST /api/auth/google-login",
-            "count": 37,
-            "avg_response_time": 2555.1971615971747,
-            "success_rate": 0.8378378378378378
-        },
-        {
-            "endpoint": "GET /api/admin/log-files/2025-09-08.log",
-            "count": 37,
-            "avg_response_time": 123.20606772964065,
-            "success_rate": 1.0
-        },
-        {
-            "endpoint": "OPTIONS /api/admin/analytics/usage",
-            "count": 37,
-            "avg_response_time": 0.24070610871186127,
-            "success_rate": 1.0
-        },
-        {
-            "endpoint": "GET /api/job-status/0dd7fbb5-3246-465f-9219-6cc8e2ce4531",
-            "count": 33,
-            "avg_response_time": 82.88492578448671,
-            "success_rate": 1.0
-        },
-        {
-            "endpoint": "POST /api/auth/oauth/callback",
-            "count": 30,
-            "avg_response_time": 3022.3955074946084,
-            "success_rate": 1.0
-        },
-        {
-            "endpoint": "OPTIONS /api/process_audio",
-            "count": 26,
-            "avg_response_time": 0.03839456118070162,
-            "success_rate": 1.0
-        },
-        {
-            "endpoint": "POST /api/auth/guest",
-            "count": 24,
-            "avg_response_time": 423.09994498888653,
-            "success_rate": 0.9166666666666666
-        },
-        {
-            "endpoint": "GET /api/admin/analytics/real-time",
-            "count": 22,
-            "avg_response_time": 1662.2065522454002,
-            "success_rate": 1.0
-        },
-        {
-            "endpoint": "OPTIONS /api/audios",
-            "count": 21,
-            "avg_response_time": 0.3231025877453032,
-            "success_rate": 1.0
-        },
-        {
-            "endpoint": "GET /api/job-status/fc71ca5f-5314-43be-86b4-d5b00282c3ea",
-            "count": 20,
-            "avg_response_time": 96.47729396820068,
-            "success_rate": 1.0
-        },
-        {
-            "endpoint": "OPTIONS /api/search",
-            "count": 20,
-            "avg_response_time": 0.28519630432128906,
-            "success_rate": 1.0
-        },
-        {
-            "endpoint": "POST /api/auth/login",
-            "count": 19,
-            "avg_response_time": 486.6382824747186,
-            "success_rate": 0.47368421052631576
-        },
-        {
-            "endpoint": "GET /api/job-status/2b81b6c5-76c9-4c3b-8f59-ea7e4ed268f7",
-            "count": 19,
-            "avg_response_time": 73.05440149809185,
-            "success_rate": 1.0
-        },
-        {
-            "endpoint": "GET /api/job-status/a229ce9a-f7bd-4fe6-a847-5e8d13818f97",
-            "count": 18,
-            "avg_response_time": 142.47326056162515,
-            "success_rate": 1.0
-        },
-        {
-            "endpoint": "GET /api/job-status/ff7b9762-9015-4319-8844-e9ca7487f6f4",
-            "count": 17,
-            "avg_response_time": 57.600161608527685,
-            "success_rate": 1.0
-        },
-        {
-            "endpoint": "GET /api/job-status/72e78503-30b2-4c5a-8d6a-e287281fd43e",
-            "count": 16,
-            "avg_response_time": 40.532588958740234,
-            "success_rate": 1.0
-        },
-        {
-            "endpoint": "GET /api/job-status/327e31fe-f354-4566-a871-7cd30467a134",
-            "count": 16,
-            "avg_response_time": 64.34112787246704,
-            "success_rate": 1.0
-        },
-        {
-            "endpoint": "PUT /api/admin/users/68b92a5f457a25e2a2147a3b",
-            "count": 16,
-            "avg_response_time": 151.36805176734924,
-            "success_rate": 1.0
-        },
-        {
-            "endpoint": "OPTIONS /api/admin/users",
-            "count": 15,
-            "avg_response_time": 0.18033981323242188,
-            "success_rate": 1.0
-        },
-        {
-            "endpoint": "GET /api/admin/analytics/ip-details/127.0.0.1",
-            "count": 15,
-            "avg_response_time": 339.4055366516113,
-            "success_rate": 1.0
-        },
-        {
-            "endpoint": "POST /api/process_audio_bulk",
-            "count": 15,
-            "avg_response_time": 303.9031187693278,
-            "success_rate": 0.6666666666666666
-        },
-        {
-            "endpoint": "GET /api/job-status/d1c3bda9-9a65-4dd8-8ce0-404a10c23782",
-            "count": 14,
-            "avg_response_time": 59.659361839294434,
-            "success_rate": 1.0
-        },
-        {
-            "endpoint": "OPTIONS /api/extract",
-            "count": 14,
-            "avg_response_time": 0.21604129246303014,
-            "success_rate": 1.0
-        },
-        {
-            "endpoint": "GET /api/admin/log-files/2025-09-05.log",
-            "count": 14,
-            "avg_response_time": 86.75464562007359,
-            "success_rate": 0.9285714285714286
-        },
-        {
-            "endpoint": "GET /api/job-status/d52843fe-fa16-463d-ab41-f136ae21fcc6",
-            "count": 14,
-            "avg_response_time": 71.46937506539481,
-            "success_rate": 1.0
-        },
-        {
-            "endpoint": "GET /api/job-status/48707bd1-cf5a-4a26-b25c-2e65612095de",
-            "count": 13,
-            "avg_response_time": 29.286292883066032,
-            "success_rate": 1.0
-        },
-        {
-            "endpoint": "GET /api/job-status/1730b5f7-c433-4c99-9138-07d30f1682c4",
-            "count": 13,
-            "avg_response_time": 85.06729052617,
-            "success_rate": 1.0
-        },
-        {
-            "endpoint": "GET /api/audios/68bfaeacd8e1e2b91bd51af7/relations",
-            "count": 13,
-            "avg_response_time": 3644.3263017214263,
-            "success_rate": 1.0
-        },
-        {
-            "endpoint": "GET /api/job-status/3b9c8cb5-011e-428c-b5f1-4f06b3722b30",
-            "count": 13,
-            "avg_response_time": 34.25108469449557,
-            "success_rate": 1.0
-        },
-        {
-            "endpoint": "GET /api/job-status/c2d1988f-134f-4303-a031-1a861d6a7885",
-            "count": 12,
-            "avg_response_time": 31.87662363052368,
-            "success_rate": 1.0
-        },
-        {
-            "endpoint": "GET /api/config/public-mode",
-            "count": 11,
-            "avg_response_time": 1.628854058005593,
-            "success_rate": 1.0
-        },
-        {
-            "endpoint": "OPTIONS /api/admin/ip-credits",
-            "count": 11,
-            "avg_response_time": 0.9326067837801847,
-            "success_rate": 1.0
-        },
-        {
-            "endpoint": "GET /api/job-status/04942e3c-891d-42af-bdca-6682c5053cf1",
-            "count": 11,
-            "avg_response_time": 64.8571794683283,
-            "success_rate": 1.0
-        },
-        {
-            "endpoint": "GET /api/job-status/d2a33d8c-f810-4382-aba0-7d3b620d7be9",
-            "count": 10,
-            "avg_response_time": 27.496910095214844,
-            "success_rate": 1.0
-        },
-        {
-            "endpoint": "GET /api/job-status/bf371eca-7636-4522-8c5a-c1978680b349",
-            "count": 9,
-            "avg_response_time": 27.140961752997505,
-            "success_rate": 1.0
-        },
-        {
-            "endpoint": "GET /api/admin/log-files/2025-09-09.log",
-            "count": 9,
-            "avg_response_time": 62.95453177558051,
-            "success_rate": 1.0
-        },
-        {
-            "endpoint": "GET /api/job-status/81dd5664-0d76-43d7-b709-38f5bd1f051b",
-            "count": 9,
-            "avg_response_time": 32.12242656283908,
-            "success_rate": 1.0
-        },
-        {
-            "endpoint": "PUT /api/admin/ip-credits/127.0.0.1/credits",
-            "count": 8,
-            "avg_response_time": 198.17042350769043,
-            "success_rate": 1.0
-        },
-        {
-            "endpoint": "GET /api/job-status/a094229e-ce17-4d83-9c30-90ddce3c394d",
-            "count": 8,
-            "avg_response_time": 53.34281921386719,
-            "success_rate": 1.0
-        },
-        {
-            "endpoint": "POST /api/mail/get-otp",
-            "count": 8,
-            "avg_response_time": 2180.1106929779053,
-            "success_rate": 0.375
-        },
-        {
-            "endpoint": "GET /api/job-status/57737da9-97b3-446d-b13b-e5e6642dcc70",
-            "count": 8,
-            "avg_response_time": 94.42192316055298,
-            "success_rate": 1.0
-        },
-        {
-            "endpoint": "GET /admin/log-files",
-            "count": 7,
-            "avg_response_time": 1.2165818895612444,
-            "success_rate": 0.0
-        },
-        {
-            "endpoint": "GET /api/job-status/a80601e9-ded5-4ffa-a297-2c28f0195bd9",
-            "count": 7,
-            "avg_response_time": 27.445418494088308,
-            "success_rate": 1.0
-        },
-        {
-            "endpoint": "GET /api/job-status/e615c9d4-767e-4f4c-85e4-cbccb88412fc",
-            "count": 7,
-            "avg_response_time": 32.88796969822475,
-            "success_rate": 1.0
-        },
-        {
-            "endpoint": "GET /api/job-status/d3afb089-43db-4051-99a7-69275b0058f4",
-            "count": 7,
-            "avg_response_time": 61.99686867850168,
-            "success_rate": 1.0
-        },
-        {
-            "endpoint": "GET /api/job-status/fe88d596-2848-497d-a7c9-959b5e9349d8",
-            "count": 7,
-            "avg_response_time": 55.46917234148298,
-            "success_rate": 1.0
-        },
-        {
-            "endpoint": "GET /api/job-status/f59b95d1-d714-481b-9cdb-cb63d1b1e375",
-            "count": 7,
-            "avg_response_time": 52.88491930280413,
-            "success_rate": 1.0
-        },
-        {
-            "endpoint": "GET /api/job-status/827a7938-f977-44f6-8970-512c328a4abb",
-            "count": 7,
-            "avg_response_time": 59.139251708984375,
-            "success_rate": 1.0
-        },
-        {
-            "endpoint": "OPTIONS /api/auth/users/profile",
-            "count": 6,
-            "avg_response_time": 0.10645389556884766,
-            "success_rate": 1.0
-        },
-        {
-            "endpoint": "GET /api/job-status/3dd9e0a1-a7f2-4241-943b-8175d7bdf242",
-            "count": 6,
-            "avg_response_time": 19.741018613179524,
-            "success_rate": 1.0
-        },
-        {
-            "endpoint": "DELETE /api/admin/cleanup/audio-uploads",
-            "count": 6,
-            "avg_response_time": 555.4226239522299,
-            "success_rate": 1.0
-        },
-        {
-            "endpoint": "GET /api/job-status/1bb27ed3-26a0-4f27-a139-a9a10d3ece15",
-            "count": 6,
-            "avg_response_time": 29.489636421203613,
-            "success_rate": 1.0
-        },
-        {
-            "endpoint": "GET /api/job-status/9fd4d5ef-e937-4c0f-876d-ff593f6e16ce",
-            "count": 6,
-            "avg_response_time": 53.78278096516927,
-            "success_rate": 1.0
-        },
-        {
-            "endpoint": "GET /api/job-status/beaf246f-80b3-4f0e-b287-679da152bd17",
-            "count": 6,
-            "avg_response_time": 26.871800422668457,
-            "success_rate": 1.0
-        },
-        {
-            "endpoint": "GET /api/job-status/5470dd73-0a33-47f7-a0db-0c5d06bef960",
-            "count": 6,
-            "avg_response_time": 87.99982070922852,
-            "success_rate": 1.0
-        },
-        {
-            "endpoint": "GET /api/job-status/dc90a65b-5a94-4cab-a213-cba530237476",
-            "count": 6,
-            "avg_response_time": 61.71560287475586,
-            "success_rate": 1.0
-        },
-        {
-            "endpoint": "GET /api/job-status/1a6b646d-92b3-4d4a-ba7c-73491f9e5923",
-            "count": 6,
-            "avg_response_time": 50.71675777435303,
-            "success_rate": 1.0
-        },
-        {
-            "endpoint": "GET /api/job-status/f7b6ffd9-1b93-4b08-a3fc-78a0942ff4df",
-            "count": 6,
-            "avg_response_time": 51.40690008799235,
-            "success_rate": 1.0
-        },
-        {
-            "endpoint": "GET /api/job-status/cb9e2f8e-78c9-4320-ac95-3191a946816b",
-            "count": 5,
-            "avg_response_time": 32.7730655670166,
-            "success_rate": 1.0
-        },
-        {
-            "endpoint": "GET /api/job-status/cf348905-1a66-43e0-9ab0-6e1d4f4ee95e",
-            "count": 5,
-            "avg_response_time": 30.273962020874023,
-            "success_rate": 1.0
-        },
-        {
-            "endpoint": "GET /api/job-status/09fe09e2-3fd6-40ab-b2ce-14c9a35027d8",
-            "count": 5,
-            "avg_response_time": 328.88946533203125,
-            "success_rate": 0.8
-        },
-        {
-            "endpoint": "GET /api/job-status/6e86bb48-43ae-4f32-9b63-bc32d770df8f",
-            "count": 5,
-            "avg_response_time": 55.7708740234375,
-            "success_rate": 1.0
-        },
-        {
-            "endpoint": "GET /api/job-status/82a638e8-4161-444b-8355-93f039ced358",
-            "count": 5,
-            "avg_response_time": 55.57446479797363,
-            "success_rate": 1.0
-        },
-        {
-            "endpoint": "GET /api/job-status/fa7954a8-dbfb-4fb7-9917-96f01542a662",
-            "count": 5,
-            "avg_response_time": 62.833356857299805,
-            "success_rate": 1.0
-        },
-        {
-            "endpoint": "GET /api/job-status/361bc313-71dc-4fcc-ae50-89e65dcc8ea0",
-            "count": 5,
-            "avg_response_time": 63.37885856628418,
-            "success_rate": 1.0
-        },
-        {
-            "endpoint": "GET /api/job-status/2eb2d587-67b5-419f-b65e-17b368809381",
-            "count": 5,
-            "avg_response_time": 279.3179988861084,
-            "success_rate": 0.8
-        },
-        {
-            "endpoint": "GET /api/job-status/c4c2fb45-b276-4432-8020-c140b2d1d6f9",
-            "count": 5,
-            "avg_response_time": 28.411054611206055,
-            "success_rate": 1.0
-        },
-        {
-            "endpoint": "GET /api/job-status/f466d3e7-dddb-4130-b319-fdd372ce3c06",
-            "count": 5,
-            "avg_response_time": 62.14022636413574,
-            "success_rate": 1.0
-        },
-        {
-            "endpoint": "GET /api/job-status/2ef3cdec-5016-48d6-9a05-2a2f6ed9a649",
-            "count": 5,
-            "avg_response_time": 107.33327865600586,
-            "success_rate": 1.0
-        },
-        {
-            "endpoint": "GET /api/job-status/ae1e9ade-7953-4091-9b11-4c7cd1c122be",
-            "count": 5,
-            "avg_response_time": 62.114667892456055,
-            "success_rate": 1.0
-        },
-        {
-            "endpoint": "GET /api/job-status/07f5b497-c5a0-4ac7-ab5f-137f9fb861a9",
-            "count": 4,
-            "avg_response_time": 52.4524450302124,
-            "success_rate": 1.0
-        },
-        {
-            "endpoint": "GET /api/job-status/edb1e4b1-94a7-4ed7-8d94-04de20b1911b",
-            "count": 4,
-            "avg_response_time": 27.193963527679443,
-            "success_rate": 1.0
-        },
-        {
-            "endpoint": "PUT /api/admin/users/68b680a192d22617778aec03",
-            "count": 4,
-            "avg_response_time": 115.99355936050415,
-            "success_rate": 1.0
-        },
-        {
-            "endpoint": "GET /api/job-status/a3d4c932-aba4-4d78-b8a3-08be598b8bfb",
-            "count": 4,
-            "avg_response_time": 24.774909019470215,
-            "success_rate": 1.0
-        },
-        {
-            "endpoint": "GET /api/job-status/2b64f13d-274a-401d-a540-f9648aefe97a",
-            "count": 4,
-            "avg_response_time": 62.09009885787964,
-            "success_rate": 1.0
-        },
-        {
-            "endpoint": "GET /api/job-status/b4a2e804-d1d3-41e8-a424-7d39d60c5ed3",
-            "count": 4,
-            "avg_response_time": 135.66404581069946,
-            "success_rate": 1.0
-        },
-        {
-            "endpoint": "GET /api/job-status/006f7568-0aeb-4953-accc-cc566347966c",
-            "count": 4,
-            "avg_response_time": 31.573593616485596,
-            "success_rate": 1.0
-        },
-        {
-            "endpoint": "GET /api/job-status/b6a1a661-14a1-4a28-b68c-41fc6a847d21",
-            "count": 4,
-            "avg_response_time": 128.9309859275818,
-            "success_rate": 1.0
-        },
-        {
-            "endpoint": "OPTIONS /api/auth/google-login",
-            "count": 4,
-            "avg_response_time": 1.6273260116577148,
-            "success_rate": 1.0
-        },
-        {
-            "endpoint": "GET /api/job-status/de1d4a24-cc84-44a3-accd-121ad4ca32f4",
-            "count": 4,
-            "avg_response_time": 302.68973112106323,
-            "success_rate": 1.0
-        }
-    ],
-    "ip_details": [
-        {
-            "ip": "127.0.0.1",
-            "count": 10092,
-            "avg_response_time": 545.51308678579,
-            "last_seen": "2025-09-09T09:24:20.259000",
-            "first_seen": "2025-09-03T11:11:56.912000",
-            "unique_endpoints": 242
-        }
-    ]
+    {
+      "endpoint": "POST /api/extract",
+      "count": 187,
+      "avg_response_time": 2153.375150048159,
+      "success_rate": 0.9572192513368984
+    },
+    {
+      "endpoint": "GET /api/system/health",
+      "count": 181,
+      "avg_response_time": 359.9518807553455,
+      "success_rate": 0.9723756906077348
+    },
+    {
+      "endpoint": "GET /api/system/circuit-breakers",
+      "count": 180,
+      "avg_response_time": 161.3413241174486,
+      "success_rate": 0.9777777777777777
+    },
+    {
+      "endpoint": "GET /api/system/rate-limits",
+      "count": 179,
+      "avg_response_time": 149.78770836771534,
+      "success_rate": 0.9832402234636871
+    },
+    {
+      "endpoint": "GET /api/admin/log-files",
+      "count": 167,
+      "avg_response_time": 136.120345064266,
+      "success_rate": 0.8622754491017964
+    },
+    {
+      "endpoint": "GET /api/admin/gemini-keys/status",
+      "count": 164,
+      "avg_response_time": 162.69821364705155,
+      "success_rate": 0.926829268292683
+    },
+    {
+      "endpoint": "POST /api/credit",
+      "count": 133,
+      "avg_response_time": 189.42131673483024,
+      "success_rate": 1.0
+    },
+    {
+      "endpoint": "POST /api/process_audio",
+      "count": 123,
+      "avg_response_time": 195.7921225850175,
+      "success_rate": 0.983739837398374
+    },
+    {
+      "endpoint": "GET /api/admin/ip-credits",
+      "count": 121,
+      "avg_response_time": 216.8434257349692,
+      "success_rate": 0.768595041322314
+    },
+    {
+      "endpoint": "POST /api/search-and-answer",
+      "count": 111,
+      "avg_response_time": 2891.7830892511315,
+      "success_rate": 0.8198198198198198
+    },
+    {
+      "endpoint": "GET /api/auth/users/profile",
+      "count": 96,
+      "avg_response_time": 111.68341835339864,
+      "success_rate": 0.9791666666666666
+    },
+    {
+      "endpoint": "GET /api/job-status/719073a9-cdfd-4430-bfee-d1629a78e038",
+      "count": 52,
+      "avg_response_time": 120.76002817887526,
+      "success_rate": 0.9615384615384616
+    },
+    {
+      "endpoint": "OPTIONS /api/check-credits",
+      "count": 49,
+      "avg_response_time": 2.6218307261564293,
+      "success_rate": 1.0
+    },
+    {
+      "endpoint": "OPTIONS /api/listAudioFiles",
+      "count": 47,
+      "avg_response_time": 2.005353887030419,
+      "success_rate": 1.0
+    },
+    {
+      "endpoint": "POST /api/auth/google-login",
+      "count": 37,
+      "avg_response_time": 2555.1971615971747,
+      "success_rate": 0.8378378378378378
+    },
+    {
+      "endpoint": "GET /api/admin/log-files/2025-09-08.log",
+      "count": 37,
+      "avg_response_time": 123.20606772964065,
+      "success_rate": 1.0
+    },
+    {
+      "endpoint": "OPTIONS /api/admin/analytics/usage",
+      "count": 37,
+      "avg_response_time": 0.24070610871186127,
+      "success_rate": 1.0
+    },
+    {
+      "endpoint": "GET /api/job-status/0dd7fbb5-3246-465f-9219-6cc8e2ce4531",
+      "count": 33,
+      "avg_response_time": 82.88492578448671,
+      "success_rate": 1.0
+    },
+    {
+      "endpoint": "POST /api/auth/oauth/callback",
+      "count": 30,
+      "avg_response_time": 3022.3955074946084,
+      "success_rate": 1.0
+    },
+    {
+      "endpoint": "OPTIONS /api/process_audio",
+      "count": 26,
+      "avg_response_time": 0.03839456118070162,
+      "success_rate": 1.0
+    },
+    {
+      "endpoint": "POST /api/auth/guest",
+      "count": 24,
+      "avg_response_time": 423.09994498888653,
+      "success_rate": 0.9166666666666666
+    },
+    {
+      "endpoint": "GET /api/admin/analytics/real-time",
+      "count": 22,
+      "avg_response_time": 1662.2065522454002,
+      "success_rate": 1.0
+    },
+    {
+      "endpoint": "OPTIONS /api/audios",
+      "count": 21,
+      "avg_response_time": 0.3231025877453032,
+      "success_rate": 1.0
+    },
+    {
+      "endpoint": "GET /api/job-status/fc71ca5f-5314-43be-86b4-d5b00282c3ea",
+      "count": 20,
+      "avg_response_time": 96.47729396820068,
+      "success_rate": 1.0
+    },
+    {
+      "endpoint": "OPTIONS /api/search",
+      "count": 20,
+      "avg_response_time": 0.28519630432128906,
+      "success_rate": 1.0
+    },
+    {
+      "endpoint": "POST /api/auth/login",
+      "count": 19,
+      "avg_response_time": 486.6382824747186,
+      "success_rate": 0.47368421052631576
+    },
+    {
+      "endpoint": "GET /api/job-status/2b81b6c5-76c9-4c3b-8f59-ea7e4ed268f7",
+      "count": 19,
+      "avg_response_time": 73.05440149809185,
+      "success_rate": 1.0
+    },
+    {
+      "endpoint": "GET /api/job-status/a229ce9a-f7bd-4fe6-a847-5e8d13818f97",
+      "count": 18,
+      "avg_response_time": 142.47326056162515,
+      "success_rate": 1.0
+    },
+    {
+      "endpoint": "GET /api/job-status/ff7b9762-9015-4319-8844-e9ca7487f6f4",
+      "count": 17,
+      "avg_response_time": 57.600161608527685,
+      "success_rate": 1.0
+    },
+    {
+      "endpoint": "GET /api/job-status/72e78503-30b2-4c5a-8d6a-e287281fd43e",
+      "count": 16,
+      "avg_response_time": 40.532588958740234,
+      "success_rate": 1.0
+    },
+    {
+      "endpoint": "GET /api/job-status/327e31fe-f354-4566-a871-7cd30467a134",
+      "count": 16,
+      "avg_response_time": 64.34112787246704,
+      "success_rate": 1.0
+    },
+    {
+      "endpoint": "PUT /api/admin/users/68b92a5f457a25e2a2147a3b",
+      "count": 16,
+      "avg_response_time": 151.36805176734924,
+      "success_rate": 1.0
+    },
+    {
+      "endpoint": "OPTIONS /api/admin/users",
+      "count": 15,
+      "avg_response_time": 0.18033981323242188,
+      "success_rate": 1.0
+    },
+    {
+      "endpoint": "GET /api/admin/analytics/ip-details/127.0.0.1",
+      "count": 15,
+      "avg_response_time": 339.4055366516113,
+      "success_rate": 1.0
+    },
+    {
+      "endpoint": "POST /api/process_audio_bulk",
+      "count": 15,
+      "avg_response_time": 303.9031187693278,
+      "success_rate": 0.6666666666666666
+    },
+    {
+      "endpoint": "GET /api/job-status/d1c3bda9-9a65-4dd8-8ce0-404a10c23782",
+      "count": 14,
+      "avg_response_time": 59.659361839294434,
+      "success_rate": 1.0
+    },
+    {
+      "endpoint": "OPTIONS /api/extract",
+      "count": 14,
+      "avg_response_time": 0.21604129246303014,
+      "success_rate": 1.0
+    },
+    {
+      "endpoint": "GET /api/admin/log-files/2025-09-05.log",
+      "count": 14,
+      "avg_response_time": 86.75464562007359,
+      "success_rate": 0.9285714285714286
+    },
+    {
+      "endpoint": "GET /api/job-status/d52843fe-fa16-463d-ab41-f136ae21fcc6",
+      "count": 14,
+      "avg_response_time": 71.46937506539481,
+      "success_rate": 1.0
+    },
+    {
+      "endpoint": "GET /api/job-status/48707bd1-cf5a-4a26-b25c-2e65612095de",
+      "count": 13,
+      "avg_response_time": 29.286292883066032,
+      "success_rate": 1.0
+    },
+    {
+      "endpoint": "GET /api/job-status/1730b5f7-c433-4c99-9138-07d30f1682c4",
+      "count": 13,
+      "avg_response_time": 85.06729052617,
+      "success_rate": 1.0
+    },
+    {
+      "endpoint": "GET /api/audios/68bfaeacd8e1e2b91bd51af7/relations",
+      "count": 13,
+      "avg_response_time": 3644.3263017214263,
+      "success_rate": 1.0
+    },
+    {
+      "endpoint": "GET /api/job-status/3b9c8cb5-011e-428c-b5f1-4f06b3722b30",
+      "count": 13,
+      "avg_response_time": 34.25108469449557,
+      "success_rate": 1.0
+    },
+    {
+      "endpoint": "GET /api/job-status/c2d1988f-134f-4303-a031-1a861d6a7885",
+      "count": 12,
+      "avg_response_time": 31.87662363052368,
+      "success_rate": 1.0
+    },
+    {
+      "endpoint": "GET /api/config/public-mode",
+      "count": 11,
+      "avg_response_time": 1.628854058005593,
+      "success_rate": 1.0
+    },
+    {
+      "endpoint": "OPTIONS /api/admin/ip-credits",
+      "count": 11,
+      "avg_response_time": 0.9326067837801847,
+      "success_rate": 1.0
+    },
+    {
+      "endpoint": "GET /api/job-status/04942e3c-891d-42af-bdca-6682c5053cf1",
+      "count": 11,
+      "avg_response_time": 64.8571794683283,
+      "success_rate": 1.0
+    },
+    {
+      "endpoint": "GET /api/job-status/d2a33d8c-f810-4382-aba0-7d3b620d7be9",
+      "count": 10,
+      "avg_response_time": 27.496910095214844,
+      "success_rate": 1.0
+    },
+    {
+      "endpoint": "GET /api/job-status/bf371eca-7636-4522-8c5a-c1978680b349",
+      "count": 9,
+      "avg_response_time": 27.140961752997505,
+      "success_rate": 1.0
+    },
+    {
+      "endpoint": "GET /api/admin/log-files/2025-09-09.log",
+      "count": 9,
+      "avg_response_time": 62.95453177558051,
+      "success_rate": 1.0
+    },
+    {
+      "endpoint": "GET /api/job-status/81dd5664-0d76-43d7-b709-38f5bd1f051b",
+      "count": 9,
+      "avg_response_time": 32.12242656283908,
+      "success_rate": 1.0
+    },
+    {
+      "endpoint": "PUT /api/admin/ip-credits/127.0.0.1/credits",
+      "count": 8,
+      "avg_response_time": 198.17042350769043,
+      "success_rate": 1.0
+    },
+    {
+      "endpoint": "GET /api/job-status/a094229e-ce17-4d83-9c30-90ddce3c394d",
+      "count": 8,
+      "avg_response_time": 53.34281921386719,
+      "success_rate": 1.0
+    },
+    {
+      "endpoint": "POST /api/mail/get-otp",
+      "count": 8,
+      "avg_response_time": 2180.1106929779053,
+      "success_rate": 0.375
+    },
+    {
+      "endpoint": "GET /api/job-status/57737da9-97b3-446d-b13b-e5e6642dcc70",
+      "count": 8,
+      "avg_response_time": 94.42192316055298,
+      "success_rate": 1.0
+    },
+    {
+      "endpoint": "GET /admin/log-files",
+      "count": 7,
+      "avg_response_time": 1.2165818895612444,
+      "success_rate": 0.0
+    },
+    {
+      "endpoint": "GET /api/job-status/a80601e9-ded5-4ffa-a297-2c28f0195bd9",
+      "count": 7,
+      "avg_response_time": 27.445418494088308,
+      "success_rate": 1.0
+    },
+    {
+      "endpoint": "GET /api/job-status/e615c9d4-767e-4f4c-85e4-cbccb88412fc",
+      "count": 7,
+      "avg_response_time": 32.88796969822475,
+      "success_rate": 1.0
+    },
+    {
+      "endpoint": "GET /api/job-status/d3afb089-43db-4051-99a7-69275b0058f4",
+      "count": 7,
+      "avg_response_time": 61.99686867850168,
+      "success_rate": 1.0
+    },
+    {
+      "endpoint": "GET /api/job-status/fe88d596-2848-497d-a7c9-959b5e9349d8",
+      "count": 7,
+      "avg_response_time": 55.46917234148298,
+      "success_rate": 1.0
+    },
+    {
+      "endpoint": "GET /api/job-status/f59b95d1-d714-481b-9cdb-cb63d1b1e375",
+      "count": 7,
+      "avg_response_time": 52.88491930280413,
+      "success_rate": 1.0
+    },
+    {
+      "endpoint": "GET /api/job-status/827a7938-f977-44f6-8970-512c328a4abb",
+      "count": 7,
+      "avg_response_time": 59.139251708984375,
+      "success_rate": 1.0
+    },
+    {
+      "endpoint": "OPTIONS /api/auth/users/profile",
+      "count": 6,
+      "avg_response_time": 0.10645389556884766,
+      "success_rate": 1.0
+    },
+    {
+      "endpoint": "GET /api/job-status/3dd9e0a1-a7f2-4241-943b-8175d7bdf242",
+      "count": 6,
+      "avg_response_time": 19.741018613179524,
+      "success_rate": 1.0
+    },
+    {
+      "endpoint": "DELETE /api/admin/cleanup/audio-uploads",
+      "count": 6,
+      "avg_response_time": 555.4226239522299,
+      "success_rate": 1.0
+    },
+    {
+      "endpoint": "GET /api/job-status/1bb27ed3-26a0-4f27-a139-a9a10d3ece15",
+      "count": 6,
+      "avg_response_time": 29.489636421203613,
+      "success_rate": 1.0
+    },
+    {
+      "endpoint": "GET /api/job-status/9fd4d5ef-e937-4c0f-876d-ff593f6e16ce",
+      "count": 6,
+      "avg_response_time": 53.78278096516927,
+      "success_rate": 1.0
+    },
+    {
+      "endpoint": "GET /api/job-status/beaf246f-80b3-4f0e-b287-679da152bd17",
+      "count": 6,
+      "avg_response_time": 26.871800422668457,
+      "success_rate": 1.0
+    },
+    {
+      "endpoint": "GET /api/job-status/5470dd73-0a33-47f7-a0db-0c5d06bef960",
+      "count": 6,
+      "avg_response_time": 87.99982070922852,
+      "success_rate": 1.0
+    },
+    {
+      "endpoint": "GET /api/job-status/dc90a65b-5a94-4cab-a213-cba530237476",
+      "count": 6,
+      "avg_response_time": 61.71560287475586,
+      "success_rate": 1.0
+    },
+    {
+      "endpoint": "GET /api/job-status/1a6b646d-92b3-4d4a-ba7c-73491f9e5923",
+      "count": 6,
+      "avg_response_time": 50.71675777435303,
+      "success_rate": 1.0
+    },
+    {
+      "endpoint": "GET /api/job-status/f7b6ffd9-1b93-4b08-a3fc-78a0942ff4df",
+      "count": 6,
+      "avg_response_time": 51.40690008799235,
+      "success_rate": 1.0
+    },
+    {
+      "endpoint": "GET /api/job-status/cb9e2f8e-78c9-4320-ac95-3191a946816b",
+      "count": 5,
+      "avg_response_time": 32.7730655670166,
+      "success_rate": 1.0
+    },
+    {
+      "endpoint": "GET /api/job-status/cf348905-1a66-43e0-9ab0-6e1d4f4ee95e",
+      "count": 5,
+      "avg_response_time": 30.273962020874023,
+      "success_rate": 1.0
+    },
+    {
+      "endpoint": "GET /api/job-status/09fe09e2-3fd6-40ab-b2ce-14c9a35027d8",
+      "count": 5,
+      "avg_response_time": 328.88946533203125,
+      "success_rate": 0.8
+    },
+    {
+      "endpoint": "GET /api/job-status/6e86bb48-43ae-4f32-9b63-bc32d770df8f",
+      "count": 5,
+      "avg_response_time": 55.7708740234375,
+      "success_rate": 1.0
+    },
+    {
+      "endpoint": "GET /api/job-status/82a638e8-4161-444b-8355-93f039ced358",
+      "count": 5,
+      "avg_response_time": 55.57446479797363,
+      "success_rate": 1.0
+    },
+    {
+      "endpoint": "GET /api/job-status/fa7954a8-dbfb-4fb7-9917-96f01542a662",
+      "count": 5,
+      "avg_response_time": 62.833356857299805,
+      "success_rate": 1.0
+    },
+    {
+      "endpoint": "GET /api/job-status/361bc313-71dc-4fcc-ae50-89e65dcc8ea0",
+      "count": 5,
+      "avg_response_time": 63.37885856628418,
+      "success_rate": 1.0
+    },
+    {
+      "endpoint": "GET /api/job-status/2eb2d587-67b5-419f-b65e-17b368809381",
+      "count": 5,
+      "avg_response_time": 279.3179988861084,
+      "success_rate": 0.8
+    },
+    {
+      "endpoint": "GET /api/job-status/c4c2fb45-b276-4432-8020-c140b2d1d6f9",
+      "count": 5,
+      "avg_response_time": 28.411054611206055,
+      "success_rate": 1.0
+    },
+    {
+      "endpoint": "GET /api/job-status/f466d3e7-dddb-4130-b319-fdd372ce3c06",
+      "count": 5,
+      "avg_response_time": 62.14022636413574,
+      "success_rate": 1.0
+    },
+    {
+      "endpoint": "GET /api/job-status/2ef3cdec-5016-48d6-9a05-2a2f6ed9a649",
+      "count": 5,
+      "avg_response_time": 107.33327865600586,
+      "success_rate": 1.0
+    },
+    {
+      "endpoint": "GET /api/job-status/ae1e9ade-7953-4091-9b11-4c7cd1c122be",
+      "count": 5,
+      "avg_response_time": 62.114667892456055,
+      "success_rate": 1.0
+    },
+    {
+      "endpoint": "GET /api/job-status/07f5b497-c5a0-4ac7-ab5f-137f9fb861a9",
+      "count": 4,
+      "avg_response_time": 52.4524450302124,
+      "success_rate": 1.0
+    },
+    {
+      "endpoint": "GET /api/job-status/edb1e4b1-94a7-4ed7-8d94-04de20b1911b",
+      "count": 4,
+      "avg_response_time": 27.193963527679443,
+      "success_rate": 1.0
+    },
+    {
+      "endpoint": "PUT /api/admin/users/68b680a192d22617778aec03",
+      "count": 4,
+      "avg_response_time": 115.99355936050415,
+      "success_rate": 1.0
+    },
+    {
+      "endpoint": "GET /api/job-status/a3d4c932-aba4-4d78-b8a3-08be598b8bfb",
+      "count": 4,
+      "avg_response_time": 24.774909019470215,
+      "success_rate": 1.0
+    },
+    {
+      "endpoint": "GET /api/job-status/2b64f13d-274a-401d-a540-f9648aefe97a",
+      "count": 4,
+      "avg_response_time": 62.09009885787964,
+      "success_rate": 1.0
+    },
+    {
+      "endpoint": "GET /api/job-status/b4a2e804-d1d3-41e8-a424-7d39d60c5ed3",
+      "count": 4,
+      "avg_response_time": 135.66404581069946,
+      "success_rate": 1.0
+    },
+    {
+      "endpoint": "GET /api/job-status/006f7568-0aeb-4953-accc-cc566347966c",
+      "count": 4,
+      "avg_response_time": 31.573593616485596,
+      "success_rate": 1.0
+    },
+    {
+      "endpoint": "GET /api/job-status/b6a1a661-14a1-4a28-b68c-41fc6a847d21",
+      "count": 4,
+      "avg_response_time": 128.9309859275818,
+      "success_rate": 1.0
+    },
+    {
+      "endpoint": "OPTIONS /api/auth/google-login",
+      "count": 4,
+      "avg_response_time": 1.6273260116577148,
+      "success_rate": 1.0
+    },
+    {
+      "endpoint": "GET /api/job-status/de1d4a24-cc84-44a3-accd-121ad4ca32f4",
+      "count": 4,
+      "avg_response_time": 302.68973112106323,
+      "success_rate": 1.0
+    }
+  ],
+  "ip_details": [
+    {
+      "ip": "127.0.0.1",
+      "count": 10092,
+      "avg_response_time": 545.51308678579,
+      "last_seen": "2025-09-09T09:24:20.259000",
+      "first_seen": "2025-09-03T11:11:56.912000",
+      "unique_endpoints": 242
+    }
+  ]
 }

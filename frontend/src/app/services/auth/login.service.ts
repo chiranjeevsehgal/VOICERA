@@ -37,13 +37,13 @@ export class LoginService {
         if (response.status == true) {
           localStorage.setItem('vEra_auth_token', response.access_token);
         }
-      })
+      }),
     );
   }
 
   guestLogin(): Observable<GuestLoginResponse> {
     const apiUrl = `${environment.backendApiUrl}/api/auth/guest`;
-    
+
     return this.http.post<GuestLoginResponse>(apiUrl, {}).pipe(
       tap((response) => {
         if (response.status === true) {
@@ -53,7 +53,7 @@ export class LoginService {
       catchError((error) => {
         console.error('Guest login failed:', error);
         return throwError(() => error);
-      })
+      }),
     );
   }
 

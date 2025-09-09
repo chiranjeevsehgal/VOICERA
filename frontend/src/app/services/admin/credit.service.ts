@@ -54,18 +54,18 @@ export class CreditService {
       `${this.baseUrl}/api/admin/ip-credits`,
       {
         headers: this.getHeaders(),
-      }
+      },
     );
   }
 
   updateIPCredits(
     ip: string,
-    credits: number
+    credits: number,
   ): Observable<ApiUpdateCreditResponse> {
     return this.http.put<ApiUpdateCreditResponse>(
       `${this.baseUrl}/api/admin/ip-credits/${ip}/credits`,
       { credits },
-      { headers: this.getHeaders() }
+      { headers: this.getHeaders() },
     );
   }
 

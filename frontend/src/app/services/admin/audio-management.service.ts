@@ -81,8 +81,12 @@ export interface AudioRelationsResponse {
     uploads: { count: number; sample_ids?: string[]; queries?: any[] };
     transcription_stats: { count: number };
   };
-  supabase: { files: Array<{ bucket?: string | null; path: string; url_field: string }>; };
-  pinecone: { file_ids: Array<{ file_id: string; vectors: number; success: boolean }>; };
+  supabase: {
+    files: Array<{ bucket?: string | null; path: string; url_field: string }>;
+  };
+  pinecone: {
+    file_ids: Array<{ file_id: string; vectors: number; success: boolean }>;
+  };
   graph: { nodes: RelationsNode[]; edges: RelationsEdge[] };
 }
 
@@ -105,7 +109,7 @@ export class AudioService {
   getAudios(
     page: number = 1,
     limit: number = 20,
-    filters: AudioFilters = {}
+    filters: AudioFilters = {},
   ): Observable<AudioResponse> {
     let params = new HttpParams()
       .set('page', page.toString())
@@ -120,29 +124,32 @@ export class AudioService {
 
     return this.http.get<AudioResponse>(`${this.baseUrl}/api/audios`, {
       headers: this.getHeaders(),
-      params: params
+      params: params,
     });
   }
 
   deleteAudio(audioId: string): Observable<DeleteAudioResponse> {
     return this.http.delete<DeleteAudioResponse>(
       `${this.baseUrl}/api/audios/${audioId}`,
-      { headers: this.getHeaders() }
+      { headers: this.getHeaders() },
     );
   }
 
-  updateAudio(audioId: string, updateData: UpdateAudioRequest): Observable<Podcast> {
+  updateAudio(
+    audioId: string,
+    updateData: UpdateAudioRequest,
+  ): Observable<Podcast> {
     return this.http.put<Podcast>(
       `${this.baseUrl}/api/audios/${audioId}`,
       updateData,
-      { headers: this.getHeaders() }
+      { headers: this.getHeaders() },
     );
   }
 
   getAudioRelations(audioId: string): Observable<AudioRelationsResponse> {
     return this.http.get<AudioRelationsResponse>(
       `${this.baseUrl}/api/audios/${audioId}/relations`,
-      { headers: this.getHeaders() }
+      { headers: this.getHeaders() },
     );
   }
 }

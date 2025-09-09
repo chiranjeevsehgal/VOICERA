@@ -31,14 +31,20 @@ export class AiAnswerComponent implements OnInit {
 
   // Results
   transcript: string = '';
-  answer?: { result_id: string; search_query: string; answer: string; model?: string };
+  answer?: {
+    result_id: string;
+    search_query: string;
+    answer: string;
+    model?: string;
+  };
 
   // Chat state
   messages: ChatMessage[] = [];
   userInput: string = '';
   sending: boolean = false;
 
-  @ViewChild('scrollContainer') private scrollContainer?: ElementRef<HTMLDivElement>;
+  @ViewChild('scrollContainer')
+  private scrollContainer?: ElementRef<HTMLDivElement>;
 
   constructor(
     private router: Router,
@@ -55,7 +61,8 @@ export class AiAnswerComponent implements OnInit {
     this.title = state?.title || '';
 
     if (!this.fileUrl) {
-      this.error = 'Missing audio context. Please go back and select a result again.';
+      this.error =
+        'Missing audio context. Please go back and select a result again.';
       this.loadingTranscript = false;
       this.loadingAnswer = false;
       return;
@@ -83,8 +90,11 @@ export class AiAnswerComponent implements OnInit {
 
   seedSystemContext(): void {
     const intro: string[] = [];
-    if (this.title) intro.push(`You are helping with content from: "${this.title}".`);
-    intro.push('Answer based strictly on the transcript context and prior messages. If unsure, say you are not sure.');
+    if (this.title)
+      intro.push(`You are helping with content from: "${this.title}".`);
+    intro.push(
+      'Answer based strictly on the transcript context and prior messages. If unsure, say you are not sure.',
+    );
     this.messages.push({ role: 'system', content: intro.join(' ') });
     this.scrollToBottom();
   }
@@ -116,7 +126,7 @@ export class AiAnswerComponent implements OnInit {
       search_query: prompt,
       result_id: `req_${Date.now()}`,
       transcript: this.transcript,
-      history: this.messages.map(m => ({ role: m.role, content: m.content })),
+      history: this.messages.map((m) => ({ role: m.role, content: m.content })),
       context: this.title || undefined,
     };
 
@@ -132,7 +142,10 @@ export class AiAnswerComponent implements OnInit {
       error: (err) => {
         console.error('search-and-answer error', err);
         this.error = 'Failed to fetch AI answer. Please try again.';
-        this.messages.push({ role: 'assistant', content: 'Sorry, I could not generate a response right now.' });
+        this.messages.push({
+          role: 'assistant',
+          content: 'Sorry, I could not generate a response right now.',
+        });
         this.loadingAnswer = false;
         this.sending = false;
         this.scrollToBottom();

@@ -11,14 +11,29 @@ import { AudioManagementComponent } from '../../../components/admin/audio-manage
 import { UsageLogsComponent } from '../../../components/admin/usage-logs/usage-logs.component';
 import { ApplicationLogsComponent } from '../../../components/admin/application-logs/application-logs.component';
 import { GeminiKeysComponent } from '../../../components/admin/gemini-keys/gemini-keys.component';
-import { shouldUseMockData, getCurrentUserRole } from '../../../utils/role.utils';
+import {
+  shouldUseMockData,
+  getCurrentUserRole,
+} from '../../../utils/role.utils';
 import { Handshake, LucideAngularModule, ArrowLeft } from 'lucide-angular';
 import { BulkUploadComponent } from '../../../components/admin/bulk-upload/bulk-upload.component';
 import { ApplicationStatusComponent } from '../../../components/admin/application-status/application-status.component';
 
 @Component({
   selector: 'app-dashboard',
-  imports: [CommonModule, SidebarComponent, UserManagementComponent, CreditManagementComponent, AudioManagementComponent, UsageLogsComponent, ApplicationLogsComponent, GeminiKeysComponent, BulkUploadComponent, ApplicationStatusComponent, LucideAngularModule],
+  imports: [
+    CommonModule,
+    SidebarComponent,
+    UserManagementComponent,
+    CreditManagementComponent,
+    AudioManagementComponent,
+    UsageLogsComponent,
+    ApplicationLogsComponent,
+    GeminiKeysComponent,
+    BulkUploadComponent,
+    ApplicationStatusComponent,
+    LucideAngularModule,
+  ],
   templateUrl: './dashboard.component.html',
   styles: ``,
 })
@@ -46,7 +61,7 @@ export class AdminDashboardComponent implements OnInit, OnDestroy {
 
   constructor(
     private adminService: AdminAuthService,
-    private router: Router
+    private router: Router,
   ) {}
 
   ngOnInit() {
@@ -57,7 +72,7 @@ export class AdminDashboardComponent implements OnInit, OnDestroy {
 
     // Check if we're in demo mode and get user role
     this.isDemoMode = shouldUseMockData();
-    this.userRole = getCurrentUserRole() || '';;
+    this.userRole = getCurrentUserRole() || '';
   }
 
   // Method to navigate to user side
@@ -187,7 +202,8 @@ export class AdminDashboardComponent implements OnInit, OnDestroy {
       logs: 'View API usage metrics and endpoint counts',
       'application-logs': 'View and search application log files',
       'bulk-upload': 'Upload multiple audio files and track processing jobs',
-      'application-status': 'Monitor system health, circuit breakers, and rate limiting',
+      'application-status':
+        'Monitor system health, circuit breakers, and rate limiting',
     };
     return descriptions[this.currentView] || 'Manage your application';
   }

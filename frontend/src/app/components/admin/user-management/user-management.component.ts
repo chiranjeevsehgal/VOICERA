@@ -31,7 +31,7 @@ export class UserManagementComponent implements OnInit {
   users: User[] = [];
   readonly Check = Check;
   readonly X = X;
-  readonly Users = Users; 
+  readonly Users = Users;
   filteredUsers: User[] = [];
   searchQuery: string = '';
   selectedRole: string = 'all';
@@ -56,7 +56,7 @@ export class UserManagementComponent implements OnInit {
   constructor(
     private userService: UserService,
     private messageService: MessageService,
-    private toast: HotToastService
+    private toast: HotToastService,
   ) {}
 
   ngOnInit() {
@@ -75,7 +75,7 @@ export class UserManagementComponent implements OnInit {
       // Process mock data the same way as API response
       this.totalCount = mockResponse.total_count;
       this.users = mockResponse.users.map((apiUser: any) =>
-        this.userService.transformApiUser(apiUser)
+        this.userService.transformApiUser(apiUser),
       );
       this.filteredUsers = [...this.users];
       this.loading = false;
@@ -89,7 +89,7 @@ export class UserManagementComponent implements OnInit {
       next: (response) => {
         this.totalCount = response.total_count;
         this.users = response.users.map((apiUser) =>
-          this.userService.transformApiUser(apiUser)
+          this.userService.transformApiUser(apiUser),
         );
         this.filteredUsers = [...this.users];
         this.loading = false;
@@ -147,7 +147,7 @@ export class UserManagementComponent implements OnInit {
   formatLastLogin(date: Date): string {
     const now = new Date();
     const diffInHours = Math.floor(
-      (now.getTime() - date.getTime()) / (1000 * 60 * 60)
+      (now.getTime() - date.getTime()) / (1000 * 60 * 60),
     );
 
     if (diffInHours < 1) return 'Just now';
@@ -198,7 +198,9 @@ export class UserManagementComponent implements OnInit {
   toggleUserStatus(user: User) {
     // Prevent multiple simultaneous updates for the same user
     if (shouldUseMockData()) {
-      this.toast.info('User status modifications are disabled in the guest environment.');
+      this.toast.info(
+        'User status modifications are disabled in the guest environment.',
+      );
       return;
     }
     if (this.updatingUsers.has(user.id)) {
@@ -225,7 +227,7 @@ export class UserManagementComponent implements OnInit {
           this.users[userIndex] = updatedUser;
           // Update filtered users as well
           const filteredIndex = this.filteredUsers.findIndex(
-            (u) => u.id === user.id
+            (u) => u.id === user.id,
           );
           if (filteredIndex !== -1) {
             this.filteredUsers[filteredIndex] = updatedUser;
@@ -250,7 +252,7 @@ export class UserManagementComponent implements OnInit {
 
         // Update filtered users to reflect the revert
         const filteredIndex = this.filteredUsers.findIndex(
-          (u) => u.id === user.id
+          (u) => u.id === user.id,
         );
         if (filteredIndex !== -1) {
           this.filteredUsers[filteredIndex].status = originalStatus;
@@ -321,7 +323,7 @@ export class UserManagementComponent implements OnInit {
         // Remove user from local arrays
         this.users = this.users.filter((u) => u.id !== this.userToDelete!.id);
         this.filteredUsers = this.filteredUsers.filter(
-          (u) => u.id !== this.userToDelete!.id
+          (u) => u.id !== this.userToDelete!.id,
         );
         this.totalCount = Math.max(0, this.totalCount - 1);
 

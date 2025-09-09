@@ -24,7 +24,7 @@ export interface LogContentResponse {
 }
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class LogsService {
   private readonly baseUrl = `${environment.backendApiUrl}/api/admin`;
@@ -43,26 +43,35 @@ export class LogsService {
    * Get list of all log files
    */
   getLogFiles(): Observable<LogFilesResponse> {
-    return this.http.get<LogFilesResponse>(`${this.baseUrl}/log-files`, { headers: this.getHeaders() });
+    return this.http.get<LogFilesResponse>(`${this.baseUrl}/log-files`, {
+      headers: this.getHeaders(),
+    });
   }
 
   /**
    * Get content of a specific log file
    */
-  getLogFileContent(filename: string, lines?: number, search?: string): Observable<LogContentResponse> {
+  getLogFileContent(
+    filename: string,
+    lines?: number,
+    search?: string,
+  ): Observable<LogContentResponse> {
     let params = new HttpParams();
-    
+
     if (lines !== undefined && lines > 0) {
       params = params.set('lines', lines.toString());
     }
-    
+
     if (search && search.trim()) {
       params = params.set('search', search.trim());
     }
 
-    return this.http.get<LogContentResponse>(`${this.baseUrl}/log-files/${encodeURIComponent(filename)}`, { 
-      params, 
-      headers: this.getHeaders() 
-    });
+    return this.http.get<LogContentResponse>(
+      `${this.baseUrl}/log-files/${encodeURIComponent(filename)}`,
+      {
+        params,
+        headers: this.getHeaders(),
+      },
+    );
   }
 }

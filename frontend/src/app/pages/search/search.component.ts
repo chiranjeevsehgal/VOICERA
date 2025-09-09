@@ -61,18 +61,24 @@ export class SearchComponent implements OnInit, OnDestroy, AfterViewInit {
   // Date filters
   dateQuick: 'today' | 'week' | 'month' | 'year' | null = null;
   dateCustomStart: string | null = null; // YYYY-MM-DD
-  dateCustomEnd: string | null = null;   // YYYY-MM-DD
+  dateCustomEnd: string | null = null; // YYYY-MM-DD
   // Duration filters
   durationPreset: 'short' | 'medium' | 'long' | null = null;
   durationMin: number | null = null; // seconds
   durationMax: number | null = null; // seconds
   // Sorting
-  sortBy: 'newest' | 'oldest' | 'title_asc' | 'title_desc' | 'duration_asc' | 'duration_desc' = 'newest';
+  sortBy:
+    | 'newest'
+    | 'oldest'
+    | 'title_asc'
+    | 'title_desc'
+    | 'duration_asc'
+    | 'duration_desc' = 'newest';
 
   constructor(
     private podcastService: PodcastService,
     private messageService: MessageService,
-    private ngZone: NgZone
+    private ngZone: NgZone,
   ) {}
 
   ngOnInit(): void {
@@ -99,7 +105,7 @@ export class SearchComponent implements OnInit, OnDestroy, AfterViewInit {
     this.searchSubscription = this.searchSubject
       .pipe(
         debounceTime(300), // Wait 300ms after user stops typing
-        distinctUntilChanged() // Only emit if the value has changed
+        distinctUntilChanged(), // Only emit if the value has changed
       )
       .subscribe((query: string) => {
         this.performSearch(query);
@@ -113,7 +119,10 @@ export class SearchComponent implements OnInit, OnDestroy, AfterViewInit {
   private setDefaultViewMode(): void {
     // Use Tailwind's sm breakpoint (640px) as the cutoff for mobile
     try {
-      if (typeof window !== 'undefined' && typeof window.matchMedia === 'function') {
+      if (
+        typeof window !== 'undefined' &&
+        typeof window.matchMedia === 'function'
+      ) {
         const isMobile = window.matchMedia('(max-width: 639px)').matches;
         this.viewMode = isMobile ? 'list' : 'grid';
       }
@@ -143,7 +152,7 @@ export class SearchComponent implements OnInit, OnDestroy, AfterViewInit {
         root: null,
         rootMargin: '200px',
         threshold: 0.1,
-      }
+      },
     );
     if (this.infiniteAnchor?.nativeElement) {
       this.io.observe(this.infiniteAnchor.nativeElement);
@@ -220,8 +229,12 @@ export class SearchComponent implements OnInit, OnDestroy, AfterViewInit {
     return podcasts.sort((a, b) => {
       // Assuming the podcast object has a date field like 'created_at', 'uploadDate', or 'audioFile.created_at'
       // Adjust the property path based on your actual data structure
-      const dateA = new Date(a.audioFile?.published_date || a.audioFile?.created_at);
-      const dateB = new Date(b.audioFile?.published_date || b.audioFile?.created_at);
+      const dateA = new Date(
+        a.audioFile?.published_date || a.audioFile?.created_at,
+      );
+      const dateB = new Date(
+        b.audioFile?.published_date || b.audioFile?.created_at,
+      );
 
       // Sort in descending order (newest first)
       return dateB.getTime() - dateA.getTime();
@@ -238,7 +251,7 @@ export class SearchComponent implements OnInit, OnDestroy, AfterViewInit {
       result = result.filter(
         (p) =>
           p.title.toLowerCase().includes(q) ||
-          p.creator.toLowerCase().includes(q)
+          p.creator.toLowerCase().includes(q),
       );
     }
 
@@ -246,7 +259,9 @@ export class SearchComponent implements OnInit, OnDestroy, AfterViewInit {
     const { start: dateStart, end: dateEnd } = this.computeDateRange();
     if (dateStart || dateEnd) {
       result = result.filter((p) => {
-        const d = new Date(p.audioFile?.published_date || p.audioFile?.created_at);
+        const d = new Date(
+          p.audioFile?.published_date || p.audioFile?.created_at,
+        );
         if (isNaN(d.getTime())) return false;
         if (dateStart && d < dateStart) return false;
         if (dateEnd && d > dateEnd) return false;
@@ -276,9 +291,14 @@ export class SearchComponent implements OnInit, OnDestroy, AfterViewInit {
     const arr = [...list];
     switch (this.sortBy) {
       case 'oldest':
-        return arr.sort((a, b) =>
-          new Date(a.audioFile?.published_date || a.audioFile?.created_at).getTime() -
-          new Date(b.audioFile?.published_date || b.audioFile?.created_at).getTime()
+        return arr.sort(
+          (a, b) =>
+            new Date(
+              a.audioFile?.published_date || a.audioFile?.created_at,
+            ).getTime() -
+            new Date(
+              b.audioFile?.published_date || b.audioFile?.created_at,
+            ).getTime(),
         );
       case 'title_asc':
         return arr.sort((a, b) => a.title.localeCompare(b.title));
@@ -286,17 +306,26 @@ export class SearchComponent implements OnInit, OnDestroy, AfterViewInit {
         return arr.sort((a, b) => b.title.localeCompare(a.title));
       case 'duration_asc':
         return arr.sort(
-          (a, b) => (a.audioFile?.duration_seconds ?? 0) - (b.audioFile?.duration_seconds ?? 0)
+          (a, b) =>
+            (a.audioFile?.duration_seconds ?? 0) -
+            (b.audioFile?.duration_seconds ?? 0),
         );
       case 'duration_desc':
         return arr.sort(
-          (a, b) => (b.audioFile?.duration_seconds ?? 0) - (a.audioFile?.duration_seconds ?? 0)
+          (a, b) =>
+            (b.audioFile?.duration_seconds ?? 0) -
+            (a.audioFile?.duration_seconds ?? 0),
         );
       case 'newest':
       default:
-        return arr.sort((a, b) =>
-          new Date(b.audioFile?.published_date || b.audioFile?.created_at).getTime() -
-          new Date(a.audioFile?.published_date || a.audioFile?.created_at).getTime()
+        return arr.sort(
+          (a, b) =>
+            new Date(
+              b.audioFile?.published_date || b.audioFile?.created_at,
+            ).getTime() -
+            new Date(
+              a.audioFile?.published_date || a.audioFile?.created_at,
+            ).getTime(),
         );
     }
   }
@@ -348,7 +377,10 @@ export class SearchComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   // Helpers: duration range in seconds
-  private computeDurationRange(): { min: number | null; max: number | null } | null {
+  private computeDurationRange(): {
+    min: number | null;
+    max: number | null;
+  } | null {
     if (this.durationPreset) {
       switch (this.durationPreset) {
         case 'short':
@@ -427,8 +459,14 @@ export class SearchComponent implements OnInit, OnDestroy, AfterViewInit {
 
   get appliedFiltersCount(): number {
     let count = 0;
-    if (this.dateQuick || this.dateCustomStart || this.dateCustomEnd) count += 1;
-    if (this.durationPreset || this.durationMin !== null || this.durationMax !== null) count += 1;
+    if (this.dateQuick || this.dateCustomStart || this.dateCustomEnd)
+      count += 1;
+    if (
+      this.durationPreset ||
+      this.durationMin !== null ||
+      this.durationMax !== null
+    )
+      count += 1;
     return count;
   }
 
@@ -438,7 +476,12 @@ export class SearchComponent implements OnInit, OnDestroy, AfterViewInit {
     if (this.dateQuick || this.dateCustomStart || this.dateCustomEnd) {
       let label = 'Date: ';
       if (this.dateQuick) {
-        const map: any = { today: 'Today', week: 'This Week', month: 'This Month', year: 'This Year' };
+        const map: any = {
+          today: 'Today',
+          week: 'This Week',
+          month: 'This Month',
+          year: 'This Year',
+        };
         label += map[this.dateQuick];
       } else {
         const s = this.dateCustomStart || '—';
@@ -448,7 +491,11 @@ export class SearchComponent implements OnInit, OnDestroy, AfterViewInit {
       chips.push({ key: 'date', label });
     }
     // Duration
-    if (this.durationPreset || this.durationMin !== null || this.durationMax !== null) {
+    if (
+      this.durationPreset ||
+      this.durationMin !== null ||
+      this.durationMax !== null
+    ) {
       let label = 'Duration: ';
       if (this.durationPreset) {
         if (this.durationPreset === 'short') label += 'Short (0–60s)';

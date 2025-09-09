@@ -58,13 +58,13 @@ export class UserService {
 
   updateUserStatus(
     userId: string,
-    status: 'active' | 'inactive'
+    status: 'active' | 'inactive',
   ): Observable<ApiUser> {
     const body: UpdateUserStatusRequest = { status };
     return this.http.put<ApiUser>(
       `${this.baseUrl}/api/admin/users/${userId}`,
       body,
-      { headers: this.getHeaders() }
+      { headers: this.getHeaders() },
     );
   }
 

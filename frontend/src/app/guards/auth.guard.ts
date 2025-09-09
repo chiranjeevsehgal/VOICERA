@@ -24,7 +24,7 @@ export const authGuard: CanActivateFn = (route, state) => {
   const token = localStorage.getItem('vEra_auth_token');
 
   if (!token) {
-    console.warn("Token Missing");
+    console.warn('Token Missing');
     router.navigate(['/']);
     return false;
   }

@@ -45,7 +45,7 @@ export class BulkUploadService {
   bulkUpload(
     files: File[],
     filenameMap: Record<string, string> = {},
-    transcriptionOptions: any = {}
+    transcriptionOptions: any = {},
   ): Observable<BulkUploadResponse> {
     const formData = new FormData();
 
@@ -68,7 +68,7 @@ export class BulkUploadService {
       formData,
       {
         headers: this.getAuthHeaders(),
-      }
+      },
     );
   }
 

@@ -5,7 +5,11 @@ import { providePrimeNG } from 'primeng/config';
 
 import { routes } from './app.routes';
 import { Noir } from '../../Noir';
-import { HttpClient, provideHttpClient, withInterceptors } from '@angular/common/http';
+import {
+  HttpClient,
+  provideHttpClient,
+  withInterceptors,
+} from '@angular/common/http';
 import { MessageService } from 'primeng/api';
 import { authInterceptor } from './interceptors/auth.interceptor';
 import { provideHotToastConfig } from '@ngxpert/hot-toast';
@@ -14,21 +18,22 @@ import { AppTitleStrategy } from './title.strategy';
 export const appConfig: ApplicationConfig = {
   providers: [
     provideHttpClient(withInterceptors([authInterceptor])),
-    provideZoneChangeDetection({ eventCoalescing: true }), provideRouter(routes),
+    provideZoneChangeDetection({ eventCoalescing: true }),
+    provideRouter(routes),
     { provide: TitleStrategy, useClass: AppTitleStrategy },
     provideAnimationsAsync(),
     providePrimeNG({
       theme: {
         preset: Noir,
         options: {
-          darkModeSelector: false || 'none'
-        }
-      }
+          darkModeSelector: false || 'none',
+        },
+      },
     }),
     provideHotToastConfig({
       duration: 3000,
-      position: 'top-center'
+      position: 'top-center',
     }),
-    MessageService
-  ]
+    MessageService,
+  ],
 };

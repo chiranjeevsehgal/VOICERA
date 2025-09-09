@@ -41,7 +41,10 @@ export class HeaderComponent implements OnInit, OnDestroy {
 
   private destroy$ = new Subject<void>();
 
-  constructor(private router: Router, private profileService: ProfileService) {}
+  constructor(
+    private router: Router,
+    private profileService: ProfileService,
+  ) {}
 
   ngOnInit(): void {
     this.loadUserData();
@@ -133,7 +136,7 @@ export class HeaderComponent implements OnInit, OnDestroy {
         this.userProfile = profile;
         if (profile) {
           this.userInitials = this.profileService.getUserInitials(
-            profile.full_name
+            profile.full_name,
           );
           this.isLoadingProfile = false;
         }

@@ -1,4 +1,9 @@
-import { Component, OnDestroy, OnInit, CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
+import {
+  Component,
+  OnDestroy,
+  OnInit,
+  CUSTOM_ELEMENTS_SCHEMA,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClientModule } from '@angular/common/http';
@@ -51,10 +56,33 @@ export class AudioManagementComponent implements OnInit, OnDestroy {
   relationsData: AudioRelationsResponse | null = null;
   svgWidth: number = 1000;
   svgHeight: number = 600;
-  positionedNodes: Array<{ id: string; label: string; type: string; x: number; y: number; color: string; r: number }> = [];
+  positionedNodes: Array<{
+    id: string;
+    label: string;
+    type: string;
+    x: number;
+    y: number;
+    color: string;
+    r: number;
+  }> = [];
   graphEdges: RelationsEdge[] = [];
-  edgesDraw: Array<{ from: string; to: string; x1: number; y1: number; x2: number; y2: number }> = [];
-  groupRects: Array<{ id: string; label: string; x: number; y: number; width: number; height: number; color: string }> = [];
+  edgesDraw: Array<{
+    from: string;
+    to: string;
+    x1: number;
+    y1: number;
+    x2: number;
+    y2: number;
+  }> = [];
+  groupRects: Array<{
+    id: string;
+    label: string;
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+    color: string;
+  }> = [];
 
   // Interactions: pan/zoom
   zoomScale: number = 1;
@@ -93,13 +121,13 @@ export class AudioManagementComponent implements OnInit, OnDestroy {
 
   constructor(
     private audioService: AudioService,
-    private toast: HotToastService
+    private toast: HotToastService,
   ) {
     // Debounced search
     this.searchSubject
       .pipe(
         debounceTime(500), // Waiting 500ms after user stops typing
-        distinctUntilChanged() // Only emit if value actually changed
+        distinctUntilChanged(), // Only emit if value actually changed
       )
       .subscribe(() => {
         this.currentPage = 1;
@@ -164,11 +192,13 @@ export class AudioManagementComponent implements OnInit, OnDestroy {
           published_date: p.published_date || new Date().toISOString(),
           tags: Array.isArray(p.tags) ? p.tags : null,
           language: p.language || 'en',
-          created_at: p.created_at || p.published_date || new Date().toISOString(),
+          created_at:
+            p.created_at || p.published_date || new Date().toISOString(),
           updated_at: p.updated_at || p.created_at || new Date().toISOString(),
           views: typeof p.views === 'number' ? p.views : null,
           likes: typeof p.likes === 'number' ? p.likes : null,
-          average_rating: typeof p.average_rating === 'number' ? p.average_rating : null,
+          average_rating:
+            typeof p.average_rating === 'number' ? p.average_rating : null,
           is_featured: !!p.is_featured,
           is_published: p.is_published !== false,
         }));
@@ -178,7 +208,8 @@ export class AudioManagementComponent implements OnInit, OnDestroy {
       const author = (filters.author || '').toLowerCase();
       let list = this.mockAllPodcasts.filter((p) => {
         const matchesTitle = !query || p.title.toLowerCase().includes(query);
-        const matchesAuthor = !author || (p.author || '').toLowerCase().includes(author);
+        const matchesAuthor =
+          !author || (p.author || '').toLowerCase().includes(author);
         return matchesTitle && matchesAuthor;
       });
 
@@ -251,7 +282,7 @@ export class AudioManagementComponent implements OnInit, OnDestroy {
     const maxVisiblePages = 5;
     let startPage = Math.max(
       1,
-      this.currentPage - Math.floor(maxVisiblePages / 2)
+      this.currentPage - Math.floor(maxVisiblePages / 2),
     );
     let endPage = Math.min(this.totalPages, startPage + maxVisiblePages - 1);
 
@@ -342,10 +373,14 @@ export class AudioManagementComponent implements OnInit, OnDestroy {
       const toDeleteId = this.podcastToDelete.id;
       setTimeout(() => {
         // Update mock cache
-        this.mockAllPodcasts = this.mockAllPodcasts.filter(p => p.id !== toDeleteId);
+        this.mockAllPodcasts = this.mockAllPodcasts.filter(
+          (p) => p.id !== toDeleteId,
+        );
         // Remove from local arrays
         this.podcasts = this.podcasts.filter((p) => p.id !== toDeleteId);
-        this.filteredPodcasts = this.filteredPodcasts.filter((p) => p.id !== toDeleteId);
+        this.filteredPodcasts = this.filteredPodcasts.filter(
+          (p) => p.id !== toDeleteId,
+        );
         // Update total count/pages
         this.totalCount = Math.max(0, this.totalCount - 1);
         this.totalPages = Math.ceil(this.totalCount / this.limit) || 1;
@@ -354,7 +389,9 @@ export class AudioManagementComponent implements OnInit, OnDestroy {
           if (this.audioElement) this.audioElement.pause();
           this.currentlyPlaying = null;
         }
-        this.toast.success(`Audio "${this.podcastToDelete!.title}" deleted successfully (mock)`);
+        this.toast.success(
+          `Audio "${this.podcastToDelete!.title}" deleted successfully (mock)`,
+        );
         this.closeDeleteModal();
         if (this.filteredPodcasts.length === 0 && this.currentPage > 1) {
           this.currentPage--;
@@ -369,10 +406,10 @@ export class AudioManagementComponent implements OnInit, OnDestroy {
       next: (response) => {
         // Remove the deleted podcast from local arrays
         this.podcasts = this.podcasts.filter(
-          (p) => p.id !== this.podcastToDelete!.id
+          (p) => p.id !== this.podcastToDelete!.id,
         );
         this.filteredPodcasts = this.filteredPodcasts.filter(
-          (p) => p.id !== this.podcastToDelete!.id
+          (p) => p.id !== this.podcastToDelete!.id,
         );
 
         // Update total count
@@ -402,13 +439,20 @@ export class AudioManagementComponent implements OnInit, OnDestroy {
             parts.push(`Uploads: ${summary.uploads_deleted}`);
           }
           if (typeof summary.transcription_stats_deleted === 'number') {
-            parts.push(`Transcription stats: ${summary.transcription_stats_deleted}`);
+            parts.push(
+              `Transcription stats: ${summary.transcription_stats_deleted}`,
+            );
           }
           if (typeof summary.pinecone_vectors_deleted === 'number') {
             parts.push(`Pinecone vectors: ${summary.pinecone_vectors_deleted}`);
           }
-          if (Array.isArray(summary.supabase_files_deleted) && summary.supabase_files_deleted.length > 0) {
-            parts.push(`Supabase files: ${summary.supabase_files_deleted.length}`);
+          if (
+            Array.isArray(summary.supabase_files_deleted) &&
+            summary.supabase_files_deleted.length > 0
+          ) {
+            parts.push(
+              `Supabase files: ${summary.supabase_files_deleted.length}`,
+            );
           }
           if (parts.length) {
             summaryMsg = `\n(${parts.join(' • ')})`;
@@ -456,9 +500,7 @@ export class AudioManagementComponent implements OnInit, OnDestroy {
   }
 
   isFormValid(): boolean {
-    return (
-      this.editForm.title.trim().length > 0
-    );
+    return this.editForm.title.trim().length > 0;
   }
 
   confirmUpdate() {
@@ -475,15 +517,25 @@ export class AudioManagementComponent implements OnInit, OnDestroy {
       const newTitle = updateData.title;
       setTimeout(() => {
         // Update cache
-        this.mockAllPodcasts = this.mockAllPodcasts.map(p => p.id === id ? { ...p, title: newTitle } : p);
+        this.mockAllPodcasts = this.mockAllPodcasts.map((p) =>
+          p.id === id ? { ...p, title: newTitle } : p,
+        );
         // Update local arrays
         const podcastIndex = this.podcasts.findIndex((p) => p.id === id);
         if (podcastIndex !== -1) {
-          this.podcasts[podcastIndex] = { ...this.podcasts[podcastIndex], title: newTitle };
+          this.podcasts[podcastIndex] = {
+            ...this.podcasts[podcastIndex],
+            title: newTitle,
+          };
         }
-        const filteredIndex = this.filteredPodcasts.findIndex((p) => p.id === id);
+        const filteredIndex = this.filteredPodcasts.findIndex(
+          (p) => p.id === id,
+        );
         if (filteredIndex !== -1) {
-          this.filteredPodcasts[filteredIndex] = { ...this.filteredPodcasts[filteredIndex], title: newTitle };
+          this.filteredPodcasts[filteredIndex] = {
+            ...this.filteredPodcasts[filteredIndex],
+            title: newTitle,
+          };
         }
         this.toast.success(`Audio "${newTitle}" updated successfully (mock)`);
         this.closeEditModal();
@@ -495,7 +547,7 @@ export class AudioManagementComponent implements OnInit, OnDestroy {
       next: (updatedPodcast) => {
         // Update the podcast in local arrays
         const podcastIndex = this.podcasts.findIndex(
-          (p) => p.id === this.podcastToEdit!.id
+          (p) => p.id === this.podcastToEdit!.id,
         );
         if (podcastIndex !== -1) {
           this.podcasts[podcastIndex] = {
@@ -505,7 +557,7 @@ export class AudioManagementComponent implements OnInit, OnDestroy {
         }
 
         const filteredIndex = this.filteredPodcasts.findIndex(
-          (p) => p.id === this.podcastToEdit!.id
+          (p) => p.id === this.podcastToEdit!.id,
         );
         if (filteredIndex !== -1) {
           this.filteredPodcasts[filteredIndex] = {
@@ -515,7 +567,7 @@ export class AudioManagementComponent implements OnInit, OnDestroy {
         }
 
         this.toast.success(
-          `Audio "${updatedPodcast.title}" updated successfully`
+          `Audio "${updatedPodcast.title}" updated successfully`,
         );
         this.closeEditModal();
       },
@@ -594,7 +646,18 @@ export class AudioManagementComponent implements OnInit, OnDestroy {
     const edges = data.graph.edges as RelationsEdge[];
 
     const findNodeById = (id: string) => nodes.find((n) => n.id === id);
-    const nodeMap: Record<string, { id: string; label: string; type: string; x: number; y: number; color: string; r: number }> = {};
+    const nodeMap: Record<
+      string,
+      {
+        id: string;
+        label: string;
+        type: string;
+        x: number;
+        y: number;
+        color: string;
+        r: number;
+      }
+    > = {};
 
     const colorFor = (type: string) => {
       switch (type) {
@@ -634,29 +697,56 @@ export class AudioManagementComponent implements OnInit, OnDestroy {
     if (audioNode) addNode(audioNode, centerX, audioY);
 
     // Identify groups by label
-    const mongoGroup = nodes.find((n) => n.type === 'group' && n.id.startsWith('mongo:'));
-    const supaGroup = nodes.find((n) => n.type === 'group' && n.id.startsWith('supabase:'));
-    const pineGroup = nodes.find((n) => n.type === 'group' && n.id.startsWith('pinecone:'));
+    const mongoGroup = nodes.find(
+      (n) => n.type === 'group' && n.id.startsWith('mongo:'),
+    );
+    const supaGroup = nodes.find(
+      (n) => n.type === 'group' && n.id.startsWith('supabase:'),
+    );
+    const pineGroup = nodes.find(
+      (n) => n.type === 'group' && n.id.startsWith('pinecone:'),
+    );
 
     if (mongoGroup) addNode(mongoGroup, colXs[0], groupY);
     if (supaGroup) addNode(supaGroup, colXs[1], groupY);
     if (pineGroup) addNode(pineGroup, colXs[2], groupY);
 
     // Children under Mongo
-    const mongoChildren = this.showMongo ? nodes.filter((n) => ['transcripts', 'uploads', 'stats'].includes(n.type)) : [];
-    mongoChildren.forEach((n, i) => addNode(n, colXs[0], firstRowY + i * rowGap));
+    const mongoChildren = this.showMongo
+      ? nodes.filter((n) =>
+          ['transcripts', 'uploads', 'stats'].includes(n.type),
+        )
+      : [];
+    mongoChildren.forEach((n, i) =>
+      addNode(n, colXs[0], firstRowY + i * rowGap),
+    );
 
     // Children under Supabase
-    const supaChildren = this.showSupabase ? nodes.filter((n) => n.type === 'supabase_file') : [];
-    supaChildren.forEach((n, i) => addNode(n, colXs[1], firstRowY + i * rowGap));
+    const supaChildren = this.showSupabase
+      ? nodes.filter((n) => n.type === 'supabase_file')
+      : [];
+    supaChildren.forEach((n, i) =>
+      addNode(n, colXs[1], firstRowY + i * rowGap),
+    );
 
     // Children under Pinecone
-    const pineChildren = this.showPinecone ? nodes.filter((n) => n.type === 'pinecone') : [];
-    pineChildren.forEach((n, i) => addNode(n, colXs[2], firstRowY + i * rowGap));
+    const pineChildren = this.showPinecone
+      ? nodes.filter((n) => n.type === 'pinecone')
+      : [];
+    pineChildren.forEach((n, i) =>
+      addNode(n, colXs[2], firstRowY + i * rowGap),
+    );
 
     // Compute height
-    const maxRows = Math.max(mongoChildren.length, supaChildren.length, pineChildren.length);
-    this.svgHeight = Math.max(400, firstRowY + Math.max(1, maxRows) * rowGap + 120);
+    const maxRows = Math.max(
+      mongoChildren.length,
+      supaChildren.length,
+      pineChildren.length,
+    );
+    this.svgHeight = Math.max(
+      400,
+      firstRowY + Math.max(1, maxRows) * rowGap + 120,
+    );
     this.svgWidth = width;
 
     // Output arrays
@@ -664,24 +754,45 @@ export class AudioManagementComponent implements OnInit, OnDestroy {
     this.graphEdges = edges;
     // Precompute edge coordinates for template simplicity
     const idToPos: Record<string, { x: number; y: number }> = {};
-    this.positionedNodes.forEach(n => { idToPos[n.id] = { x: n.x, y: n.y }; });
+    this.positionedNodes.forEach((n) => {
+      idToPos[n.id] = { x: n.x, y: n.y };
+    });
     this.edgesDraw = edges
-      .map(e => {
+      .map((e) => {
         const a = idToPos[e.from];
         const b = idToPos[e.to];
         if (!a || !b) return null;
         return { from: e.from, to: e.to, x1: a.x, y1: a.y, x2: b.x, y2: b.y };
       })
-      .filter((v): v is { from: string; to: string; x1: number; y1: number; x2: number; y2: number } => !!v);
+      .filter(
+        (
+          v,
+        ): v is {
+          from: string;
+          to: string;
+          x1: number;
+          y1: number;
+          x2: number;
+          y2: number;
+        } => !!v,
+      );
 
     // Group bounding boxes (behind nodes)
     const rectWidth = 260;
     const rectHalf = rectWidth / 2;
     this.groupRects = [];
-    const buildRect = (groupIdPrefix: string, colX: number, children: RelationsNode[] | { id: string }[], label: string, color: string) => {
+    const buildRect = (
+      groupIdPrefix: string,
+      colX: number,
+      children: RelationsNode[] | { id: string }[],
+      label: string,
+      color: string,
+    ) => {
       const hasChildren = children && children.length > 0;
       const yTop = hasChildren ? firstRowY - 50 : groupY - 60;
-      const yBottom = hasChildren ? firstRowY + (Math.max(1, children.length) - 1) * rowGap + 50 : groupY + 60;
+      const yBottom = hasChildren
+        ? firstRowY + (Math.max(1, children.length) - 1) * rowGap + 50
+        : groupY + 60;
       this.groupRects.push({
         id: groupIdPrefix,
         label,
@@ -692,13 +803,16 @@ export class AudioManagementComponent implements OnInit, OnDestroy {
         color,
       });
     };
-    if (mongoGroup) buildRect('mongo', colXs[0], mongoChildren, 'MongoDB', '#0ea5e9');
-    if (supaGroup) buildRect('supabase', colXs[1], supaChildren, 'Supabase', '#10b981');
-    if (pineGroup) buildRect('pinecone', colXs[2], pineChildren, 'Pinecone', '#f59e0b');
+    if (mongoGroup)
+      buildRect('mongo', colXs[0], mongoChildren, 'MongoDB', '#0ea5e9');
+    if (supaGroup)
+      buildRect('supabase', colXs[1], supaChildren, 'Supabase', '#10b981');
+    if (pineGroup)
+      buildRect('pinecone', colXs[2], pineChildren, 'Pinecone', '#f59e0b');
   }
 
   // Toggle group visibility
-  toggleGroup(group: 'mongo'|'supabase'|'pinecone') {
+  toggleGroup(group: 'mongo' | 'supabase' | 'pinecone') {
     if (group === 'mongo') this.showMongo = !this.showMongo;
     if (group === 'supabase') this.showSupabase = !this.showSupabase;
     if (group === 'pinecone') this.showPinecone = !this.showPinecone;
@@ -725,7 +839,10 @@ export class AudioManagementComponent implements OnInit, OnDestroy {
   }
 
   private computeSelectedDetails() {
-    if (!this.relationsData || !this.selectedNode) { this.selectedDetails = null; return; }
+    if (!this.relationsData || !this.selectedNode) {
+      this.selectedDetails = null;
+      return;
+    }
     const id = this.selectedNode.id;
     const data = this.relationsData;
     if (id.startsWith('audio:')) {
@@ -819,7 +936,7 @@ export class AudioManagementComponent implements OnInit, OnDestroy {
   }
 
   // Toggle expanded JSON query view
-  toggleQueries(which: 'transcripts'|'uploads') {
+  toggleQueries(which: 'transcripts' | 'uploads') {
     if (which === 'transcripts') {
       this.showTranscriptQueries = !this.showTranscriptQueries;
     } else if (which === 'uploads') {

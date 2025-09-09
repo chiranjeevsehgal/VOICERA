@@ -35,7 +35,7 @@ export class UploadComponent {
   constructor(
     private uploadService: UploadAudioService,
     private router: Router,
-    private profileService: ProfileService
+    private profileService: ProfileService,
   ) {}
 
   onDragOver(event: DragEvent) {
@@ -104,7 +104,7 @@ export class UploadComponent {
         if (event.type === HttpEventType.UploadProgress) {
           if (event.total) {
             this.uploadProgress = Math.round(
-              (100 * event.loaded) / event.total
+              (100 * event.loaded) / event.total,
             );
             this.updateUploadStatus();
           }
@@ -122,7 +122,7 @@ export class UploadComponent {
       error: (error) => {
         this.isUploading = false;
         this.showError(
-          error.error?.message || 'Upload failed. Please try again.'
+          error.error?.message || 'Upload failed. Please try again.',
         );
       },
     });

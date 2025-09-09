@@ -7,9 +7,7 @@ import {
   CreditService,
 } from '../../../services/admin/credit.service';
 import { HotToastService } from '@ngxpert/hot-toast';
-import {
-  shouldUseMockData,
-} from '../../../utils/role.utils';
+import { shouldUseMockData } from '../../../utils/role.utils';
 import * as mockCreditData from '../../../utils/mockData/mockIps.json';
 
 @Component({
@@ -36,7 +34,7 @@ export class CreditManagementComponent implements OnInit {
 
   constructor(
     private creditService: CreditService,
-    private toast: HotToastService
+    private toast: HotToastService,
   ) {}
 
   ngOnInit() {
@@ -55,7 +53,7 @@ export class CreditManagementComponent implements OnInit {
       // Process mock data the same way as API response
       this.totalCount = mockResponse.total_count;
       this.credits = mockResponse.ip_credits.map((apiCredit: any) =>
-        this.creditService.transformApiCredit(apiCredit)
+        this.creditService.transformApiCredit(apiCredit),
       );
       this.filteredCredits = [...this.credits];
       this.loading = false;
@@ -69,7 +67,7 @@ export class CreditManagementComponent implements OnInit {
       next: (response) => {
         this.totalCount = response.total_count;
         this.credits = response.ip_credits.map((apiCredit) =>
-          this.creditService.transformApiCredit(apiCredit)
+          this.creditService.transformApiCredit(apiCredit),
         );
         this.filteredCredits = [...this.credits];
         this.loading = false;
@@ -100,7 +98,7 @@ export class CreditManagementComponent implements OnInit {
   formatLastUsed(date: Date): string {
     const now = new Date();
     const diffInHours = Math.floor(
-      (now.getTime() - date.getTime()) / (1000 * 60 * 60)
+      (now.getTime() - date.getTime()) / (1000 * 60 * 60),
     );
 
     if (diffInHours < 1) return 'Just now';
@@ -132,10 +130,12 @@ export class CreditManagementComponent implements OnInit {
 
   openEditModal(credit: IPCredit) {
     if (shouldUseMockData()) {
-      this.toast.info('Credit modifications are disabled in the guest environment.');
+      this.toast.info(
+        'Credit modifications are disabled in the guest environment.',
+      );
       return;
     }
-    
+
     this.creditToEdit = credit;
     this.newCreditAmount = credit.credits;
     this.showEditModal = true;
@@ -153,7 +153,9 @@ export class CreditManagementComponent implements OnInit {
 
     // Additional check in case modal somehow opened in mock mode
     if (shouldUseMockData()) {
-      this.toast.info('Credit modifications are disabled in the guest environment.');
+      this.toast.info(
+        'Credit modifications are disabled in the guest environment.',
+      );
       this.closeEditModal();
       return;
     }
@@ -166,13 +168,13 @@ export class CreditManagementComponent implements OnInit {
         next: (response) => {
           // Update the credit in local arrays
           const creditIndex = this.credits.findIndex(
-            (c) => c.id === this.creditToEdit!.id
+            (c) => c.id === this.creditToEdit!.id,
           );
           if (creditIndex !== -1) {
             this.credits[creditIndex].credits = response.new_credits;
             // Update filtered credits as well
             const filteredIndex = this.filteredCredits.findIndex(
-              (c) => c.id === this.creditToEdit!.id
+              (c) => c.id === this.creditToEdit!.id,
             );
             if (filteredIndex !== -1) {
               this.filteredCredits[filteredIndex].credits =
@@ -181,7 +183,7 @@ export class CreditManagementComponent implements OnInit {
           }
 
           this.toast.success(
-            `Credits updated successfully for ${this.creditToEdit!.ip}`
+            `Credits updated successfully for ${this.creditToEdit!.ip}`,
           );
           this.closeEditModal();
         },

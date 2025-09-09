@@ -2,12 +2,30 @@ import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { HttpClientModule } from '@angular/common/http';
 import { FormsModule } from '@angular/forms';
-import { AnalyticsService, UsageAnalyticsResponse, IPDetailedAnalytics, RealTimeAnalytics } from '../../../services/admin/analytics.service';
+import {
+  AnalyticsService,
+  UsageAnalyticsResponse,
+  IPDetailedAnalytics,
+  RealTimeAnalytics,
+} from '../../../services/admin/analytics.service';
 import { shouldUseMockData } from '../../../utils/role.utils';
 import * as mockUsage from '../../../utils/mockData/mockUsageData.json';
 
-interface EndpointEntry { endpoint: string; path: string; method: string; count: number; avgResponseTime?: number; successRate?: number; }
-interface IPEntry { ip: string; count: number; lastSeen?: string; avgResponseTime?: number; uniqueEndpoints?: number; }
+interface EndpointEntry {
+  endpoint: string;
+  path: string;
+  method: string;
+  count: number;
+  avgResponseTime?: number;
+  successRate?: number;
+}
+interface IPEntry {
+  ip: string;
+  count: number;
+  lastSeen?: string;
+  avgResponseTime?: number;
+  uniqueEndpoints?: number;
+}
 
 @Component({
   selector: 'app-usage-logs',
@@ -85,7 +103,9 @@ export class UsageLogsComponent implements OnInit, OnDestroy {
 
   private parseEndpointKey(key: string): { method: string; path: string } {
     // Expect formats like: "GET /api/foo", "POST /api/bar" or just "/api/baz"
-    const match = key.match(/^(GET|POST|PUT|PATCH|DELETE|OPTIONS|HEAD)\s+(.+)$/i);
+    const match = key.match(
+      /^(GET|POST|PUT|PATCH|DELETE|OPTIONS|HEAD)\s+(.+)$/i,
+    );
     if (match) {
       return { method: match[1].toUpperCase(), path: match[2] };
     }
@@ -133,10 +153,11 @@ export class UsageLogsComponent implements OnInit, OnDestroy {
     if (this.selectedDays) filters.days = this.selectedDays;
     if (this.filterIP) filters.ip_address = this.filterIP.trim();
     if (this.filterEndpoint) filters.endpoint = this.filterEndpoint.trim();
-    if (this.filterStatusCode) filters.status_code = Number(this.filterStatusCode);
+    if (this.filterStatusCode)
+      filters.status_code = Number(this.filterStatusCode);
     // Guest/Mock mode: build analytics locally from mock JSON
     if (shouldUseMockData()) {
-      const data = (mockUsage as any) as UsageAnalyticsResponse;
+      const data = mockUsage as any as UsageAnalyticsResponse;
       const endpointFilter = (this.filterEndpoint || '').toLowerCase();
       const ipFilter = (this.filterIP || '').toLowerCase();
 
@@ -147,8 +168,12 @@ export class UsageLogsComponent implements OnInit, OnDestroy {
       // Endpoints
       if (data.endpoint_details && data.endpoint_details.length > 0) {
         this.endpointEntries = data.endpoint_details
-          .filter(d => !endpointFilter || d.endpoint.toLowerCase().includes(endpointFilter))
-          .map(d => {
+          .filter(
+            (d) =>
+              !endpointFilter ||
+              d.endpoint.toLowerCase().includes(endpointFilter),
+          )
+          .map((d) => {
             const { method, path } = this.parseEndpointKey(d.endpoint);
             return {
               endpoint: d.endpoint,
@@ -163,10 +188,20 @@ export class UsageLogsComponent implements OnInit, OnDestroy {
       } else {
         const counts = data.endpoint_counts || {};
         this.endpointEntries = Object.entries(counts)
-          .filter(([endpoint]) => !endpointFilter || endpoint.toLowerCase().includes(endpointFilter))
+          .filter(
+            ([endpoint]) =>
+              !endpointFilter ||
+              endpoint.toLowerCase().includes(endpointFilter),
+          )
           .map(([endpoint, count]) => {
             const { method, path } = this.parseEndpointKey(endpoint);
-            return { endpoint, path, method, count: count as number, avgResponseTime: undefined } as any;
+            return {
+              endpoint,
+              path,
+              method,
+              count: count as number,
+              avgResponseTime: undefined,
+            } as any;
           })
           .sort((a, b) => b.count - a.count);
       }
@@ -175,8 +210,11 @@ export class UsageLogsComponent implements OnInit, OnDestroy {
       if ((data as any).ip_details && (data as any).ip_details.length > 0) {
         const ipDetails = (data as any).ip_details as Array<any>;
         this.ipEntries = ipDetails
-          .filter(ipd => !ipFilter || String(ipd.ip).toLowerCase().includes(ipFilter))
-          .map(ipd => ({
+          .filter(
+            (ipd) =>
+              !ipFilter || String(ipd.ip).toLowerCase().includes(ipFilter),
+          )
+          .map((ipd) => ({
             ip: ipd.ip,
             count: ipd.count,
             lastSeen: ipd.last_seen,
@@ -190,7 +228,11 @@ export class UsageLogsComponent implements OnInit, OnDestroy {
         const ipCounts = data.ip_counts || {};
         this.ipEntries = Object.entries(ipCounts)
           .filter(([ip]) => !ipFilter || ip.toLowerCase().includes(ipFilter))
-          .map(([ip, count]) => ({ ip, count: count as number, lastSeen: undefined }))
+          .map(([ip, count]) => ({
+            ip,
+            count: count as number,
+            lastSeen: undefined,
+          }))
           .sort((a, b) => b.count - a.count)
           .slice(0, 50);
         this.uniqueIPs = Object.keys(ipCounts).length;
@@ -204,7 +246,8 @@ export class UsageLogsComponent implements OnInit, OnDestroy {
           return !isNaN(c) && c >= 400;
         })
         .reduce((sum, [, cnt]) => sum + (cnt || 0), 0);
-      this.errorRate = this.totalRequests > 0 ? (errorTotal / this.totalRequests) * 100 : 0;
+      this.errorRate =
+        this.totalRequests > 0 ? (errorTotal / this.totalRequests) * 100 : 0;
 
       // Simulate network delay
       setTimeout(() => {
@@ -222,7 +265,7 @@ export class UsageLogsComponent implements OnInit, OnDestroy {
         // Endpoints: prefer detailed metrics when available
         if (data.endpoint_details && data.endpoint_details.length > 0) {
           this.endpointEntries = data.endpoint_details
-            .map(d => {
+            .map((d) => {
               const { method, path } = this.parseEndpointKey(d.endpoint);
               return {
                 endpoint: d.endpoint,
@@ -239,7 +282,13 @@ export class UsageLogsComponent implements OnInit, OnDestroy {
           this.endpointEntries = Object.entries(counts)
             .map(([endpoint, count]) => {
               const { method, path } = this.parseEndpointKey(endpoint);
-              return { endpoint, path, method, count, avgResponseTime: undefined } as EndpointEntry;
+              return {
+                endpoint,
+                path,
+                method,
+                count,
+                avgResponseTime: undefined,
+              } as EndpointEntry;
             })
             .sort((a, b) => b.count - a.count);
         }
@@ -247,19 +296,24 @@ export class UsageLogsComponent implements OnInit, OnDestroy {
         // IPs: prefer detailed metrics when available
         if (data.ip_details && data.ip_details.length > 0) {
           this.ipEntries = data.ip_details
-            .map(ipd => ({
-              ip: ipd.ip,
-              count: ipd.count,
-              lastSeen: ipd.last_seen,
-              avgResponseTime: ipd.avg_response_time,
-              uniqueEndpoints: ipd.unique_endpoints,
-            } as IPEntry))
+            .map(
+              (ipd) =>
+                ({
+                  ip: ipd.ip,
+                  count: ipd.count,
+                  lastSeen: ipd.last_seen,
+                  avgResponseTime: ipd.avg_response_time,
+                  uniqueEndpoints: ipd.unique_endpoints,
+                }) as IPEntry,
+            )
             .sort((a, b) => b.count - a.count)
             .slice(0, 50);
         } else {
           const ipCounts = data.ip_counts || {};
           this.ipEntries = Object.entries(ipCounts)
-            .map(([ip, count]) => ({ ip, count, lastSeen: undefined } as IPEntry))
+            .map(
+              ([ip, count]) => ({ ip, count, lastSeen: undefined }) as IPEntry,
+            )
             .sort((a, b) => b.count - a.count)
             .slice(0, 50);
         }
@@ -272,7 +326,8 @@ export class UsageLogsComponent implements OnInit, OnDestroy {
             return !isNaN(c) && c >= 400;
           })
           .reduce((sum, [, cnt]) => sum + (cnt || 0), 0);
-        this.errorRate = this.totalRequests > 0 ? (errorTotal / this.totalRequests) * 100 : 0;
+        this.errorRate =
+          this.totalRequests > 0 ? (errorTotal / this.totalRequests) * 100 : 0;
 
         // Unique IPs
         if (data.ip_details && data.ip_details.length > 0) {
@@ -290,7 +345,7 @@ export class UsageLogsComponent implements OnInit, OnDestroy {
         this.error = 'Failed to load usage analytics. Please try again.';
         this.loading = false;
         this.refreshing = false;
-      }
+      },
     });
   }
 
@@ -313,9 +368,14 @@ export class UsageLogsComponent implements OnInit, OnDestroy {
     this.error = '';
     // Mock IP details in Guest mode
     if (shouldUseMockData()) {
-      const data = (mockUsage as any);
-      const ipd = (data.ip_details || []).find((x: any) => String(x.ip) === String(ip));
-      if (!ipd) { this.selectedIPDetails = null; return; }
+      const data = mockUsage as any;
+      const ipd = (data.ip_details || []).find(
+        (x: any) => String(x.ip) === String(ip),
+      );
+      if (!ipd) {
+        this.selectedIPDetails = null;
+        return;
+      }
       const details: IPDetailedAnalytics = {
         ip_address: String(ipd.ip),
         summary: {
@@ -324,36 +384,46 @@ export class UsageLogsComponent implements OnInit, OnDestroy {
           unique_user_agents: 0,
           unique_users: 0,
           avg_response_time: ipd.avg_response_time || 0,
-          first_seen: ipd.first_seen || (data.date_range?.start ?? new Date().toISOString()),
-          last_seen: ipd.last_seen || (data.date_range?.end ?? new Date().toISOString()),
+          first_seen:
+            ipd.first_seen ||
+            (data.date_range?.start ?? new Date().toISOString()),
+          last_seen:
+            ipd.last_seen || (data.date_range?.end ?? new Date().toISOString()),
         },
         endpoints: (data.endpoint_details || []).slice(0, 10).map((e: any) => ({
           endpoint: e.endpoint,
           count: e.count,
           avg_response_time: e.avg_response_time || 0,
-          last_accessed: (data.date_range?.end ?? new Date().toISOString()),
+          last_accessed: data.date_range?.end ?? new Date().toISOString(),
           success_rate: e.success_rate ?? 1.0,
         })),
         hourly_pattern: data.hourly_distribution || {},
         daily_activity: [],
         status_distribution: data.status_counts || {},
         user_agents: [],
-        date_range: data.date_range || { start: new Date().toISOString(), end: new Date().toISOString() },
+        date_range: data.date_range || {
+          start: new Date().toISOString(),
+          end: new Date().toISOString(),
+        },
       };
       // Simulate delay
-      setTimeout(() => { this.selectedIPDetails = details; }, 200);
+      setTimeout(() => {
+        this.selectedIPDetails = details;
+      }, 200);
       return;
     }
 
-    this.analytics.getIPDetailedAnalytics(ip, this.selectedDays || 30).subscribe({
-      next: (details: IPDetailedAnalytics) => {
-        this.selectedIPDetails = details;
-      },
-      error: (err) => {
-        console.error('Failed to load IP details', err);
-        this.error = 'Failed to load IP details.';
-      }
-    });
+    this.analytics
+      .getIPDetailedAnalytics(ip, this.selectedDays || 30)
+      .subscribe({
+        next: (details: IPDetailedAnalytics) => {
+          this.selectedIPDetails = details;
+        },
+        error: (err) => {
+          console.error('Failed to load IP details', err);
+          this.error = 'Failed to load IP details.';
+        },
+      });
   }
 
   closeIPDetails(): void {
@@ -400,11 +470,13 @@ export class UsageLogsComponent implements OnInit, OnDestroy {
     this.error = '';
     // Mock real-time analytics for Guest mode
     if (shouldUseMockData()) {
-      const data = (mockUsage as any) as UsageAnalyticsResponse;
+      const data = mockUsage as any as UsageAnalyticsResponse;
       // Summary
       this.totalRequests = data.total_requests || 0;
       this.averageResponseTime = data.average_response_time || 0;
-      this.uniqueIPs = (data as any).ip_details ? (data as any).ip_details.length : Object.keys(data.ip_counts || {}).length;
+      this.uniqueIPs = (data as any).ip_details
+        ? (data as any).ip_details.length
+        : Object.keys(data.ip_counts || {}).length;
       const status = data.status_counts || {};
       const errorTotal = Object.entries(status)
         .filter(([code]) => {
@@ -412,11 +484,23 @@ export class UsageLogsComponent implements OnInit, OnDestroy {
           return !isNaN(c) && c >= 400;
         })
         .reduce((sum, [, cnt]) => sum + (cnt || 0), 0);
-      this.errorRate = this.totalRequests > 0 ? (errorTotal / this.totalRequests) * 100 : 0;
+      this.errorRate =
+        this.totalRequests > 0 ? (errorTotal / this.totalRequests) * 100 : 0;
 
       // Endpoints (top)
       const details = data.endpoint_details || [];
-      this.endpointEntries = (details.length > 0 ? details : Object.entries(data.endpoint_counts || {}).map(([endpoint, count]) => ({ endpoint, count: count as number, avg_response_time: undefined } as any)))
+      this.endpointEntries = (
+        details.length > 0
+          ? details
+          : Object.entries(data.endpoint_counts || {}).map(
+              ([endpoint, count]) =>
+                ({
+                  endpoint,
+                  count: count as number,
+                  avg_response_time: undefined,
+                }) as any,
+            )
+      )
         .map((d: any) => {
           const endpoint = d.endpoint || d.endpoint;
           const { method, path } = this.parseEndpointKey(endpoint);
@@ -434,13 +518,23 @@ export class UsageLogsComponent implements OnInit, OnDestroy {
       // IPs
       if ((data as any).ip_details && (data as any).ip_details.length > 0) {
         this.ipEntries = ((data as any).ip_details as any[])
-          .map((ip: any) => ({ ip: ip.ip, count: ip.count, lastSeen: ip.last_seen, avgResponseTime: ip.avg_response_time, uniqueEndpoints: ip.unique_endpoints }))
+          .map((ip: any) => ({
+            ip: ip.ip,
+            count: ip.count,
+            lastSeen: ip.last_seen,
+            avgResponseTime: ip.avg_response_time,
+            uniqueEndpoints: ip.unique_endpoints,
+          }))
           .sort((a, b) => b.count - a.count)
           .slice(0, 50);
       } else {
         const ipCounts = data.ip_counts || {};
         this.ipEntries = Object.entries(ipCounts)
-          .map(([ip, count]) => ({ ip, count: count as number, lastSeen: undefined }))
+          .map(([ip, count]) => ({
+            ip,
+            count: count as number,
+            lastSeen: undefined,
+          }))
           .sort((a, b) => b.count - a.count)
           .slice(0, 50);
       }
@@ -460,21 +554,28 @@ export class UsageLogsComponent implements OnInit, OnDestroy {
 
         // Endpoints
         this.endpointEntries = (rt.top_endpoints || [])
-          .map(te => {
+          .map((te) => {
             const { method, path } = this.parseEndpointKey(te.endpoint);
             return {
               endpoint: te.endpoint,
               path,
               method,
               count: te.requests,
-              avgResponseTime: te.avg_response_time
+              avgResponseTime: te.avg_response_time,
             } as EndpointEntry;
           })
           .sort((a, b) => b.count - a.count);
 
         // IPs
         this.ipEntries = (rt.active_ips || [])
-          .map(ip => ({ ip: ip.ip, count: ip.requests, lastSeen: ip.last_seen } as IPEntry))
+          .map(
+            (ip) =>
+              ({
+                ip: ip.ip,
+                count: ip.requests,
+                lastSeen: ip.last_seen,
+              }) as IPEntry,
+          )
           .sort((a, b) => b.count - a.count)
           .slice(0, 50);
 
@@ -489,7 +590,7 @@ export class UsageLogsComponent implements OnInit, OnDestroy {
         this.error = 'Failed to load real-time analytics.';
         this.loading = false;
         this.refreshing = false;
-      }
+      },
     });
   }
 }

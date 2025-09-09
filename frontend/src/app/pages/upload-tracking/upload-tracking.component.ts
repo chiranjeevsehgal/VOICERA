@@ -40,7 +40,7 @@ export class UploadTrackingComponent implements OnInit, OnDestroy {
   constructor(
     private route: ActivatedRoute,
     private uploadService: UploadAudioService,
-    private profileService: ProfileService
+    private profileService: ProfileService,
   ) {}
 
   ngOnInit() {
@@ -207,20 +207,20 @@ export class UploadTrackingComponent implements OnInit, OnDestroy {
   }
 
   getProgressColor(): string {
-  if (!this.jobStatus) return 'bg-gray-300';
-  
-  const progress = this.jobStatus.progress;
-  
-  if (progress < 25) {
-    return 'bg-gradient-to-r from-red-500 via-orange-500 to-yellow-500';
-  } else if (progress < 50) {
-    return 'bg-gradient-to-r from-yellow-500 via-yellow-400 to-amber-500';
-  } else if (progress < 75) {
-    return 'bg-gradient-to-r from-amber-500 via-blue-500 to-cyan-500';
-  } else if (progress < 100) {
-    return 'bg-gradient-to-r from-cyan-500 via-blue-500 to-indigo-600';
-  } else {
-    return 'bg-gradient-to-r from-green-500 via-emerald-500 to-green-600';
+    if (!this.jobStatus) return 'bg-gray-300';
+
+    const progress = this.jobStatus.progress;
+
+    if (progress < 25) {
+      return 'bg-gradient-to-r from-red-500 via-orange-500 to-yellow-500';
+    } else if (progress < 50) {
+      return 'bg-gradient-to-r from-yellow-500 via-yellow-400 to-amber-500';
+    } else if (progress < 75) {
+      return 'bg-gradient-to-r from-amber-500 via-blue-500 to-cyan-500';
+    } else if (progress < 100) {
+      return 'bg-gradient-to-r from-cyan-500 via-blue-500 to-indigo-600';
+    } else {
+      return 'bg-gradient-to-r from-green-500 via-emerald-500 to-green-600';
+    }
   }
-}
 }

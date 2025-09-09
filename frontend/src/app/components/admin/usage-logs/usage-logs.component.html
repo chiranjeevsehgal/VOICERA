@@ -18,8 +18,12 @@
   <!-- Page Header -->
   <div class="flex items-start justify-between">
     <div>
-      <h2 class="text-2xl font-bold tracking-tight text-gray-900">Usage Analytics</h2>
-      <p class="mt-1 text-sm text-gray-500">Monitor API traffic, performance and IP activity across your system.</p>
+      <h2 class="text-2xl font-bold tracking-tight text-gray-900">
+        Usage Analytics
+      </h2>
+      <p class="mt-1 text-sm text-gray-500">
+        Monitor API traffic, performance and IP activity across your system.
+      </p>
     </div>
   </div>
 
@@ -231,17 +235,25 @@
     *ngIf="getStatusEntries().length > 0"
     class="bg-white rounded-2xl shadow-sm border border-gray-200 p-6"
   >
-    <h3 class="text-lg font-semibold text-gray-900 mb-4">Status Code Distribution</h3>
+    <h3 class="text-lg font-semibold text-gray-900 mb-4">
+      Status Code Distribution
+    </h3>
     <div class="space-y-3">
-      <div *ngFor="let status of getStatusEntries()" class="flex items-center gap-3">
+      <div
+        *ngFor="let status of getStatusEntries()"
+        class="flex items-center gap-3"
+      >
         <!-- Code Badge -->
         <span
           class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ring-1 ring-inset"
           [ngClass]="
-            status.code >= 500 ? 'bg-red-50 text-red-700 ring-red-200' :
-            status.code >= 400 ? 'bg-orange-50 text-orange-700 ring-orange-200' :
-            status.code >= 300 ? 'bg-yellow-50 text-yellow-800 ring-yellow-200' :
-            'bg-green-50 text-green-700 ring-green-200'
+            status.code >= 500
+              ? 'bg-red-50 text-red-700 ring-red-200'
+              : status.code >= 400
+                ? 'bg-orange-50 text-orange-700 ring-orange-200'
+                : status.code >= 300
+                  ? 'bg-yellow-50 text-yellow-800 ring-yellow-200'
+                  : 'bg-green-50 text-green-700 ring-green-200'
           "
         >
           {{ status.code }}
@@ -252,12 +264,19 @@
           <div class="w-full h-2 rounded bg-gray-100 overflow-hidden">
             <div
               class="h-full"
-              [ngStyle]="{ width: (totalRequests ? (status.count / totalRequests * 100) : 0) + '%' }"
+              [ngStyle]="{
+                width:
+                  (totalRequests ? (status.count / totalRequests) * 100 : 0) +
+                  '%',
+              }"
               [ngClass]="
-                status.code >= 500 ? 'bg-red-500' :
-                status.code >= 400 ? 'bg-orange-500' :
-                status.code >= 300 ? 'bg-yellow-500' :
-                'bg-green-500'
+                status.code >= 500
+                  ? 'bg-red-500'
+                  : status.code >= 400
+                    ? 'bg-orange-500'
+                    : status.code >= 300
+                      ? 'bg-yellow-500'
+                      : 'bg-green-500'
               "
             ></div>
           </div>
@@ -265,9 +284,15 @@
 
         <!-- Count and Percent -->
         <div class="w-28 text-right">
-          <div class="text-sm font-semibold text-gray-900">{{ status.count | number }}</div>
+          <div class="text-sm font-semibold text-gray-900">
+            {{ status.count | number }}
+          </div>
           <div class="text-xs text-gray-500">
-            {{ totalRequests ? (status.count / totalRequests * 100 | number : '1.0-1') + '%' : '—' }}
+            {{
+              totalRequests
+                ? ((status.count / totalRequests) * 100 | number: "1.0-1") + "%"
+                : "—"
+            }}
           </div>
         </div>
       </div>
@@ -368,14 +393,17 @@
               <div class="flex flex-col items-end gap-1">
                 <div class="w-24 h-2 bg-gray-100 rounded overflow-hidden">
                   <div
-                    [ngStyle]="{ width: (e.successRate != null ? (e.successRate * 100) : 0) + '%' }"
+                    [ngStyle]="{
+                      width:
+                        (e.successRate != null ? e.successRate * 100 : 0) + '%',
+                    }"
                     [class]="
                       e.successRate != null
                         ? e.successRate > 0.9
                           ? 'bg-green-500 h-full'
                           : e.successRate > 0.7
-                          ? 'bg-yellow-500 h-full'
-                          : 'bg-red-500 h-full'
+                            ? 'bg-yellow-500 h-full'
+                            : 'bg-red-500 h-full'
                         : 'bg-gray-300 h-full'
                     "
                   ></div>
@@ -387,15 +415,15 @@
                       ? e.successRate > 0.9
                         ? 'text-green-600'
                         : e.successRate > 0.7
-                        ? 'text-yellow-600'
-                        : 'text-red-600'
+                          ? 'text-yellow-600'
+                          : 'text-red-600'
                       : 'text-gray-400'
                   "
                 >
                   {{
                     e.successRate != null
-                      ? (e.successRate * 100 | number : '1.0-1') + '%'
-                      : '—'
+                      ? (e.successRate * 100 | number: "1.0-1") + "%"
+                      : "—"
                   }}
                 </span>
               </div>
@@ -658,8 +686,8 @@
                         endpoint.success_rate > 0.9
                           ? 'text-green-600'
                           : endpoint.success_rate > 0.7
-                          ? 'text-yellow-600'
-                          : 'text-red-600'
+                            ? 'text-yellow-600'
+                            : 'text-red-600'
                       "
                     >
                       {{ (endpoint.success_rate * 100).toFixed(1) }}%

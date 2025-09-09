@@ -2,10 +2,12 @@ import { Component, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClientModule } from '@angular/common/http';
-import { BulkUploadService, BulkUploadResponse, JobStatus } from '../../../services/admin/bulk-upload.service';
 import {
-  shouldUseMockData,
-} from '../../../utils/role.utils';
+  BulkUploadService,
+  BulkUploadResponse,
+  JobStatus,
+} from '../../../services/admin/bulk-upload.service';
+import { shouldUseMockData } from '../../../utils/role.utils';
 import { HotToastService } from '@ngxpert/hot-toast';
 
 interface UploadFileRow {
@@ -29,7 +31,8 @@ export class BulkUploadComponent implements OnDestroy {
 
   // Options and validation
   // Safe defaults for Deepgram: auto-detect language and readable formatting
-  transcriptionOptionsText = '{\n  "detect_language": true,\n  "punctuate": true,\n  "smart_format": true,\n  "model": "nova-2"\n}';
+  transcriptionOptionsText =
+    '{\n  "detect_language": true,\n  "punctuate": true,\n  "smart_format": true,\n  "model": "nova-2"\n}';
   optionsError: string = '';
 
   // Submission state
@@ -38,14 +41,20 @@ export class BulkUploadComponent implements OnDestroy {
   showTrackingModal = false;
 
   // Tracking jobs
-  jobStatuses: { file: string; job_id: string; status?: string; progress?: number; error?: string; }[] = [];
+  jobStatuses: {
+    file: string;
+    job_id: string;
+    status?: string;
+    progress?: number;
+    error?: string;
+  }[] = [];
   tracking = false;
   private trackingTimer: any = null;
   pollIntervalMs = 2500;
 
   constructor(
     private bulkService: BulkUploadService,
-    private toast: HotToastService
+    private toast: HotToastService,
   ) {}
 
   ngOnDestroy(): void {
@@ -59,18 +68,25 @@ export class BulkUploadComponent implements OnDestroy {
     const selected = Array.from(input.files);
 
     // Enforce max files
-    const combined = [...this.files, ...selected.map((f) => ({
-      file: f,
-      customName: f.name,
-      sizeMB: Math.round((f.size / (1024 * 1024)) * 100) / 100,
-    }))];
+    const combined = [
+      ...this.files,
+      ...selected.map((f) => ({
+        file: f,
+        customName: f.name,
+        sizeMB: Math.round((f.size / (1024 * 1024)) * 100) / 100,
+      })),
+    ];
 
     if (combined.length > this.maxFiles) {
       const allowed = this.maxFiles - this.files.length;
       this.files.push(
         ...selected
           .slice(0, Math.max(0, allowed))
-          .map((f) => ({ file: f, customName: f.name, sizeMB: Math.round((f.size / (1024 * 1024)) * 100) / 100 }))
+          .map((f) => ({
+            file: f,
+            customName: f.name,
+            sizeMB: Math.round((f.size / (1024 * 1024)) * 100) / 100,
+          })),
       );
     } else {
       this.files = combined;
@@ -108,7 +124,11 @@ export class BulkUploadComponent implements OnDestroy {
         }
       }
       // Ensure a safe default model if none provided
-      if (!parsed.model || typeof parsed.model !== 'string' || !parsed.model.trim()) {
+      if (
+        !parsed.model ||
+        typeof parsed.model !== 'string' ||
+        !parsed.model.trim()
+      ) {
         parsed.model = 'nova-2';
       }
       this.optionsError = '';
@@ -126,13 +146,10 @@ export class BulkUploadComponent implements OnDestroy {
   startUpload(): void {
     // Check if we're in mock/guest mode
     if (shouldUseMockData()) {
-      this.toast.info(
-        'Bulk upload is not allowed in guest mode.',
-        {
-          duration: 5000,
-          position: 'top-center'
-        }
-      );
+      this.toast.info('Bulk upload is not allowed in guest mode.', {
+        duration: 5000,
+        position: 'top-center',
+      });
       return;
     }
 
@@ -156,15 +173,22 @@ export class BulkUploadComponent implements OnDestroy {
       next: (resp) => {
         this.lastResponse = resp;
         // Prepare job status entries
-        this.jobStatuses = (resp.items || []).map((it) => ({ file: it.file, job_id: it.job_id }));
+        this.jobStatuses = (resp.items || []).map((it) => ({
+          file: it.file,
+          job_id: it.job_id,
+        }));
         this.submitting = false;
         this.showTrackingModal = true;
       },
       error: (err) => {
         console.error('Bulk upload error', err);
         this.submitting = false;
-        alert(err?.error?.detail?.message || err?.error?.detail || 'Bulk upload failed');
-      }
+        alert(
+          err?.error?.detail?.message ||
+            err?.error?.detail ||
+            'Bulk upload failed',
+        );
+      },
     });
   }
 
@@ -211,7 +235,7 @@ export class BulkUploadComponent implements OnDestroy {
             status: 'error',
             error: err?.error?.detail || 'Failed to fetch status',
           };
-        }
+        },
       });
     });
   }

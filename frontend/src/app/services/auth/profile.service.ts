@@ -65,7 +65,7 @@ export class ProfileService {
           console.error('Error fetching user profile:', error);
           localStorage.removeItem('vEra_user_profile');
           throw error;
-        })
+        }),
       );
   }
 
@@ -76,7 +76,7 @@ export class ProfileService {
       .pipe(
         tap((response) => {
           this.creditsSubject.next(response.credits_remaining);
-        })
+        }),
       );
   }
 

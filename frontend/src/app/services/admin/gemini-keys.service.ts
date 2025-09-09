@@ -49,7 +49,7 @@ export class GeminiKeysService {
   getStatus(): Observable<GeminiKeysStatusResponse> {
     return this.http.get<GeminiKeysStatusResponse>(
       `${this.baseUrl}/gemini-keys/status`,
-      { headers: this.getHeaders() }
+      { headers: this.getHeaders() },
     );
   }
 }

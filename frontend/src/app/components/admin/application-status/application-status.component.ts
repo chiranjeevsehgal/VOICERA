@@ -2,30 +2,28 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClientModule } from '@angular/common/http';
-import { 
-  SystemHealthService, 
-  SystemHealthResponse, 
-  CircuitBreakersResponse, 
+import {
+  SystemHealthService,
+  SystemHealthResponse,
+  CircuitBreakersResponse,
   RateLimitsResponse,
-  CircuitBreakerState 
+  CircuitBreakerState,
 } from '../../../services/admin/system-health.service';
 import { Toast } from 'primeng/toast';
 import { MessageService } from 'primeng/api';
-import { 
-  LucideAngularModule, 
-  Activity, 
-  Shield, 
-  Zap, 
-  RefreshCw, 
+import {
+  LucideAngularModule,
+  Activity,
+  Shield,
+  Zap,
+  RefreshCw,
   AlertTriangle,
   CheckCircle,
   Clock,
-  Settings
+  Settings,
 } from 'lucide-angular';
 
-import {
-  shouldUseMockData,
-} from '../../../utils/role.utils';
+import { shouldUseMockData } from '../../../utils/role.utils';
 import * as mockHealthData from '../../../utils/mockData/mockHealth.json';
 import * as mockCircuitBreakersData from '../../../utils/mockData/mockCircuitBreakers.json';
 import * as mockRateLimitsData from '../../../utils/mockData/mockRateLimits.json';
@@ -33,10 +31,16 @@ import * as mockRateLimitsData from '../../../utils/mockData/mockRateLimits.json
 @Component({
   selector: 'app-application-status',
   standalone: true,
-  imports: [Toast, CommonModule, FormsModule, HttpClientModule, LucideAngularModule],
+  imports: [
+    Toast,
+    CommonModule,
+    FormsModule,
+    HttpClientModule,
+    LucideAngularModule,
+  ],
   providers: [MessageService, SystemHealthService],
   templateUrl: './application-status.component.html',
-  styles: ``
+  styles: ``,
 })
 export class ApplicationStatusComponent implements OnInit {
   // Icons
@@ -68,7 +72,7 @@ export class ApplicationStatusComponent implements OnInit {
 
   constructor(
     private systemHealthService: SystemHealthService,
-    private messageService: MessageService
+    private messageService: MessageService,
   ) {}
 
   ngOnInit() {
@@ -103,20 +107,19 @@ export class ApplicationStatusComponent implements OnInit {
       const [healthData, circuitData, rateLimitData] = await Promise.all([
         this.systemHealthService.getSystemHealth().toPromise(),
         this.systemHealthService.getCircuitBreakers().toPromise(),
-        this.systemHealthService.getRateLimits().toPromise()
+        this.systemHealthService.getRateLimits().toPromise(),
       ]);
 
       this.systemHealth = healthData!;
       this.circuitBreakers = circuitData!;
       this.rateLimits = rateLimitData!;
       this.lastRefresh = new Date();
-
     } catch (error: any) {
       this.error = error?.error?.detail || 'Failed to load system status';
       this.messageService.add({
         severity: 'error',
         summary: 'Error',
-        detail: this.error
+        detail: this.error,
       });
     } finally {
       this.loading = false;
@@ -130,7 +133,11 @@ export class ApplicationStatusComponent implements OnInit {
   }
 
   async resetCircuitBreakers() {
-    if (!confirm('Are you sure you want to reset all circuit breakers? This will restore all services to normal operation.')) {
+    if (
+      !confirm(
+        'Are you sure you want to reset all circuit breakers? This will restore all services to normal operation.',
+      )
+    ) {
       return;
     }
 
@@ -141,7 +148,7 @@ export class ApplicationStatusComponent implements OnInit {
       this.messageService.add({
         severity: 'success',
         summary: 'Success',
-        detail: 'Circuit breakers reset (mock)'
+        detail: 'Circuit breakers reset (mock)',
       });
       // Refresh data after reset
       await this.loadAllData();
@@ -150,22 +157,23 @@ export class ApplicationStatusComponent implements OnInit {
     }
 
     try {
-      const result = await this.systemHealthService.resetCircuitBreakers().toPromise();
-      
+      const result = await this.systemHealthService
+        .resetCircuitBreakers()
+        .toPromise();
+
       this.messageService.add({
         severity: 'success',
         summary: 'Success',
-        detail: result!.message
+        detail: result!.message,
       });
 
       // Refresh data after reset
       await this.loadAllData();
-
     } catch (error: any) {
       this.messageService.add({
         severity: 'error',
         summary: 'Error',
-        detail: error?.error?.detail || 'Failed to reset circuit breakers'
+        detail: error?.error?.detail || 'Failed to reset circuit breakers',
       });
     } finally {
       this.resettingCircuitBreakers = false;
@@ -200,19 +208,27 @@ export class ApplicationStatusComponent implements OnInit {
 
   getCircuitBreakerStateColor(state: string): string {
     switch (state) {
-      case 'closed': return 'text-green-600 bg-green-50';
-      case 'open': return 'text-red-600 bg-red-50';
-      case 'half_open': return 'text-yellow-600 bg-yellow-50';
-      default: return 'text-gray-600 bg-gray-50';
+      case 'closed':
+        return 'text-green-600 bg-green-50';
+      case 'open':
+        return 'text-red-600 bg-red-50';
+      case 'half_open':
+        return 'text-yellow-600 bg-yellow-50';
+      default:
+        return 'text-gray-600 bg-gray-50';
     }
   }
 
   getCircuitBreakerStateIcon(state: string) {
     switch (state) {
-      case 'closed': return CheckCircle;
-      case 'open': return AlertTriangle;
-      case 'half_open': return Clock;
-      default: return Settings;
+      case 'closed':
+        return CheckCircle;
+      case 'open':
+        return AlertTriangle;
+      case 'half_open':
+        return Clock;
+      default:
+        return Settings;
     }
   }
 
@@ -222,7 +238,7 @@ export class ApplicationStatusComponent implements OnInit {
     }
 
     const openCircuits = this.circuitBreakers?.summary?.open || 0;
-    
+
     if (openCircuits > 0) {
       return { color: 'text-red-600', icon: AlertTriangle, text: 'Degraded' };
     }
@@ -237,11 +253,11 @@ export class ApplicationStatusComponent implements OnInit {
   formatBytes(bytes: number | string): string {
     if (typeof bytes === 'string') return bytes;
     if (bytes === 0) return '0 B';
-    
+
     const k = 1024;
     const sizes = ['B', 'KB', 'MB', 'GB'];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
-    
+
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   }
 

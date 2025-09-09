@@ -8,7 +8,7 @@ import { CommonModule } from '@angular/common';
   imports: [CommonModule],
   templateUrl: './auth-callback.component.html',
   styles: `
-      @keyframes fade-in-up {
+    @keyframes fade-in-up {
       from {
         opacity: 0;
         transform: translateY(30px);
@@ -18,15 +18,15 @@ import { CommonModule } from '@angular/common';
         transform: translateY(0);
       }
     }
-    
+
     .animate-fade-in-up {
       animation: fade-in-up 0.8s ease-out;
     }
-    
+
     .animation-delay-150 {
       animation-delay: 150ms;
     }
-    
+
     .animation-delay-300 {
       animation-delay: 300ms;
     }
@@ -55,7 +55,7 @@ import { CommonModule } from '@angular/common';
       font-family: Helvetica, Arial, sans-serif;
       animation: move 2s linear infinite;
       transform: rotate(180deg);
-      color: #35C4F0;
+      color: #35c4f0;
       font-weight: 600;
       letter-spacing: 1px;
       text-shadow: 0 0 8px rgba(53, 196, 240, 0.5);
@@ -144,13 +144,15 @@ export class AuthCallbackComponent implements OnInit, OnDestroy {
   ];
 
   private get messages() {
-    return this.authProvider === 'github' ? this.githubMessages : this.googleMessages;
+    return this.authProvider === 'github'
+      ? this.githubMessages
+      : this.googleMessages;
   }
 
   constructor(
     private router: Router,
     private route: ActivatedRoute,
-    private loginService: LoginService
+    private loginService: LoginService,
   ) {}
 
   ngOnInit(): void {
@@ -166,7 +168,7 @@ export class AuthCallbackComponent implements OnInit, OnDestroy {
   private determineAuthProvider(): void {
     this.route.queryParams.subscribe((params) => {
       const state = params['state'];
-      
+
       // Determine provider based on state parameter
       if (state === 'google-oauth') {
         this.authProvider = 'google';
@@ -241,7 +243,7 @@ export class AuthCallbackComponent implements OnInit, OnDestroy {
 
     // Determine which OAuth service to call based on state
     let authObservable;
-    
+
     if (state === 'google-oauth') {
       authObservable = this.loginService.exchangeGoogleCode(code);
     } else if (state === 'github-oauth') {
@@ -275,7 +277,7 @@ export class AuthCallbackComponent implements OnInit, OnDestroy {
       },
       error: (error) => {
         console.error('Failed to complete authentication:', error);
-        
+
         // Check if it's a 403 error (inactive account)
         if (
           error.status === 403 ||
@@ -291,14 +293,17 @@ export class AuthCallbackComponent implements OnInit, OnDestroy {
         }
 
         // For other errors, show generic error and redirect to login
-        this.handleAuthError('auth_failed', error.error?.detail || 'Authentication failed. Please try again.');
+        this.handleAuthError(
+          'auth_failed',
+          error.error?.detail || 'Authentication failed. Please try again.',
+        );
       },
     });
   }
 
   private handleAuthError(errorType: string, message?: string): void {
     this.clearIntervals();
-    
+
     this.currentMessage = 'Authentication failed';
     this.subMessage = 'Redirecting to login...';
 

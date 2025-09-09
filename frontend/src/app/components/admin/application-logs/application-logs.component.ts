@@ -3,10 +3,12 @@ import { CommonModule } from '@angular/common';
 import { HttpClientModule } from '@angular/common/http';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
-import { LogsService, LogFile, LogFilesResponse } from '../../../services/admin/logs.service';
 import {
-  shouldUseMockData,
-} from '../../../utils/role.utils';
+  LogsService,
+  LogFile,
+  LogFilesResponse,
+} from '../../../services/admin/logs.service';
+import { shouldUseMockData } from '../../../utils/role.utils';
 import * as mockLogsData from '../../../utils/mockData/mockLogs.json';
 import { HotToastService } from '@ngxpert/hot-toast';
 
@@ -16,16 +18,16 @@ import { HotToastService } from '@ngxpert/hot-toast';
   imports: [CommonModule, HttpClientModule, FormsModule],
   providers: [LogsService],
   templateUrl: './application-logs.component.html',
-  styles: ``
+  styles: ``,
 })
 export class ApplicationLogsComponent implements OnInit {
   loading = false;
   refreshing = false;
   error = '';
-  
+
   logFiles: LogFile[] = [];
   totalFiles = 0;
-  
+
   // Search functionality
   searchTerm = '';
   filteredLogFiles: LogFile[] = [];
@@ -39,7 +41,7 @@ export class ApplicationLogsComponent implements OnInit {
   constructor(
     private logsService: LogsService,
     private router: Router,
-    private toast: HotToastService
+    private toast: HotToastService,
   ) {}
 
   ngOnInit(): void {
@@ -49,7 +51,7 @@ export class ApplicationLogsComponent implements OnInit {
   loadLogFiles(): void {
     this.loading = true;
     this.error = '';
-    
+
     // Check if we should use mock data
     if (shouldUseMockData()) {
       // Mock data response with proper typing
@@ -81,7 +83,7 @@ export class ApplicationLogsComponent implements OnInit {
         this.error = 'Failed to load log files. Please try again.';
         this.loading = false;
         this.refreshing = false;
-      }
+      },
     });
   }
 
@@ -125,16 +127,21 @@ export class ApplicationLogsComponent implements OnInit {
         cmp = (a.size || 0) - (b.size || 0);
         break;
       case 'filename':
-        cmp = a.filename.localeCompare(b.filename, undefined, { sensitivity: 'base' });
+        cmp = a.filename.localeCompare(b.filename, undefined, {
+          sensitivity: 'base',
+        });
         break;
       case 'date':
         // Compare by provided date string if valid; fallback to last_modified
-        cmp = (new Date(a.date).getTime() || new Date(a.last_modified).getTime()) -
-              (new Date(b.date).getTime() || new Date(b.last_modified).getTime());
+        cmp =
+          (new Date(a.date).getTime() || new Date(a.last_modified).getTime()) -
+          (new Date(b.date).getTime() || new Date(b.last_modified).getTime());
         break;
       case 'last_modified':
       default:
-        cmp = new Date(a.last_modified).getTime() - new Date(b.last_modified).getTime();
+        cmp =
+          new Date(a.last_modified).getTime() -
+          new Date(b.last_modified).getTime();
         break;
     }
     return this.sortDir === 'asc' ? cmp : -cmp;
@@ -169,30 +176,30 @@ export class ApplicationLogsComponent implements OnInit {
       this.toast.info('Log file viewing is disabled in the guest environment.');
       return;
     }
-    
+
     this.router.navigate(['/admin/application-logs', filename]);
   }
 
   formatFileSize(bytes: number): string {
     if (bytes === 0) return '0 B';
-    
+
     const k = 1024;
     const sizes = ['B', 'KB', 'MB', 'GB'];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
-    
+
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   }
 
   formatDate(dateString: string): string {
     const date = new Date(dateString);
     if (isNaN(date.getTime())) return '—';
-    
+
     return date.toLocaleString('en-US', {
       year: 'numeric',
       month: 'short',
       day: 'numeric',
       hour: '2-digit',
-      minute: '2-digit'
+      minute: '2-digit',
     });
   }
 
@@ -215,7 +222,7 @@ export class ApplicationLogsComponent implements OnInit {
     const date = new Date(dateString);
     const now = new Date();
     const diffHours = (now.getTime() - date.getTime()) / (1000 * 60 * 60);
-    
+
     if (diffHours < 24) return 'bg-green-100 text-green-800';
     if (diffHours < 168) return 'bg-blue-100 text-blue-800'; // 7 days
     return 'bg-gray-100 text-gray-800';

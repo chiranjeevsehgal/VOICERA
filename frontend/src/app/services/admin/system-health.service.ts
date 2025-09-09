@@ -70,7 +70,7 @@ export interface RateLimitsResponse {
 }
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class SystemHealthService {
   private baseUrl = `${environment.backendApiUrl}/api/system`;
@@ -80,8 +80,8 @@ export class SystemHealthService {
   private getHeaders(): HttpHeaders {
     const token = localStorage.getItem('vEra_auth_token');
     return new HttpHeaders({
-      'Authorization': `Bearer ${token}`,
-      'Content-Type': 'application/json'
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json',
     });
   }
 
@@ -94,43 +94,47 @@ export class SystemHealthService {
    * Get overall system health
    */
   getSystemHealth(): Observable<SystemHealthResponse> {
-    return this.http.get<SystemHealthResponse>(`${this.baseUrl}/health`, {
-      headers: this.getHeaders()
-    }).pipe(
-      catchError(this.handleError)
-    );
+    return this.http
+      .get<SystemHealthResponse>(`${this.baseUrl}/health`, {
+        headers: this.getHeaders(),
+      })
+      .pipe(catchError(this.handleError));
   }
 
   /**
    * Get detailed circuit breaker status
    */
   getCircuitBreakers(): Observable<CircuitBreakersResponse> {
-    return this.http.get<CircuitBreakersResponse>(`${this.baseUrl}/circuit-breakers`, {
-      headers: this.getHeaders()
-    }).pipe(
-      catchError(this.handleError)
-    );
+    return this.http
+      .get<CircuitBreakersResponse>(`${this.baseUrl}/circuit-breakers`, {
+        headers: this.getHeaders(),
+      })
+      .pipe(catchError(this.handleError));
   }
 
   /**
    * Reset all circuit breakers
    */
   resetCircuitBreakers(): Observable<ResetCircuitBreakersResponse> {
-    return this.http.post<ResetCircuitBreakersResponse>(`${this.baseUrl}/circuit-breakers/reset`, {}, {
-      headers: this.getHeaders()
-    }).pipe(
-      catchError(this.handleError)
-    );
+    return this.http
+      .post<ResetCircuitBreakersResponse>(
+        `${this.baseUrl}/circuit-breakers/reset`,
+        {},
+        {
+          headers: this.getHeaders(),
+        },
+      )
+      .pipe(catchError(this.handleError));
   }
 
   /**
    * Get rate limiting configuration and status
    */
   getRateLimits(): Observable<RateLimitsResponse> {
-    return this.http.get<RateLimitsResponse>(`${this.baseUrl}/rate-limits`, {
-      headers: this.getHeaders()
-    }).pipe(
-      catchError(this.handleError)
-    );
+    return this.http
+      .get<RateLimitsResponse>(`${this.baseUrl}/rate-limits`, {
+        headers: this.getHeaders(),
+      })
+      .pipe(catchError(this.handleError));
   }
 }

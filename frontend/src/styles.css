@@ -1,7 +1,6 @@
 @import "tailwindcss";
 
-
-.inter{
+.inter {
   font-family: "Inter", sans-serif;
   font-optical-sizing: auto;
   font-weight: 400;
@@ -9,18 +8,23 @@
 }
 
 body {
-  cursor: url('https://cdn.visily.ai/app/production/1747724278874/static/Default-d4dfdd23.svg'), auto;
+  cursor:
+    url("https://cdn.visily.ai/app/production/1747724278874/static/Default-d4dfdd23.svg"),
+    auto;
 }
 
 .cursor-pointer {
-  cursor: url('https://cdn.visily.ai/app/production/1747724278874/static/Pointer-2a769ff1.svg') 12 6, auto;
+  cursor:
+    url("https://cdn.visily.ai/app/production/1747724278874/static/Pointer-2a769ff1.svg")
+      12 6,
+    auto;
 }
 
 /* Turn on custom 8px wide scrollbar */
 ::-webkit-scrollbar {
   width: 8px; /* 1px wider than Lion. */
   /* This is more usable for users trying to click it. */
-  background-color: rgba(0,0,0,0);
+  background-color: rgba(0, 0, 0, 0);
   -webkit-border-radius: 100px;
 }
 /* hover effect for both scrollbar area, and scrollbar 'thumb' */
@@ -32,10 +36,10 @@ body {
 ::-webkit-scrollbar-thumb:vertical {
   /* This is the EXACT color of Mac OS scrollbars. 
      Yes, I pulled out digital color meter */
-  background: rgba(0,0,0,0.1);
+  background: rgba(0, 0, 0, 0.1);
   -webkit-border-radius: 100px;
 }
 ::-webkit-scrollbar-thumb:vertical:active {
-  background: rgba(0,0,0,0.2); /* Some darker color when you click it */
+  background: rgba(0, 0, 0, 0.2); /* Some darker color when you click it */
   -webkit-border-radius: 100px;
 }

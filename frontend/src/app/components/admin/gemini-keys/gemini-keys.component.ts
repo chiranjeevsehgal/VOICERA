@@ -2,10 +2,12 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { HttpClientModule } from '@angular/common/http';
 import { FormsModule } from '@angular/forms';
-import { GeminiKeysService, GeminiKeysStatusResponse, GeminiKeyStatusItem } from '../../../services/admin/gemini-keys.service';
 import {
-  shouldUseMockData,
-} from '../../../utils/role.utils';
+  GeminiKeysService,
+  GeminiKeysStatusResponse,
+  GeminiKeyStatusItem,
+} from '../../../services/admin/gemini-keys.service';
+import { shouldUseMockData } from '../../../utils/role.utils';
 import * as mockGeminiKeysData from '../../../utils/mockData/mockKeys.json';
 
 @Component({
@@ -24,63 +26,86 @@ export class GeminiKeysComponent implements OnInit {
   data: GeminiKeysStatusResponse | null = null;
 
   // Gemini API error reference (aligned with Google documentation)
-  geminiErrorDocs: Array<{ http: number; status: string; description: string; solution: string; example?: string }> = [
+  geminiErrorDocs: Array<{
+    http: number;
+    status: string;
+    description: string;
+    solution: string;
+    example?: string;
+  }> = [
     {
       http: 400,
       status: 'INVALID_ARGUMENT',
-      description: 'The request body is malformed. There is a typo, or a missing required field in your request.',
-      solution: 'Check the API reference for request format, examples, and supported versions. Using features from a newer API version with an older endpoint can cause errors.',
-      example: 'E.g., missing required generationConfig field or invalid model parameter.'
+      description:
+        'The request body is malformed. There is a typo, or a missing required field in your request.',
+      solution:
+        'Check the API reference for request format, examples, and supported versions. Using features from a newer API version with an older endpoint can cause errors.',
+      example:
+        'E.g., missing required generationConfig field or invalid model parameter.',
     },
     {
       http: 400,
       status: 'FAILED_PRECONDITION',
-      description: 'Gemini API free tier is not available in your country. Billing not enabled for your project in Google AI Studio.',
-      solution: 'Enable billing on your project in Google AI Studio (set up a paid plan) or use a supported region.',
-      example: 'E.g., requests from unsupported region without billing enabled.'
+      description:
+        'Gemini API free tier is not available in your country. Billing not enabled for your project in Google AI Studio.',
+      solution:
+        'Enable billing on your project in Google AI Studio (set up a paid plan) or use a supported region.',
+      example:
+        'E.g., requests from unsupported region without billing enabled.',
     },
     {
       http: 403,
       status: 'PERMISSION_DENIED',
-      description: "Your API key doesn't have the required permissions, or you're trying to use a tuned model without proper authentication.",
-      solution: 'Check that your API key is set and has the right access. Make sure to authenticate properly to use tuned models.',
-      example: 'E.g., using a restricted key to access tuned model endpoints.'
+      description:
+        "Your API key doesn't have the required permissions, or you're trying to use a tuned model without proper authentication.",
+      solution:
+        'Check that your API key is set and has the right access. Make sure to authenticate properly to use tuned models.',
+      example: 'E.g., using a restricted key to access tuned model endpoints.',
     },
     {
       http: 404,
       status: 'NOT_FOUND',
-      description: "The requested resource wasn't found (e.g., a referenced image, audio, or video file wasn't found).",
-      solution: 'Check if all parameters in your request are valid for your API version and that all referenced resources exist.',
-      example: 'E.g., referencing a blob ID that does not exist.'
+      description:
+        "The requested resource wasn't found (e.g., a referenced image, audio, or video file wasn't found).",
+      solution:
+        'Check if all parameters in your request are valid for your API version and that all referenced resources exist.',
+      example: 'E.g., referencing a blob ID that does not exist.',
     },
     {
       http: 429,
       status: 'RESOURCE_EXHAUSTED',
-      description: "You've exceeded the rate limit (too many requests per minute/quota).",
-      solution: "Verify you're within the model's rate limits and consider requesting a quota increase. Implement retries with backoff.",
-      example: 'E.g., free tier RPM exceeded.'
+      description:
+        "You've exceeded the rate limit (too many requests per minute/quota).",
+      solution:
+        "Verify you're within the model's rate limits and consider requesting a quota increase. Implement retries with backoff.",
+      example: 'E.g., free tier RPM exceeded.',
     },
     {
       http: 500,
       status: 'INTERNAL',
-      description: "An unexpected error occurred on Google's side, or your input context might be too long.",
-      solution: 'Reduce your input context or temporarily switch to another model variant and retry. If persistent, report through Google AI Studio feedback.',
-      example: 'E.g., context window overflow.'
+      description:
+        "An unexpected error occurred on Google's side, or your input context might be too long.",
+      solution:
+        'Reduce your input context or temporarily switch to another model variant and retry. If persistent, report through Google AI Studio feedback.',
+      example: 'E.g., context window overflow.',
     },
     {
       http: 503,
       status: 'UNAVAILABLE',
       description: 'The service may be temporarily overloaded or down.',
-      solution: 'Wait and retry, or temporarily switch to another model variant.',
-      example: 'E.g., temporary service capacity issues.'
+      solution:
+        'Wait and retry, or temporarily switch to another model variant.',
+      example: 'E.g., temporary service capacity issues.',
     },
     {
       http: 504,
       status: 'DEADLINE_EXCEEDED',
-      description: 'The service is unable to finish processing within the deadline (prompt/context too large).',
-      solution: "Increase the client's timeout and/or reduce prompt/context size.",
-      example: 'E.g., client timeout set too low for long prompt.'
-    }
+      description:
+        'The service is unable to finish processing within the deadline (prompt/context too large).',
+      solution:
+        "Increase the client's timeout and/or reduce prompt/context size.",
+      example: 'E.g., client timeout set too low for long prompt.',
+    },
   ];
 
   constructor(private gemini: GeminiKeysService) {}
@@ -162,13 +187,15 @@ export class GeminiKeysComponent implements OnInit {
   }
 
   // Build a sorted list of error entries across all statuses for display
-  getErrorEntries(item: GeminiKeyStatusItem): Array<{ key: string; count: number }> {
+  getErrorEntries(
+    item: GeminiKeyStatusItem,
+  ): Array<{ key: string; count: number }> {
     if (!item || !item.error_counts) return [];
     const entries = Object.entries(item.error_counts)
       .filter(([_, v]) => (v as number) > 0)
       .map(([k, v]) => ({ key: k, count: v as number }))
       // Sort descending by count, then by key
-      .sort((a, b) => (b.count - a.count) || a.key.localeCompare(b.key));
+      .sort((a, b) => b.count - a.count || a.key.localeCompare(b.key));
     return entries;
   }
 

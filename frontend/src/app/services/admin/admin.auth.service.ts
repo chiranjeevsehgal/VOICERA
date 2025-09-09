@@ -50,7 +50,7 @@ export class AdminAuthService {
           }));
         }
         return throwError(() => error);
-      })
+      }),
     );
   }
 
@@ -96,7 +96,7 @@ export class AdminAuthService {
           console.error('Error fetching user profile:', error);
           localStorage.removeItem('vEra_user_profile');
           throw error;
-        })
+        }),
       );
   }
 

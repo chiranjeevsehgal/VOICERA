@@ -10,8 +10,13 @@ import { CommonModule } from '@angular/common';
   templateUrl: './login-form.component.html',
   styles: `
     @keyframes wave {
-      0%, 100% { transform: scaleY(1); }
-      50% { transform: scaleY(0.5); }
+      0%,
+      100% {
+        transform: scaleY(1);
+      }
+      50% {
+        transform: scaleY(0.5);
+      }
     }
   `,
   imports: [CommonModule],
@@ -23,7 +28,7 @@ export class LoginFormComponent {
     private loginService: LoginService,
     private ngZone: NgZone,
     private router: Router,
-    private toast: HotToastService
+    private toast: HotToastService,
   ) {}
 
   oauthSignIn(provider: 'google' | 'github') {
@@ -36,7 +41,7 @@ export class LoginFormComponent {
 
   guestSignIn() {
     this.isGuestLoading = true;
-    
+
     this.loginService.guestLogin().subscribe({
       next: (response) => {
         this.ngZone.run(() => {
@@ -56,7 +61,7 @@ export class LoginFormComponent {
           this.toast.error('Failed to sign in as guest. Please try again.');
           this.isGuestLoading = false;
         });
-      }
+      },
     });
   }
 
@@ -97,7 +102,7 @@ export class LoginFormComponent {
 
   private createFormAndSubmit(
     form: HTMLFormElement,
-    params: { [key: string]: string }
+    params: { [key: string]: string },
   ) {
     for (const key in params) {
       const input = document.createElement('input');

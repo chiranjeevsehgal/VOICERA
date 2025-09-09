@@ -93,7 +93,7 @@
             'border-gray-300 bg-gray-50': !isDragOver && !selectedFile,
             'border-indigo-400 bg-indigo-50': isDragOver,
             'border-green-400 bg-green-50': selectedFile && !isUploading,
-            'border-blue-400 bg-blue-50': isUploading
+            'border-blue-400 bg-blue-50': isUploading,
           }"
           (dragover)="onDragOver($event)"
           (dragleave)="onDragLeave($event)"
@@ -117,7 +117,7 @@
                 !selectedFile && !isUploading,
               'bg-gradient-to-br from-green-100 to-emerald-200':
                 selectedFile && !isUploading,
-              'bg-gradient-to-br from-blue-100 to-indigo-200': isUploading
+              'bg-gradient-to-br from-blue-100 to-indigo-200': isUploading,
             }"
           >
             <svg

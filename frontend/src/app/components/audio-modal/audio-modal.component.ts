@@ -1,6 +1,24 @@
-import { Component, Input, Output, EventEmitter, OnInit, OnDestroy, ElementRef, ViewChild, OnChanges, SimpleChanges, ViewChildren, QueryList, AfterViewInit } from '@angular/core';
+import {
+  Component,
+  Input,
+  Output,
+  EventEmitter,
+  OnInit,
+  OnDestroy,
+  ElementRef,
+  ViewChild,
+  OnChanges,
+  SimpleChanges,
+  ViewChildren,
+  QueryList,
+  AfterViewInit,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Podcast, PodcastService, WordTiming } from '../../services/podcast.service';
+import {
+  Podcast,
+  PodcastService,
+  WordTiming,
+} from '../../services/podcast.service';
 import { take } from 'rxjs';
 
 @Component({
@@ -9,19 +27,28 @@ import { take } from 'rxjs';
   templateUrl: './audio-modal.component.html',
   styles: `
     .word-chip {
-      transition: box-shadow 120ms ease, background-color 120ms ease, color 120ms ease;
+      transition:
+        box-shadow 120ms ease,
+        background-color 120ms ease,
+        color 120ms ease;
     }
     .word-chip.active {
       box-shadow: 0 0 0.45rem rgba(99, 102, 241, 0.55);
       animation: word-glow 1.1s ease-in-out infinite alternate;
     }
     @keyframes word-glow {
-      from { box-shadow: 0 0 0.25rem rgba(99, 102, 241, 0.35); }
-      to   { box-shadow: 0 0 0.70rem rgba(99, 102, 241, 0.65); }
+      from {
+        box-shadow: 0 0 0.25rem rgba(99, 102, 241, 0.35);
+      }
+      to {
+        box-shadow: 0 0 0.7rem rgba(99, 102, 241, 0.65);
+      }
     }
-  `
+  `,
 })
-export class AudioModalComponent implements OnInit, OnDestroy, OnChanges, AfterViewInit {
+export class AudioModalComponent
+  implements OnInit, OnDestroy, OnChanges, AfterViewInit
+{
   @Input() podcast: Podcast | null = null;
   @Input() isVisible = false;
   @Output() close = new EventEmitter<void>();
@@ -67,7 +94,9 @@ export class AudioModalComponent implements OnInit, OnDestroy, OnChanges, AfterV
   }
 
   ngOnChanges(changes: SimpleChanges): void {
-    const becameVisible = changes['isVisible']?.currentValue === true && changes['isVisible']?.previousValue !== true;
+    const becameVisible =
+      changes['isVisible']?.currentValue === true &&
+      changes['isVisible']?.previousValue !== true;
     const podcastChanged = !!changes['podcast'];
 
     // Prefill duration from API if available (fallback to loaded metadata later)
@@ -111,7 +140,7 @@ export class AudioModalComponent implements OnInit, OnDestroy, OnChanges, AfterV
   onLoadedMetadata() {
     if (this.audioPlayer?.nativeElement) {
       console.log(this.audioPlayer.nativeElement);
-      
+
       this.duration = this.audioPlayer.nativeElement.duration;
     }
   }
@@ -122,7 +151,9 @@ export class AudioModalComponent implements OnInit, OnDestroy, OnChanges, AfterV
     this.transcriptError = null;
     this.words = [];
 
-    const mp3Url = this.podcast?.audioFile?.embedded_audio_url || this.podcast?.audioFile?.user_data?.file_url;
+    const mp3Url =
+      this.podcast?.audioFile?.embedded_audio_url ||
+      this.podcast?.audioFile?.user_data?.file_url;
     if (!mp3Url) return;
 
     this.transcriptLoading = true;
@@ -139,15 +170,21 @@ export class AudioModalComponent implements OnInit, OnDestroy, OnChanges, AfterV
           this.scheduleScrollToActive();
         },
         error: (err) => {
-          this.transcriptError = err?.error?.detail || 'Failed to fetch transcript';
+          this.transcriptError =
+            err?.error?.detail || 'Failed to fetch transcript';
           this.transcriptLoading = false;
-        }
+        },
       });
   }
 
   isWordActive(w: WordTiming): boolean {
     const t = this.currentTime;
-    return typeof w?.start === 'number' && typeof w?.end === 'number' && t >= w.start && t <= w.end;
+    return (
+      typeof w?.start === 'number' &&
+      typeof w?.end === 'number' &&
+      t >= w.start &&
+      t <= w.end
+    );
   }
 
   onWordClick(w: WordTiming) {
@@ -161,7 +198,12 @@ export class AudioModalComponent implements OnInit, OnDestroy, OnChanges, AfterV
     if (!this.words || this.words.length === 0) return -1;
     for (let i = 0; i < this.words.length; i++) {
       const w = this.words[i];
-      if (typeof w.start === 'number' && typeof w.end === 'number' && t >= w.start && t <= w.end) {
+      if (
+        typeof w.start === 'number' &&
+        typeof w.end === 'number' &&
+        t >= w.start &&
+        t <= w.end
+      ) {
         return i;
       }
     }
@@ -185,7 +227,11 @@ export class AudioModalComponent implements OnInit, OnDestroy, OnChanges, AfterV
 
     // Smoothly bring the active word into view within the scroll container
     try {
-      el.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' });
+      el.scrollIntoView({
+        behavior: 'smooth',
+        block: 'nearest',
+        inline: 'nearest',
+      });
     } catch {
       // Fallback manual scroll
       const elTop = el.offsetTop;
@@ -193,16 +239,22 @@ export class AudioModalComponent implements OnInit, OnDestroy, OnChanges, AfterV
       const viewTop = container.scrollTop;
       const viewBottom = viewTop + container.clientHeight;
       if (elTop < viewTop) {
-        container.scrollTo({ top: elTop - container.clientHeight * 0.3, behavior: 'smooth' });
+        container.scrollTo({
+          top: elTop - container.clientHeight * 0.3,
+          behavior: 'smooth',
+        });
       } else if (elBottom > viewBottom) {
-        container.scrollTo({ top: elBottom - container.clientHeight * 0.7, behavior: 'smooth' });
+        container.scrollTo({
+          top: elBottom - container.clientHeight * 0.7,
+          behavior: 'smooth',
+        });
       }
     }
   }
 
   formatTime(seconds: number): string {
     if (!seconds || isNaN(seconds)) return '0:00';
-    
+
     const minutes = Math.floor(seconds / 60);
     const remainingSeconds = Math.floor(seconds % 60);
     return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
@@ -210,11 +262,11 @@ export class AudioModalComponent implements OnInit, OnDestroy, OnChanges, AfterV
 
   formatFileSize(bytes: number): string {
     if (bytes === 0) return '0 Bytes';
-    
+
     const k = 1024;
     const sizes = ['Bytes', 'KB', 'MB', 'GB'];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
-    
+
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   }
 

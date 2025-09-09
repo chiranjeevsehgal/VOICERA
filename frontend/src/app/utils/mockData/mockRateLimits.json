@@ -1,50 +1,50 @@
 {
-    "configuration": {
-        "endpoint_limits": {
-            "search_api": {
-                "limit": 30,
-                "window": 60
-            },
-            "transcribe_api": {
-                "limit": 10,
-                "window": 60
-            },
-            "upload_api": {
-                "limit": 5,
-                "window": 60
-            },
-            "process_audio_api": {
-                "limit": 3,
-                "window": 60
-            },
-            "admin_api": {
-                "limit": 50,
-                "window": 60
-            }
-        },
-        "user_limits": {
-            "user_hourly": {
-                "limit": 1000,
-                "window": 3600
-            },
-            "guest_hourly": {
-                "limit": 100,
-                "window": 3600
-            }
-        },
-        "ip_limits": {
-            "ip_minute": {
-                "limit": 100,
-                "window": 60
-            },
-            "ip_hourly": {
-                "limit": 1000,
-                "window": 3600
-            }
-        }
+  "configuration": {
+    "endpoint_limits": {
+      "search_api": {
+        "limit": 30,
+        "window": 60
+      },
+      "transcribe_api": {
+        "limit": 10,
+        "window": 60
+      },
+      "upload_api": {
+        "limit": 5,
+        "window": 60
+      },
+      "process_audio_api": {
+        "limit": 3,
+        "window": 60
+      },
+      "admin_api": {
+        "limit": 50,
+        "window": 60
+      }
     },
-    "limiter_status": {
-        "backend": "In-Memory",
-        "local_cache_entries": 21
+    "user_limits": {
+      "user_hourly": {
+        "limit": 1000,
+        "window": 3600
+      },
+      "guest_hourly": {
+        "limit": 100,
+        "window": 3600
+      }
+    },
+    "ip_limits": {
+      "ip_minute": {
+        "limit": 100,
+        "window": 60
+      },
+      "ip_hourly": {
+        "limit": 1000,
+        "window": 3600
+      }
     }
+  },
+  "limiter_status": {
+    "backend": "In-Memory",
+    "local_cache_entries": 21
+  }
 }

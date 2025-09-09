@@ -12,15 +12,36 @@
     class="bg-gradient-to-b from-indigo-700 via-indigo-800 to-indigo-900 text-white pt-12 sm:pt-16 md:pt-20 pb-12 sm:pb-16 md:pb-20 px-4 sm:px-6 relative overflow-hidden"
   >
     <!-- Animated background gradient -->
-    <div class="absolute inset-0 bg-gradient-to-br from-indigo-600/20 via-purple-600/20 to-indigo-800/20 animate-pulse" style="animation-duration: 6s;"></div>
-    
+    <div
+      class="absolute inset-0 bg-gradient-to-br from-indigo-600/20 via-purple-600/20 to-indigo-800/20 animate-pulse"
+      style="animation-duration: 6s"
+    ></div>
+
     <!-- Floating elements -->
-    <div class="absolute top-1/4 left-1/4 w-32 h-32 bg-white/5 rounded-full animate-bounce" style="animation-delay: 0.5s; animation-duration: 3s;"></div>
-    <div class="absolute top-1/3 right-1/4 w-24 h-24 bg-indigo-300/10 rounded-full animate-pulse" style="animation-delay: 1s; animation-duration: 5s;"></div>
-    <div class="absolute bottom-1/4 left-1/3 w-16 h-16 bg-purple-300/10 rounded-full animate-bounce" style="animation-delay: 2s; animation-duration: 4s;"></div>
-    <div class="absolute top-1/2 right-1/3 w-20 h-20 bg-white/5 rounded-full animate-pulse" style="animation-delay: 1.5s; animation-duration: 6s;"></div>
-    <div class="absolute top-1/6 right-1/6 w-12 h-12 bg-indigo-400/5 rounded-full animate-bounce" style="animation-delay: 3s; animation-duration: 4.5s;"></div>
-    <div class="absolute bottom-1/3 right-1/6 w-18 h-18 bg-purple-400/5 rounded-full animate-pulse" style="animation-delay: 2.5s; animation-duration: 5.5s;"></div>
+    <div
+      class="absolute top-1/4 left-1/4 w-32 h-32 bg-white/5 rounded-full animate-bounce"
+      style="animation-delay: 0.5s; animation-duration: 3s"
+    ></div>
+    <div
+      class="absolute top-1/3 right-1/4 w-24 h-24 bg-indigo-300/10 rounded-full animate-pulse"
+      style="animation-delay: 1s; animation-duration: 5s"
+    ></div>
+    <div
+      class="absolute bottom-1/4 left-1/3 w-16 h-16 bg-purple-300/10 rounded-full animate-bounce"
+      style="animation-delay: 2s; animation-duration: 4s"
+    ></div>
+    <div
+      class="absolute top-1/2 right-1/3 w-20 h-20 bg-white/5 rounded-full animate-pulse"
+      style="animation-delay: 1.5s; animation-duration: 6s"
+    ></div>
+    <div
+      class="absolute top-1/6 right-1/6 w-12 h-12 bg-indigo-400/5 rounded-full animate-bounce"
+      style="animation-delay: 3s; animation-duration: 4.5s"
+    ></div>
+    <div
+      class="absolute bottom-1/3 right-1/6 w-18 h-18 bg-purple-400/5 rounded-full animate-pulse"
+      style="animation-delay: 2.5s; animation-duration: 5.5s"
+    ></div>
 
     <!-- Minimal hero: ornaments removed for clean, focused look -->
 
@@ -29,12 +50,28 @@
       <div class="animate-fade-in-up">
         <h1
           class="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold tracking-tight mb-3 sm:mb-4 md:mb-6 leading-tight text-white drop-shadow-lg"
-          style="animation-delay: 0.2s; text-shadow: 0 0 20px rgba(255,255,255,0.3);"
+          style="
+            animation-delay: 0.2s;
+            text-shadow: 0 0 20px rgba(255, 255, 255, 0.3);
+          "
         >
           AI-Powered<br />
-          <span class="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-semibold text-indigo-100 animate-fade-in-up drop-shadow-md" style="animation-delay: 0.6s; text-shadow: 0 0 15px rgba(255,255,255,0.2);">Semantic Search</span>
+          <span
+            class="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-semibold text-indigo-100 animate-fade-in-up drop-shadow-md"
+            style="
+              animation-delay: 0.6s;
+              text-shadow: 0 0 15px rgba(255, 255, 255, 0.2);
+            "
+            >Semantic Search</span
+          >
         </h1>
-        <p class="text-base sm:text-lg md:text-xl mb-8 sm:mb-10 md:mb-12 text-indigo-100 max-w-2xl mx-auto font-light animate-fade-in-up drop-shadow-sm" style="animation-delay: 1s; text-shadow: 0 0 10px rgba(255,255,255,0.1);">
+        <p
+          class="text-base sm:text-lg md:text-xl mb-8 sm:mb-10 md:mb-12 text-indigo-100 max-w-2xl mx-auto font-light animate-fade-in-up drop-shadow-sm"
+          style="
+            animation-delay: 1s;
+            text-shadow: 0 0 10px rgba(255, 255, 255, 0.1);
+          "
+        >
           Natural language search that understands meaning, not just keywords
         </p>
       </div>
@@ -47,13 +84,17 @@
     <!-- Search Card -->
     <div
       class="bg-white rounded-2xl shadow-sm p-5 sm:p-6 md:p-8 mb-8 sm:mb-10 md:mb-12 border border-gray-200"
-      role="search" aria-label="Semantic search" [attr.aria-busy]="loading ? 'true' : null"
+      role="search"
+      aria-label="Semantic search"
+      [attr.aria-busy]="loading ? 'true' : null"
     >
       <div class="max-w-full space-y-3 sm:space-y-4">
         <!-- Row 1: Input + Search button -->
         <div class="flex flex-col gap-3 items-stretch">
           <div class="flex-1 relative">
-            <label for="semantic-search-input" class="sr-only">Search query</label>
+            <label for="semantic-search-input" class="sr-only"
+              >Search query</label
+            >
             <input
               type="search"
               placeholder="Use natural language to find relevant audio content based on meaning, not just keywords..."
@@ -151,7 +192,9 @@
           <div class="grid grid-cols-1 sm:grid-cols-4 gap-3 sm:gap-4 items-end">
             <!-- Limit control -->
             <div class="flex flex-col">
-              <label for="resultLimit" class="text-xs text-gray-600 mb-1">Limit</label>
+              <label for="resultLimit" class="text-xs text-gray-600 mb-1"
+                >Limit</label
+              >
               <select
                 id="resultLimit"
                 [(ngModel)]="limit"
@@ -165,7 +208,9 @@
 
             <!-- Min Confidence control -->
             <div class="flex flex-col">
-              <label for="minConfidence" class="text-xs text-gray-600 mb-1">Confidence Threshold</label>
+              <label for="minConfidence" class="text-xs text-gray-600 mb-1"
+                >Confidence Threshold</label
+              >
               <input
                 type="range"
                 id="minConfidence"
@@ -176,12 +221,16 @@
                 step="0.01"
                 class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
               />
-              <span class="text-xs text-gray-500 mt-1">{{ minConfidence }}</span>
+              <span class="text-xs text-gray-500 mt-1">{{
+                minConfidence
+              }}</span>
             </div>
 
             <!-- Min Relevance control -->
             <div class="flex flex-col">
-              <label for="minRelevance" class="text-xs text-gray-600 mb-1">Relevance Threshold</label>
+              <label for="minRelevance" class="text-xs text-gray-600 mb-1"
+                >Relevance Threshold</label
+              >
               <input
                 type="range"
                 id="minRelevance"
@@ -197,7 +246,9 @@
 
             <!-- Validate Content (LLM) toggle -->
             <div class="flex flex-col">
-              <label for="validateContent" class="text-xs text-gray-600 mb-1">Validate Content (LLM)</label>
+              <label for="validateContent" class="text-xs text-gray-600 mb-1"
+                >Validate Content (LLM)</label
+              >
               <div class="flex items-center">
                 <input
                   type="checkbox"
@@ -206,7 +257,12 @@
                   [disabled]="loading"
                   class="h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
                 />
-                <span class="ml-2 text-xs text-gray-500">Enable content validation</span>
+                <span class="ml-2 text-xs text-gray-500"
+                  >Enable content validation</span
+                >
+                <span class="ml-2 text-xs text-gray-500 italic"
+                  >(May take a few seconds)</span
+                >
               </div>
             </div>
           </div>
@@ -226,10 +282,10 @@
               loading
                 ? "AI is analyzing your query..."
                 : hasSearched && searchResults.length > 0
-                ? "AI Search Results"
-                : hasSearched && searchResults.length === 0
-                ? "No Results Found"
-                : ""
+                  ? "AI Search Results"
+                  : hasSearched && searchResults.length === 0
+                    ? "No Results Found"
+                    : ""
             }}
           </h2>
           <p
@@ -250,33 +306,71 @@
       <div
         *ngIf="loading"
         class="text-center py-12 sm:py-16 md:py-20 bg-white rounded-2xl shadow-sm border border-gray-200"
-        role="status" aria-live="polite" aria-busy="true"
+        role="status"
+        aria-live="polite"
+        aria-busy="true"
       >
         <!-- Branded Loader -->
         <div class="mb-6 sm:mb-8 flex justify-center">
           <div class="brand-loader" aria-hidden="true">
             <!-- Outer Ring -->
-            <svg class="brand-ring brand-ring--outer" viewBox="0 0 100 100" width="168" height="168" role="img">
+            <svg
+              class="brand-ring brand-ring--outer"
+              viewBox="0 0 100 100"
+              width="168"
+              height="168"
+              role="img"
+            >
               <defs>
-                <linearGradient id="outerGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                <linearGradient
+                  id="outerGrad"
+                  x1="0%"
+                  y1="0%"
+                  x2="100%"
+                  y2="0%"
+                >
                   <stop offset="0%" stop-color="var(--brand-primary)" />
                   <stop offset="100%" stop-color="var(--brand-accent)" />
                 </linearGradient>
               </defs>
               <circle class="track" cx="50" cy="50" r="46" />
-              <circle class="indicator" cx="50" cy="50" r="46" stroke="url(#outerGrad)" />
+              <circle
+                class="indicator"
+                cx="50"
+                cy="50"
+                r="46"
+                stroke="url(#outerGrad)"
+              />
             </svg>
 
             <!-- Inner Ring -->
-            <svg class="brand-ring brand-ring--inner" viewBox="0 0 100 100" width="128" height="128" role="img">
+            <svg
+              class="brand-ring brand-ring--inner"
+              viewBox="0 0 100 100"
+              width="128"
+              height="128"
+              role="img"
+            >
               <defs>
-                <linearGradient id="innerGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                <linearGradient
+                  id="innerGrad"
+                  x1="0%"
+                  y1="0%"
+                  x2="100%"
+                  y2="0%"
+                >
                   <stop offset="0%" stop-color="var(--brand-secondary)" />
                   <stop offset="100%" stop-color="var(--brand-primary)" />
                 </linearGradient>
               </defs>
               <circle class="track" cx="50" cy="50" r="32" />
-              <circle class="indicator" cx="50" cy="50" r="32" stroke="url(#innerGrad)" />
+              <circle
+                class="indicator"
+                cx="50"
+                cy="50"
+                r="32"
+                stroke="url(#innerGrad)"
+              />
             </svg>
 
             <!-- Core -->
@@ -361,7 +455,9 @@
             <div class="flex-1 min-w-0">
               <div class="flex items-start gap-2">
                 <div class="flex-1 min-w-0">
-                  <h3 class="text-base md:text-lg font-semibold text-gray-900 truncate">
+                  <h3
+                    class="text-base md:text-lg font-semibold text-gray-900 truncate"
+                  >
                     {{ group.title }}
                   </h3>
                   <p class="text-sm text-gray-500">{{ group.creator }}</p>
@@ -369,7 +465,9 @@
 
                 <!-- AI Answer button -->
                 <button
-                  (click)="$event.stopPropagation(); goToAiAnswer(group, $event)"
+                  (click)="
+                    $event.stopPropagation(); goToAiAnswer(group, $event)
+                  "
                   class="inline-flex items-center justify-center rounded-lg border border-gray-200 px-3 py-2 text-gray-700 hover:bg-gray-100 hover:text-gray-900 focus:outline-none cursor-pointer"
                   title="AI Answer"
                   aria-label="AI Answer"
@@ -391,7 +489,9 @@
                     <path d="M17.598 6.5A3 3 0 1 0 12 5a3 3 0 1 0-5.598 1.5" />
                     <path d="M17.997 5.125a4 4 0 0 1 2.526 5.77" />
                     <path d="M18 18a4 4 0 0 0 2-7.464" />
-                    <path d="M19.967 17.483A4 4 0 1 1 12 18a4 4 0 1 1-7.967-.517" />
+                    <path
+                      d="M19.967 17.483A4 4 0 1 1 12 18a4 4 0 1 1-7.967-.517"
+                    />
                     <path d="M6 18a4 4 0 0 1-2-7.464" />
                     <path d="M6.003 5.125a4 4 0 0 0-2.526 5.77" />
                   </svg>
@@ -405,9 +505,13 @@
               </p>
 
               <!-- Condensed metadata -->
-              <div class="mt-3 flex flex-wrap items-center gap-2 text-xs sm:text-sm">
+              <div
+                class="mt-3 flex flex-wrap items-center gap-2 text-xs sm:text-sm"
+              >
                 <!-- Time chip -->
-                <span class="inline-flex items-center gap-1 rounded-full bg-gray-100 text-gray-700 px-2 py-0.5">
+                <span
+                  class="inline-flex items-center gap-1 rounded-full bg-gray-100 text-gray-700 px-2 py-0.5"
+                >
                   <svg
                     class="w-3.5 h-3.5 text-gray-500"
                     fill="none"
@@ -421,55 +525,87 @@
                       d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
                     ></path>
                   </svg>
-                  <span>{{ formatTime(group.segments[0].start_time) }} - {{ formatTime(group.segments[0].end_time) }}</span>
+                  <span
+                    >{{ formatTime(group.segments[0].start_time) }} -
+                    {{ formatTime(group.segments[0].end_time) }}</span
+                  >
                 </span>
 
                 <!-- Confidence chip -->
                 <span
                   class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 ring-1"
                   [ngClass]="{
-                    'bg-red-50 text-red-700 ring-red-100': group.segments[0].confidence < 0.4,
-                    'bg-orange-50 text-orange-700 ring-orange-100': group.segments[0].confidence >= 0.4 && group.segments[0].confidence < 0.6,
-                    'bg-yellow-50 text-yellow-700 ring-yellow-100': group.segments[0].confidence >= 0.6 && group.segments[0].confidence < 0.8,
-                    'bg-green-50 text-green-700 ring-green-100': group.segments[0].confidence >= 0.8
+                    'bg-red-50 text-red-700 ring-red-100':
+                      group.segments[0].confidence < 0.4,
+                    'bg-orange-50 text-orange-700 ring-orange-100':
+                      group.segments[0].confidence >= 0.4 &&
+                      group.segments[0].confidence < 0.6,
+                    'bg-yellow-50 text-yellow-700 ring-yellow-100':
+                      group.segments[0].confidence >= 0.6 &&
+                      group.segments[0].confidence < 0.8,
+                    'bg-green-50 text-green-700 ring-green-100':
+                      group.segments[0].confidence >= 0.8,
                   }"
                 >
                   <span
                     class="w-1.5 h-1.5 rounded-full"
                     [ngClass]="{
                       'bg-red-500': group.segments[0].confidence < 0.4,
-                      'bg-orange-500': group.segments[0].confidence >= 0.4 && group.segments[0].confidence < 0.6,
-                      'bg-yellow-500': group.segments[0].confidence >= 0.6 && group.segments[0].confidence < 0.8,
-                      'bg-green-500': group.segments[0].confidence >= 0.8
+                      'bg-orange-500':
+                        group.segments[0].confidence >= 0.4 &&
+                        group.segments[0].confidence < 0.6,
+                      'bg-yellow-500':
+                        group.segments[0].confidence >= 0.6 &&
+                        group.segments[0].confidence < 0.8,
+                      'bg-green-500': group.segments[0].confidence >= 0.8,
                     }"
                   ></span>
-                  <span>{{ group.segments[0].confidence * 100 | number : '1.0-0' }}% conf</span>
+                  <span
+                    >{{ group.segments[0].confidence * 100 | number: "1.0-0" }}%
+                    conf</span
+                  >
                 </span>
 
                 <!-- Relevance chip -->
                 <span
                   class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 ring-1"
                   [ngClass]="{
-                    'bg-red-50 text-red-700 ring-red-100': group.segments[0].semantic_score < 0.4,
-                    'bg-orange-50 text-orange-700 ring-orange-100': group.segments[0].semantic_score >= 0.4 && group.segments[0].semantic_score < 0.6,
-                    'bg-yellow-50 text-yellow-700 ring-yellow-100': group.segments[0].semantic_score >= 0.6 && group.segments[0].semantic_score < 0.8,
-                    'bg-green-50 text-green-700 ring-green-100': group.segments[0].semantic_score >= 0.8
+                    'bg-red-50 text-red-700 ring-red-100':
+                      group.segments[0].semantic_score < 0.4,
+                    'bg-orange-50 text-orange-700 ring-orange-100':
+                      group.segments[0].semantic_score >= 0.4 &&
+                      group.segments[0].semantic_score < 0.6,
+                    'bg-yellow-50 text-yellow-700 ring-yellow-100':
+                      group.segments[0].semantic_score >= 0.6 &&
+                      group.segments[0].semantic_score < 0.8,
+                    'bg-green-50 text-green-700 ring-green-100':
+                      group.segments[0].semantic_score >= 0.8,
                   }"
                 >
                   <span
                     class="w-1.5 h-1.5 rounded-full"
                     [ngClass]="{
                       'bg-red-500': group.segments[0].semantic_score < 0.4,
-                      'bg-orange-500': group.segments[0].semantic_score >= 0.4 && group.segments[0].semantic_score < 0.6,
-                      'bg-yellow-500': group.segments[0].semantic_score >= 0.6 && group.segments[0].semantic_score < 0.8,
-                      'bg-green-500': group.segments[0].semantic_score >= 0.8
+                      'bg-orange-500':
+                        group.segments[0].semantic_score >= 0.4 &&
+                        group.segments[0].semantic_score < 0.6,
+                      'bg-yellow-500':
+                        group.segments[0].semantic_score >= 0.6 &&
+                        group.segments[0].semantic_score < 0.8,
+                      'bg-green-500': group.segments[0].semantic_score >= 0.8,
                     }"
                   ></span>
-                  <span>{{ group.segments[0].semantic_score * 100 | number : '1.0-0' }}% rel</span>
+                  <span
+                    >{{
+                      group.segments[0].semantic_score * 100 | number: "1.0-0"
+                    }}% rel</span
+                  >
                 </span>
 
                 <!-- Matches chip -->
-                <span class="inline-flex items-center gap-1 rounded-full bg-purple-50 text-purple-700 ring-1 ring-purple-100 px-2 py-0.5">
+                <span
+                  class="inline-flex items-center gap-1 rounded-full bg-purple-50 text-purple-700 ring-1 ring-purple-100 px-2 py-0.5"
+                >
                   <span class="w-1.5 h-1.5 rounded-full bg-purple-500"></span>
                   <span>{{ group.segments.length }} matches</span>
                 </span>
@@ -492,7 +628,9 @@
     <div
       class="bg-white rounded-2xl shadow-lg w-full max-w-xs sm:max-w-md md:max-w-lg lg:max-w-2xl max-h-[100vh] overflow-y-auto border border-gray-200"
       (click)="$event.stopPropagation()"
-      role="dialog" aria-modal="true" aria-labelledby="semantic-modal-title"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="semantic-modal-title"
     >
       <!-- Header -->
       <div
@@ -506,7 +644,8 @@
         </h2>
         <button
           (click)="onModalClose()"
-          type="button" aria-label="Close dialog"
+          type="button"
+          aria-label="Close dialog"
           class="w-8 h-8 sm:w-10 sm:h-10 bg-gray-100 rounded-full flex items-center justify-center text-gray-400 hover:text-gray-600 hover:bg-gray-200 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-indigo-500"
         >
           <svg
@@ -662,7 +801,7 @@
               <p
                 class="text-lg sm:text-xl md:text-2xl font-bold text-green-800"
               >
-                {{ seg.confidence * 100 | number : "1.1-1" }}%
+                {{ seg.confidence * 100 | number: "1.1-1" }}%
               </p>
             </ng-container>
           </div>
@@ -692,7 +831,7 @@
             >
             <ng-container *ngIf="currentSegment as seg">
               <p class="text-lg sm:text-xl md:text-2xl font-bold text-blue-800">
-                {{ seg.semantic_score * 100 | number : "1.1-1" }}%
+                {{ seg.semantic_score * 100 | number: "1.1-1" }}%
               </p>
             </ng-container>
           </div>
@@ -724,7 +863,7 @@
               <p
                 class="text-lg sm:text-xl md:text-2xl font-bold text-purple-800"
               >
-                {{ seg.combined_score * 100 | number : "1.1-1" }}%
+                {{ seg.combined_score * 100 | number: "1.1-1" }}%
               </p>
             </ng-container>
           </div>
@@ -756,7 +895,7 @@
               <p
                 class="text-lg sm:text-xl md:text-2xl font-bold text-orange-800"
               >
-                {{ seg.technical_score | number : "1.1-1" }}
+                {{ seg.technical_score | number: "1.1-1" }}
               </p>
             </ng-container>
           </div>

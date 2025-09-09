@@ -38,10 +38,10 @@ export class UploadAudioService {
       `${environment.backendApiUrl}/api/process_audio`,
       formData,
       {
-        headers:headers,
+        headers: headers,
         reportProgress: true,
         observe: 'events',
-      }
+      },
     );
   }
 
@@ -53,7 +53,7 @@ export class UploadAudioService {
 
     return this.http.get<JobStatus>(
       `${environment.backendApiUrl}/api/job-status/${jobId}`,
-      { headers }
+      { headers },
     );
   }
 }

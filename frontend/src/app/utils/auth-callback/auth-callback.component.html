@@ -1,17 +1,26 @@
 <!-- auth-callback.component.html -->
-<div class="min-h-screen bg-black text-white flex items-center justify-center relative overflow-hidden">
+<div
+  class="min-h-screen bg-black text-white flex items-center justify-center relative overflow-hidden"
+>
   <div class="relative z-10 text-center w-full max-w-3xl px-6">
     <!-- Brand (minimal) -->
     <div class="mb-10 animate-fade-in-up">
-      <h1 class="text-2xl font-semibold tracking-wide text-white/90">VOICERA</h1>
+      <h1 class="text-2xl font-semibold tracking-wide text-white/90">
+        VOICERA
+      </h1>
       <p class="text-xs text-white/50 mt-1">Authenticating your account</p>
     </div>
 
     <!-- Animated message loader -->
     <div class="relative flex items-center justify-center">
-      <div id="load" role="status" aria-live="polite" aria-label="Authentication progress">
+      <div
+        id="load"
+        role="status"
+        aria-live="polite"
+        aria-label="Authentication progress"
+      >
         @for (c of messageChars; track $index; let i = $index) {
-          <div [style.animationDelay]="(i * 0.2) + 's'">{{ c }}</div>
+          <div [style.animationDelay]="i * 0.2 + 's'">{{ c }}</div>
         }
       </div>
     </div>

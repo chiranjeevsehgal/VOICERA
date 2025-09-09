@@ -116,38 +116,48 @@ export class AnalyticsService {
     });
   }
 
-  getUsageAnalytics(filters?: AnalyticsFilters): Observable<UsageAnalyticsResponse> {
+  getUsageAnalytics(
+    filters?: AnalyticsFilters,
+  ): Observable<UsageAnalyticsResponse> {
     let params = new URLSearchParams();
-    
+
     if (filters) {
       if (filters.days) params.append('days', filters.days.toString());
       if (filters.ip_address) params.append('ip_address', filters.ip_address);
       if (filters.user_id) params.append('user_id', filters.user_id);
       if (filters.endpoint) params.append('endpoint', filters.endpoint);
-      if (filters.status_code) params.append('status_code', filters.status_code.toString());
+      if (filters.status_code)
+        params.append('status_code', filters.status_code.toString());
       if (filters.start_date) params.append('start_date', filters.start_date);
       if (filters.end_date) params.append('end_date', filters.end_date);
     }
-    
+
     const url = `${this.baseUrl}/api/admin/analytics/usage${params.toString() ? '?' + params.toString() : ''}`;
-    return this.http.get<UsageAnalyticsResponse>(url, { headers: this.getHeaders() });
+    return this.http.get<UsageAnalyticsResponse>(url, {
+      headers: this.getHeaders(),
+    });
   }
 
-  getIPDetailedAnalytics(ipAddress: string, days: number = 30): Observable<IPDetailedAnalytics> {
+  getIPDetailedAnalytics(
+    ipAddress: string,
+    days: number = 30,
+  ): Observable<IPDetailedAnalytics> {
     return this.http.get<IPDetailedAnalytics>(
       `${this.baseUrl}/api/admin/analytics/ip-details/${encodeURIComponent(ipAddress)}?days=${days}`,
-      { headers: this.getHeaders() }
+      { headers: this.getHeaders() },
     );
   }
 
   getRealTimeAnalytics(minutes: number = 60): Observable<RealTimeAnalytics> {
     return this.http.get<RealTimeAnalytics>(
       `${this.baseUrl}/api/admin/analytics/real-time?minutes=${minutes}`,
-      { headers: this.getHeaders() }
+      { headers: this.getHeaders() },
     );
   }
 
-  getFilteredUsageAnalytics(filters: AnalyticsFilters): Observable<UsageAnalyticsResponse> {
+  getFilteredUsageAnalytics(
+    filters: AnalyticsFilters,
+  ): Observable<UsageAnalyticsResponse> {
     return this.getUsageAnalytics(filters);
   }
 }

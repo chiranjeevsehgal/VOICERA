@@ -295,8 +295,12 @@
 
     <!-- Content Header -->
     <div class="px-4 sm:px-6 py-3 sm:py-4 bg-gray-50 border-b border-gray-200">
-      <div class="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
-        <h3 class="text-base sm:text-lg font-semibold text-gray-900">Log Content</h3>
+      <div
+        class="flex flex-col gap-2 md:flex-row md:items-center md:justify-between"
+      >
+        <h3 class="text-base sm:text-lg font-semibold text-gray-900">
+          Log Content
+        </h3>
         <div class="flex flex-col md:flex-row md:items-center md:gap-4">
           <div class="text-sm text-gray-600">
             Showing {{ getLogLines().length | number }} lines
@@ -305,14 +309,26 @@
           <!-- Quick display options -->
           <div class="flex flex-wrap items-center gap-3">
             <label class="flex items-center text-sm text-gray-700">
-              <input type="checkbox" [(ngModel)]="wrapLines" class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" />
+              <input
+                type="checkbox"
+                [(ngModel)]="wrapLines"
+                class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+              />
               <span class="ml-2">Wrap</span>
             </label>
             <label class="flex items-center text-sm text-gray-700">
-              <input type="checkbox" [(ngModel)]="showLineNumbers" class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" />
+              <input
+                type="checkbox"
+                [(ngModel)]="showLineNumbers"
+                class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+              />
               <span class="ml-2">Line #</span>
             </label>
-            <select [(ngModel)]="fontSize" class="px-2 py-1 border border-gray-300 rounded text-sm bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500" aria-label="Font size">
+            <select
+              [(ngModel)]="fontSize"
+              class="px-2 py-1 border border-gray-300 rounded text-sm bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+              aria-label="Font size"
+            >
               <option value="text-xs">XS</option>
               <option value="text-sm">S</option>
               <option value="text-base">M</option>
@@ -336,7 +352,7 @@
           class="flex hover:bg-gray-800/50 transition-colors duration-150 min-h-[1.5rem] items-start"
           [ngClass]="{
             'whitespace-pre-wrap': wrapLines,
-            'whitespace-pre': !wrapLines
+            'whitespace-pre': !wrapLines,
           }"
         >
           <div

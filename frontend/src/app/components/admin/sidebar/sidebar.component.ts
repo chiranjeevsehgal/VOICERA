@@ -1,7 +1,17 @@
 import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { AudioLines, ClipboardCheck, KeyRound, LucideAngularModule, Users, Wallet, FileText, Upload, Activity } from 'lucide-angular';
+import {
+  AudioLines,
+  ClipboardCheck,
+  KeyRound,
+  LucideAngularModule,
+  Users,
+  Wallet,
+  FileText,
+  Upload,
+  Activity,
+} from 'lucide-angular';
 import { Router } from '@angular/router';
 import { ProfileService } from '../../../services/auth/profile.service';
 import { AdminAuthService } from '../../../services/admin/admin.auth.service';
@@ -31,7 +41,10 @@ export class SidebarComponent {
   @Output() itemSelected = new EventEmitter<string>();
   @Output() sidebarToggle = new EventEmitter<void>();
 
-  constructor(private router: Router, private messageService: MessageService) {}
+  constructor(
+    private router: Router,
+    private messageService: MessageService,
+  ) {}
 
   sidebarItems: SidebarItem[] = [
     {

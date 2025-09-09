@@ -1,4 +1,8 @@
-<section class="px-6 mb-10 flex justify-center" role="region" aria-labelledby="trending-title">
+<section
+  class="px-6 mb-10 flex justify-center"
+  role="region"
+  aria-labelledby="trending-title"
+>
   <h2 id="trending-title" class="sr-only">Trending searches</h2>
 
   @if (trendingItems.length > 0) {
@@ -18,7 +22,9 @@
       </ul>
     </nav>
   } @else {
-    <div class="flex items-center justify-center rounded-md border border-gray-200 bg-white py-4 px-4 text-sm text-gray-500">
+    <div
+      class="flex items-center justify-center rounded-md border border-gray-200 bg-white py-4 px-4 text-sm text-gray-500"
+    >
       No trending searches right now.
     </div>
   }

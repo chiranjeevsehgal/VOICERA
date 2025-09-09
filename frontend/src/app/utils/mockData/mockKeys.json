@@ -1,90 +1,90 @@
 {
-    "timestamp": 1725864123.4567,
-    "summary": {
-        "key_count": 5,
-        "has_keys": true,
-        "rpm_limit": 100,
-        "rps_limit": 2,
-        "tpm_limit_raw": 30000,
-        "tpm_limit_effective": 27000,
-        "rpd_limit": 1000,
-        "cooldown_default_s": 15.0
+  "timestamp": 1725864123.4567,
+  "summary": {
+    "key_count": 5,
+    "has_keys": true,
+    "rpm_limit": 100,
+    "rps_limit": 2,
+    "tpm_limit_raw": 30000,
+    "tpm_limit_effective": 27000,
+    "rpd_limit": 1000,
+    "cooldown_default_s": 15.0
+  },
+  "keys": [
+    {
+      "key_prefix": "AIza----------------------mK9_7Bx",
+      "cooldown_until": 0.0,
+      "cooldown_remaining_s": 0.0,
+      "rpm_last_min": 15,
+      "rps_last_sec": 1,
+      "tpm_last_min": 2450,
+      "daily_date": "2025-09-09",
+      "daily_count": 127,
+      "error_counts": {
+        "429": 3,
+        "auth_401_403": 0,
+        "5xx": 1
+      }
     },
-    "keys": [
-        {
-            "key_prefix": "AIza----------------------mK9_7Bx",
-            "cooldown_until": 0.0,
-            "cooldown_remaining_s": 0.0,
-            "rpm_last_min": 15,
-            "rps_last_sec": 1,
-            "tpm_last_min": 2450,
-            "daily_date": "2025-09-09",
-            "daily_count": 127,
-            "error_counts": {
-                "429": 3,
-                "auth_401_403": 0,
-                "5xx": 1
-            }
-        },
-        {
-            "key_prefix": "AIza----------------------FP8Q-RtL",
-            "cooldown_until": 1725864138.2341,
-            "cooldown_remaining_s": 14.8,
-            "rpm_last_min": 8,
-            "rps_last_sec": 0,
-            "tpm_last_min": 1820,
-            "daily_date": "2025-09-09",
-            "daily_count": 89,
-            "error_counts": {
-                "429": 7,
-                "auth_401_403": 1,
-                "5xx": 0
-            }
-        },
-        {
-            "key_prefix": "AIzaS----------------------Ym3VxW",
-            "cooldown_until": 0.0,
-            "cooldown_remaining_s": 0.0,
-            "rpm_last_min": 22,
-            "rps_last_sec": 2,
-            "tpm_last_min": 3675,
-            "daily_date": "2025-09-09",
-            "daily_count": 234,
-            "error_counts": {
-                "429": 12,
-                "auth_401_403": 0,
-                "5xx": 2
-            }
-        },
-        {
-            "key_prefix": "AIza----------------------hT6N_9cE",
-            "cooldown_until": 0.0,
-            "cooldown_remaining_s": 0.0,
-            "rpm_last_min": 5,
-            "rps_last_sec": 0,
-            "tpm_last_min": 890,
-            "daily_date": "2025-09-09",
-            "daily_count": 45,
-            "error_counts": {
-                "429": 1,
-                "auth_401_403": 0,
-                "5xx": 0
-            }
-        },
-        {
-            "key_prefix": "AI----------------------pD7K",
-            "cooldown_until": 1725864178.9876,
-            "cooldown_remaining_s": 55.5,
-            "rpm_last_min": 31,
-            "rps_last_sec": 1,
-            "tpm_last_min": 4210,
-            "daily_date": "2025-09-09",
-            "daily_count": 312,
-            "error_counts": {
-                "429": 18,
-                "auth_401_403": 2,
-                "5xx": 3
-            }
-        }
-    ]
+    {
+      "key_prefix": "AIza----------------------FP8Q-RtL",
+      "cooldown_until": 1725864138.2341,
+      "cooldown_remaining_s": 14.8,
+      "rpm_last_min": 8,
+      "rps_last_sec": 0,
+      "tpm_last_min": 1820,
+      "daily_date": "2025-09-09",
+      "daily_count": 89,
+      "error_counts": {
+        "429": 7,
+        "auth_401_403": 1,
+        "5xx": 0
+      }
+    },
+    {
+      "key_prefix": "AIzaS----------------------Ym3VxW",
+      "cooldown_until": 0.0,
+      "cooldown_remaining_s": 0.0,
+      "rpm_last_min": 22,
+      "rps_last_sec": 2,
+      "tpm_last_min": 3675,
+      "daily_date": "2025-09-09",
+      "daily_count": 234,
+      "error_counts": {
+        "429": 12,
+        "auth_401_403": 0,
+        "5xx": 2
+      }
+    },
+    {
+      "key_prefix": "AIza----------------------hT6N_9cE",
+      "cooldown_until": 0.0,
+      "cooldown_remaining_s": 0.0,
+      "rpm_last_min": 5,
+      "rps_last_sec": 0,
+      "tpm_last_min": 890,
+      "daily_date": "2025-09-09",
+      "daily_count": 45,
+      "error_counts": {
+        "429": 1,
+        "auth_401_403": 0,
+        "5xx": 0
+      }
+    },
+    {
+      "key_prefix": "AI----------------------pD7K",
+      "cooldown_until": 1725864178.9876,
+      "cooldown_remaining_s": 55.5,
+      "rpm_last_min": 31,
+      "rps_last_sec": 1,
+      "tpm_last_min": 4210,
+      "daily_date": "2025-09-09",
+      "daily_count": 312,
+      "error_counts": {
+        "429": 18,
+        "auth_401_403": 2,
+        "5xx": 3
+      }
+    }
+  ]
 }

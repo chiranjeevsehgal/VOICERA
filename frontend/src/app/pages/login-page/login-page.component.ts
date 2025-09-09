@@ -6,7 +6,9 @@ import { HotToastService } from '@ngxpert/hot-toast';
 @Component({
   selector: 'app-login-page',
   template: `
-    <div class="flex min-h-screen flex-col items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 p-6 md:p-10">
+    <div
+      class="flex min-h-screen flex-col items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 p-6 md:p-10"
+    >
       <div class="w-full max-w-sm md:max-w-4xl">
         <app-login-form></app-login-form>
       </div>
@@ -19,7 +21,7 @@ export class LoginPageComponent implements OnInit {
   constructor(
     private router: Router,
     private route: ActivatedRoute,
-    private toast: HotToastService
+    private toast: HotToastService,
   ) {}
 
   ngOnInit(): void {
@@ -32,14 +34,15 @@ export class LoginPageComponent implements OnInit {
         switch (params['error']) {
           case 'account_inactive':
             this.toast.error(
-              params['message'] || 'Your account is inactive. Please contact support.',
-              { id: 'account_inactive' }
+              params['message'] ||
+                'Your account is inactive. Please contact support.',
+              { id: 'account_inactive' },
             );
             break;
           case 'auth_failed':
             this.toast.error(
               params['message'] || 'Authentication failed. Please try again.',
-              { id: 'auth_failed' }
+              { id: 'auth_failed' },
             );
             break;
           default:

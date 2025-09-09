@@ -1,9 +1,18 @@
-import { Component, OnDestroy, OnInit, ElementRef, ViewChild } from '@angular/core';
+import {
+  Component,
+  OnDestroy,
+  OnInit,
+  ElementRef,
+  ViewChild,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { HttpClientModule } from '@angular/common/http';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
-import { LogsService, LogContentResponse } from '../../../services/admin/logs.service';
+import {
+  LogsService,
+  LogContentResponse,
+} from '../../../services/admin/logs.service';
 
 @Component({
   selector: 'app-log-viewer',
@@ -11,47 +20,47 @@ import { LogsService, LogContentResponse } from '../../../services/admin/logs.se
   imports: [CommonModule, HttpClientModule, FormsModule],
   providers: [LogsService],
   templateUrl: './log-viewer.component.html',
-  styles: ``
+  styles: ``,
 })
 export class LogViewerComponent implements OnInit, OnDestroy {
   loading = false;
   refreshing = false;
   error = '';
-  
+
   filename = '';
   logContent: LogContentResponse | null = null;
-  
+
   // Filters
   searchTerm = '';
   lineLimit = 1000;
   showFilters = false;
-  
+
   // Display options
   wrapLines = true;
   showLineNumbers = true;
   fontSize = 'text-sm';
   showScrollToBottom = false;
-  
+
   // Auto-refresh
   autoRefreshEnabled = false;
   private autoRefreshId?: number;
   private readonly autoRefreshMs = 3000;
   // Scroll behavior
   private firstLoad = true;
-  
+
   // Incremental rendering
   logLines: string[] = [];
   private lastContentText: string = '';
   @ViewChild('logContainer') logContainer?: ElementRef<HTMLDivElement>;
-  
+
   constructor(
     private route: ActivatedRoute,
     private router: Router,
-    private logsService: LogsService
+    private logsService: LogsService,
   ) {}
 
   ngOnInit(): void {
-    this.route.params.subscribe(params => {
+    this.route.params.subscribe((params) => {
       this.filename = params['filename'];
       if (this.filename) {
         this.loadLogContent();
@@ -66,10 +75,10 @@ export class LogViewerComponent implements OnInit, OnDestroy {
   loadLogContent(): void {
     this.loading = true;
     this.error = '';
-    
+
     const lines = this.lineLimit > 0 ? this.lineLimit : undefined;
     const search = this.searchTerm.trim() || undefined;
-    
+
     this.logsService.getLogFileContent(this.filename, lines, search).subscribe({
       next: (response: LogContentResponse) => {
         // Keep the raw response for download/copy
@@ -84,7 +93,7 @@ export class LogViewerComponent implements OnInit, OnDestroy {
         this.error = 'Failed to load log content. Please try again.';
         this.loading = false;
         this.refreshing = false;
-      }
+      },
     });
   }
 
@@ -149,7 +158,9 @@ export class LogViewerComponent implements OnInit, OnDestroy {
     } else {
       // Update the visibility of the button based on current position after render
       setTimeout(() => {
-        this.showScrollToBottom = !this.isAtBottom(this.logContainer?.nativeElement);
+        this.showScrollToBottom = !this.isAtBottom(
+          this.logContainer?.nativeElement,
+        );
       }, 0);
     }
   }
@@ -218,7 +229,7 @@ export class LogViewerComponent implements OnInit, OnDestroy {
 
   downloadLog(): void {
     if (!this.logContent) return;
-    
+
     const blob = new Blob([this.logContent.content], { type: 'text/plain' });
     const url = window.URL.createObjectURL(blob);
     const link = document.createElement('a');
@@ -230,25 +241,25 @@ export class LogViewerComponent implements OnInit, OnDestroy {
 
   formatFileSize(bytes: number): string {
     if (bytes === 0) return '0 B';
-    
+
     const k = 1024;
     const sizes = ['B', 'KB', 'MB', 'GB'];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
-    
+
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   }
 
   formatDate(dateString: string): string {
     const date = new Date(dateString);
     if (isNaN(date.getTime())) return '—';
-    
+
     return date.toLocaleString('en-US', {
       year: 'numeric',
       month: 'short',
       day: 'numeric',
       hour: '2-digit',
       minute: '2-digit',
-      second: '2-digit'
+      second: '2-digit',
     });
   }
 
@@ -259,9 +270,12 @@ export class LogViewerComponent implements OnInit, OnDestroy {
 
   highlightSearchTerm(line: string): string {
     if (!this.searchTerm.trim()) return line;
-    
+
     const regex = new RegExp(`(${this.escapeRegExp(this.searchTerm)})`, 'gi');
-    return line.replace(regex, '<mark class="bg-yellow-400 text-gray-900 px-1 rounded font-semibold">$1</mark>');
+    return line.replace(
+      regex,
+      '<mark class="bg-yellow-400 text-gray-900 px-1 rounded font-semibold">$1</mark>',
+    );
   }
 
   private escapeRegExp(string: string): string {
@@ -270,8 +284,12 @@ export class LogViewerComponent implements OnInit, OnDestroy {
 
   getLineClass(line: string): string {
     const lowerLine = line.toLowerCase();
-    
-    if (lowerLine.includes('error') || lowerLine.includes('exception') || lowerLine.includes('failed')) {
+
+    if (
+      lowerLine.includes('error') ||
+      lowerLine.includes('exception') ||
+      lowerLine.includes('failed')
+    ) {
       return 'text-red-400 bg-red-900/20 border-l-2 border-red-400';
     }
     if (lowerLine.includes('warning') || lowerLine.includes('warn')) {
@@ -283,17 +301,20 @@ export class LogViewerComponent implements OnInit, OnDestroy {
     if (lowerLine.includes('debug')) {
       return 'text-gray-400';
     }
-    
+
     return 'text-gray-200';
   }
 
   copyToClipboard(): void {
     if (!this.logContent?.content) return;
-    
-    navigator.clipboard.writeText(this.logContent.content).then(() => {
-      // Could add a toast notification here
-    }).catch(err => {
-      console.error('Failed to copy to clipboard', err);
-    });
+
+    navigator.clipboard
+      .writeText(this.logContent.content)
+      .then(() => {
+        // Could add a toast notification here
+      })
+      .catch((err) => {
+        console.error('Failed to copy to clipboard', err);
+      });
   }
 }
