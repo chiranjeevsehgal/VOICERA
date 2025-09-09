@@ -6,7 +6,7 @@ from datetime import datetime, timedelta
 from typing import Optional, Dict, Any
 import os
 from dotenv import load_dotenv
-from services.database import db, users_collection
+from services.database import db, users_collection, guests_collection
 from bson import ObjectId
 from bson.errors import InvalidId
 
@@ -16,11 +16,15 @@ SECRET_KEY = os.getenv("SECRET_KEY")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES"))
 
+GUEST_ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("GUEST_ACCESS_TOKEN_EXPIRE_MINUTES"))
+
 # Password hash context
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 # OAuth2 scheme
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login")
+
+guest_counter = 0
 
 # Utility functions
 def verify_password(plain_password: str, hashed_password: str) -> bool:
@@ -72,6 +76,31 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
 
+async def get_next_guest_count() -> int:
+    """Get the next guest count using in-memory counter"""
+    global guest_counter
+    guest_counter += 1
+    return guest_counter
+
+async def get_guest(uid: str) -> Optional[Dict[str, Any]]:
+    """Get guest user by ID from guests collection"""
+    try:
+        obj_id = ObjectId(uid)
+    except InvalidId:
+        return None
+    if (guest := await guests_collection.find_one({"_id": obj_id})):
+        return guest
+    return None
+
+def is_guest_user(user: Dict[str, Any]) -> bool:
+    """Check if a user is a guest user"""
+    return user.get("role") == "guest" or "guest_id" in user
+
+async def create_guest_user(guest_data: Dict[str, Any]) -> ObjectId:
+    """Create a guest user in the guests collection"""
+    result = await guests_collection.insert_one(guest_data)
+    return result.inserted_id
+
 async def get_current_user(token: str = Depends(oauth2_scheme)) -> Dict[str, Any]:
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
@@ -81,14 +110,20 @@ async def get_current_user(token: str = Depends(oauth2_scheme)) -> Dict[str, Any
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         uid: str = payload.get("sub")
+        is_guest: bool = payload.get("is_guest", False)
         if uid is None:
             raise credentials_exception
     except JWTError:
         raise credentials_exception
     
-    user = await get_user(uid)
+    if is_guest:
+        user = await get_guest(uid)
+    else:
+        user = await get_user(uid)
+            
     if user is None:
         raise credentials_exception
+
     return user
 
 # Role-based access control

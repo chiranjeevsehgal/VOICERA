@@ -5,12 +5,14 @@ from datetime import timedelta
 from services.auth import (
     authenticate_user, create_access_token, 
     get_current_user, get_password_hash,
-    get_user, get_user_by_email, ACCESS_TOKEN_EXPIRE_MINUTES, users_collection
+    get_user, get_user_by_email, ACCESS_TOKEN_EXPIRE_MINUTES, GUEST_ACCESS_TOKEN_EXPIRE_MINUTES, users_collection, get_next_guest_count, create_guest_user
 )
 from models.auth import Token, UserCreate, UserResponse, ProfileResponse
 from datetime import datetime
+import logging
 
 router = APIRouter(prefix='/auth')
+logger = logging.getLogger(__name__)
 
 @router.post("/login", response_model=Token)
 async def login_user(
@@ -57,6 +59,66 @@ async def login_user(
         "access_token": access_token, 
         "token_type": "bearer"
         }
+
+
+@router.post("/guest", response_model=Token)
+async def guest_login():
+    try:
+        # Get the next guest count
+        guest_count = await get_next_guest_count()
+        
+        # Generate guest credentials
+        guest_email = f"guest_vera{guest_count}@gmail.com"
+        guest_name = f"Guest User {guest_count}"
+        
+        # Create guest user data (no password needed)
+        guest_user_data = {
+            "email": guest_email,
+            "name": guest_name,
+            "role": "guest",
+            "status": "active",
+            "guest_id": guest_count,
+            "created_at": datetime.utcnow(),
+            "last_login": datetime.utcnow()
+        }
+        
+        # Insert the guest user into separate guests collection
+        guest_user_id = await create_guest_user(guest_user_data)
+        
+        # Create token for guest user
+        token_data = {
+            "sub": str(guest_user_id),
+            "email": guest_email,
+            "role": "guest",
+            "userId": str(guest_user_id),
+            "is_guest": True,
+            "guest_id": guest_count
+        }
+        
+        access_token_expires = timedelta(minutes=GUEST_ACCESS_TOKEN_EXPIRE_MINUTES)
+        access_token = create_access_token(
+            data=token_data, expires_delta=access_token_expires
+        )
+        
+        return {
+            "status": True,
+            "detail": "Guest session created successfully",
+            "role": "guest",
+            "access_token": access_token,
+            "token_type": "bearer"
+        }
+        
+    except Exception as e:
+        logger.error(f"Guest login error: {str(e)}")
+        return JSONResponse(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            content={
+                "status": False,
+                "detail": "Failed to create guest session. Please try again.",
+                "access_token": None,
+                "token_type": None
+            }
+        )
 
 @router.post("/register", response_model=UserResponse)
 async def register_user(user: UserCreate):
