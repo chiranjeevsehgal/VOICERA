@@ -9,7 +9,6 @@ import {
   RateLimitsResponse,
   CircuitBreakerState,
 } from '../../../services/admin/system-health.service';
-import { Toast } from 'primeng/toast';
 import {
   LucideAngularModule,
   Activity,
@@ -32,7 +31,6 @@ import { HotToastService } from '@ngxpert/hot-toast';
   selector: 'app-application-status',
   standalone: true,
   imports: [
-    Toast,
     CommonModule,
     FormsModule,
     HttpClientModule,

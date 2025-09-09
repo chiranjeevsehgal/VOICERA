@@ -3,7 +3,6 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClientModule } from '@angular/common/http';
 import { User, UserService } from '../../../services/admin/user.service';
-import { Toast } from 'primeng/toast';
 import { LucideAngularModule, Check, X, Users } from 'lucide-angular';
 import {
   getCurrentUserRole,
@@ -16,7 +15,6 @@ import { HotToastService } from '@ngxpert/hot-toast';
   selector: 'app-user-management',
   standalone: true,
   imports: [
-    Toast,
     CommonModule,
     FormsModule,
     HttpClientModule,

@@ -15,8 +15,7 @@ import {
 import { Router } from '@angular/router';
 import { ProfileService } from '../../../services/auth/profile.service';
 import { AdminAuthService } from '../../../services/admin/admin.auth.service';
-import { MessageService } from 'primeng/api';
-import { Toast } from 'primeng/toast';
+import { HotToastService } from '@ngxpert/hot-toast';
 
 export interface SidebarItem {
   id: string;
@@ -29,8 +28,8 @@ export interface SidebarItem {
 
 @Component({
   selector: 'app-sidebar',
-  imports: [CommonModule, FormsModule, LucideAngularModule, Toast],
-  providers: [MessageService],
+  imports: [CommonModule, FormsModule, LucideAngularModule],
+  providers: [],
   templateUrl: './sidebar.component.html',
   styles: ``,
 })
@@ -43,7 +42,7 @@ export class SidebarComponent {
 
   constructor(
     private router: Router,
-    private messageService: MessageService,
+    private toast: HotToastService,
   ) {}
 
   sidebarItems: SidebarItem[] = [

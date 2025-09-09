@@ -18,10 +18,10 @@ import { HeaderComponent } from '../../components/header/header.component';
 import { SerachSectionComponent } from '../../components/search-section/search-section.component';
 import { PodcastGridComponent } from '../../components/podcast-grid/podcast-grid.component';
 import { PodcastListComponent } from '../../components/podcast-list/podcast-list.component';
-import { MessageService } from 'primeng/api';
 import { AudioModalComponent } from '../../components/audio-modal/audio-modal.component';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { HotToastService } from '@ngxpert/hot-toast';
 
 @Component({
   selector: 'app-search',
@@ -36,7 +36,7 @@ import { FormsModule } from '@angular/forms';
     PodcastGridComponent,
     PodcastListComponent,
   ],
-  providers: [MessageService],
+  providers: [],
 })
 export class SearchComponent implements OnInit, OnDestroy, AfterViewInit {
   podcasts: any[] = [];
@@ -77,7 +77,7 @@ export class SearchComponent implements OnInit, OnDestroy, AfterViewInit {
 
   constructor(
     private podcastService: PodcastService,
-    private messageService: MessageService,
+    private toast: HotToastService,
     private ngZone: NgZone,
   ) {}
 
@@ -184,11 +184,7 @@ export class SearchComponent implements OnInit, OnDestroy, AfterViewInit {
       },
       error: (error) => {
         console.error('Error loading podcasts:', error);
-        this.messageService.add({
-          severity: 'error',
-          summary: 'Error',
-          detail: 'Failed to load podcasts',
-        });
+        this.toast.error('Failed to load podcasts. Please try again.');
         this.isLoading = false;
         this.loadingMore = false;
       },
