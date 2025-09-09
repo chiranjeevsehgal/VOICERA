@@ -5,7 +5,7 @@ import { HttpClientModule } from '@angular/common/http';
 import { User, UserService } from '../../../services/admin/user.service';
 import { Toast } from 'primeng/toast';
 import { MessageService } from 'primeng/api';
-import { LucideAngularModule, Check, X } from 'lucide-angular';
+import { LucideAngularModule, Check, X, Users } from 'lucide-angular';
 import {
   getCurrentUserRole,
   shouldUseMockData,
@@ -31,6 +31,7 @@ export class UserManagementComponent implements OnInit {
   users: User[] = [];
   readonly Check = Check;
   readonly X = X;
+  readonly Users = Users; 
   filteredUsers: User[] = [];
   searchQuery: string = '';
   selectedRole: string = 'all';

@@ -11,6 +11,7 @@ import { UsageLogsComponent } from '../../../components/admin/usage-logs/usage-l
 import { ApplicationLogsComponent } from '../../../components/admin/application-logs/application-logs.component';
 import { GeminiKeysComponent } from '../../../components/admin/gemini-keys/gemini-keys.component';
 import { shouldUseMockData } from '../../../utils/role.utils';
+import { Handshake, LucideAngularModule } from 'lucide-angular';
 
 @Component({
   selector: 'app-dashboard',
@@ -23,6 +24,7 @@ import { shouldUseMockData } from '../../../utils/role.utils';
     UsageLogsComponent,
     ApplicationLogsComponent,
     GeminiKeysComponent,
+    LucideAngularModule,
   ],
   templateUrl: './dashboard.component.html',
   styles: ``,
@@ -38,7 +40,7 @@ export class AdminDashboardComponent implements OnInit, OnDestroy {
   isDemoMode: boolean = false;
   showDemoTooltip: boolean = false;
   private destroy$ = new Subject<void>();
-
+  readonly Handshake = Handshake;
   private readonly CURRENT_VIEW_KEY = 'vEra_admin_current-view';
 
   // Responsive breakpoint detection
