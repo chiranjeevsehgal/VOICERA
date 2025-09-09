@@ -17,13 +17,13 @@ import { AiAnswerComponent } from './pages/ai-answer/ai-answer.component';
 export const routes: Routes = [
 
     {path: "", redirectTo: "login", pathMatch: "full" },
-    {path:"login", component: LoginPageComponent, canActivate : [redirectGuard]},
-    {path:"library", component: SearchComponent, canActivate : [authGuard]},
-    {path:"ai-search", component: SemanticSearchComponent, canActivate : [authGuard]},
-    {path:"ai-answer", component: AiAnswerComponent, canActivate : [authGuard]},
-    {path:"upload", component: UploadComponent, canActivate : [authGuard]},
-    {path:"track", component: UploadTrackingComponent, canActivate : [authGuard]},
-    {path:"auth/callback", component: AuthCallbackComponent},
+    {path:"login", component: LoginPageComponent, canActivate : [redirectGuard], title: 'Login'},
+    {path:"library", component: SearchComponent, canActivate : [authGuard], title: 'Library'},
+    {path:"ai-search", component: SemanticSearchComponent, canActivate : [authGuard], title: 'AI Search'},
+    {path:"ai-answer", component: AiAnswerComponent, canActivate : [authGuard], title: 'AI Answer'},
+    {path:"upload", component: UploadComponent, canActivate : [authGuard], title: 'Upload'},
+    {path:"track", component: UploadTrackingComponent, canActivate : [authGuard], title: 'Upload Tracking'},
+    {path:"auth/callback", component: AuthCallbackComponent, title: 'Authenticating'},
     
     // Admin route
     {
@@ -33,11 +33,11 @@ export const routes: Routes = [
         ],
         children: [
             { path: '', redirectTo: 'login', pathMatch: 'full' },
-            { path: 'dashboard', component: AdminDashboardComponent },
-            { path: 'application-logs', component: ApplicationLogsComponent },
-            { path: 'application-logs/:filename', component: LogViewerComponent },
+            { path: 'dashboard', component: AdminDashboardComponent, title: 'Admin Dashboard' },
+            { path: 'application-logs', component: ApplicationLogsComponent, title: 'Application Logs' },
+            { path: 'application-logs/:filename', component: LogViewerComponent, title: 'Log Viewer' },
         ]
     },
-    {path: "**", component: PageNotFound},
+    {path: "**", component: PageNotFound, title: 'Not Found'},
 
 ];
