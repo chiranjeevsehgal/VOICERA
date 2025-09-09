@@ -12,15 +12,13 @@ if not getattr(logging.getLogger(), "_voicera_logging_configured", False):
 
 logger = logging.getLogger("voicera.app")
 
+
 async def add_log_entry(
-    level: str,
-    message: str,
-    source: str,
-    context: Optional[Dict[str, Any]] = None
+    level: str, message: str, source: str, context: Optional[Dict[str, Any]] = None
 ):
     """
     Add a log entry to the application logs collection.
-    
+
     Args:
         level: Log level (info, warning, error, debug)
         message: Log message content
@@ -29,15 +27,15 @@ async def add_log_entry(
     """
     if context is None:
         context = {}
-    
+
     log_entry = {
         "timestamp": datetime.utcnow(),
         "level": level,
         "message": message,
         "source": source,
-        "context": context
+        "context": context,
     }
-    
+
     try:
         # Best-effort: store logs in Mongo for querying dashboards
         await logs_collection.insert_one(log_entry)
@@ -46,7 +44,10 @@ async def add_log_entry(
         logger.warning("Failed to add log entry to DB: %s", e)
         _emit_to_python_logger(level, message, source, context)
 
-def _emit_to_python_logger(level: str, message: str, source: str, context: Optional[Dict[str, Any]] = None) -> None:
+
+def _emit_to_python_logger(
+    level: str, message: str, source: str, context: Optional[Dict[str, Any]] = None
+) -> None:
     extra = {"source": source, **(context or {})}
     # Append context to message for flat-file readability
     if context:
@@ -61,28 +62,52 @@ def _emit_to_python_logger(level: str, message: str, source: str, context: Optio
     else:
         logger.info(message, extra=extra)
 
-def log_info(message: str, source: str, context: Optional[Dict[str, Any]] = None, background_tasks: Optional[BackgroundTasks] = None):
+
+def log_info(
+    message: str,
+    source: str,
+    context: Optional[Dict[str, Any]] = None,
+    background_tasks: Optional[BackgroundTasks] = None,
+):
     """Log an info-level message"""
     if background_tasks is not None:
         background_tasks.add_task(add_log_entry, "info", message, source, context)
     else:
         _emit_to_python_logger("info", message, source, context)
 
-def log_warning(message: str, source: str, context: Optional[Dict[str, Any]] = None, background_tasks: Optional[BackgroundTasks] = None):
+
+def log_warning(
+    message: str,
+    source: str,
+    context: Optional[Dict[str, Any]] = None,
+    background_tasks: Optional[BackgroundTasks] = None,
+):
     """Log a warning-level message"""
     if background_tasks is not None:
         background_tasks.add_task(add_log_entry, "warning", message, source, context)
     else:
         _emit_to_python_logger("warning", message, source, context)
 
-def log_error(message: str, source: str, context: Optional[Dict[str, Any]] = None, background_tasks: Optional[BackgroundTasks] = None):
+
+def log_error(
+    message: str,
+    source: str,
+    context: Optional[Dict[str, Any]] = None,
+    background_tasks: Optional[BackgroundTasks] = None,
+):
     """Log an error-level message"""
     if background_tasks is not None:
         background_tasks.add_task(add_log_entry, "error", message, source, context)
     else:
         _emit_to_python_logger("error", message, source, context)
 
-def log_debug(message: str, source: str, context: Optional[Dict[str, Any]] = None, background_tasks: Optional[BackgroundTasks] = None):
+
+def log_debug(
+    message: str,
+    source: str,
+    context: Optional[Dict[str, Any]] = None,
+    background_tasks: Optional[BackgroundTasks] = None,
+):
     """Log a debug-level message"""
     if background_tasks is not None:
         background_tasks.add_task(add_log_entry, "debug", message, source, context)

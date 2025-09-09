@@ -83,7 +83,11 @@ class GeminiKeyManager:
 
         with self._mgr_lock:
             self._keys = [_KeyState(k) for k in deduped]
-            log_info(f"GeminiKeyManager initialized with {len(self._keys)} key(s)", "gemini_key_manager", {"key_count": len(self._keys)})
+            log_info(
+                f"GeminiKeyManager initialized with {len(self._keys)} key(s)",
+                "gemini_key_manager",
+                {"key_count": len(self._keys)},
+            )
 
     def has_keys(self) -> bool:
         with self._mgr_lock:
@@ -114,7 +118,9 @@ class GeminiKeyManager:
     def _effective_tpm(self) -> int:
         return int(self.tpm * self.tpm_safety)
 
-    def _check_capacity_and_reserve(self, st: _KeyState, tokens: int, now: float) -> Tuple[bool, float]:
+    def _check_capacity_and_reserve(
+        self, st: _KeyState, tokens: int, now: float
+    ) -> Tuple[bool, float]:
         """
         Returns (ok, wait_seconds). If ok==True, the reservation has been recorded.
         If ok==False, wait_seconds is the predicted time until the key can accept the request.
@@ -163,7 +169,9 @@ class GeminiKeyManager:
             wait_s = max(0.0, min(max(waits) if waits else 0.5, 60.0))
             return False, wait_s
 
-    def acquire(self, tokens: int, request_type: str = "embed", max_wait_seconds: float = 60.0) -> str:
+    def acquire(
+        self, tokens: int, request_type: str = "embed", max_wait_seconds: float = 60.0
+    ) -> str:
         """
         Block until a key is available and return its string value.
         Chooses the key with the smallest predicted wait time.
@@ -183,7 +191,11 @@ class GeminiKeyManager:
             for st in keys_snapshot:
                 ok, wait_s = self._check_capacity_and_reserve(st, tokens, now)
                 if ok:
-                    log_info("GeminiKeyManager selected key immediately", "gemini_key_manager", {"key_prefix": st.api_key[:100], "tokens": tokens})
+                    log_info(
+                        "GeminiKeyManager selected key immediately",
+                        "gemini_key_manager",
+                        {"key_prefix": st.api_key[:100], "tokens": tokens},
+                    )
                     return st.api_key
                 else:
                     if wait_s < best_wait:
@@ -207,7 +219,13 @@ class GeminiKeyManager:
 
             time.sleep(slept)
 
-    def report_result(self, api_key: str, status_code: int, retry_after: Optional[float] = None, status: Optional[str] = None) -> None:
+    def report_result(
+        self,
+        api_key: str,
+        status_code: int,
+        retry_after: Optional[float] = None,
+        status: Optional[str] = None,
+    ) -> None:
         """
         Inform the manager of the outcome so it can cooldown misbehaving keys.
         - 429: apply Retry-After if provided, else default cooldown
@@ -229,19 +247,35 @@ class GeminiKeyManager:
             if status_code >= 400 and status:
                 st.err_counts[status] = st.err_counts.get(status, 0) + 1
             if status_code == 429:
-                delta = float(retry_after) if retry_after and retry_after > 0 else self.cooldown_sec_default
+                delta = (
+                    float(retry_after)
+                    if retry_after and retry_after > 0
+                    else self.cooldown_sec_default
+                )
                 st.cooldown_until = max(st.cooldown_until, now + delta)
                 st.err_429 += 1
-                log_warning("Applied cooldown due to 429", "gemini_key_manager", {"key_prefix": st.api_key[:100], "cooldown_sec": delta})
+                log_warning(
+                    "Applied cooldown due to 429",
+                    "gemini_key_manager",
+                    {"key_prefix": st.api_key[:100], "cooldown_sec": delta},
+                )
             elif status_code in (401, 403):
                 # Effectively disable for 5 minutes
                 st.cooldown_until = max(st.cooldown_until, now + 300.0)
                 st.err_auth += 1
-                log_error("Applied long cooldown due to auth/permission error", "gemini_key_manager", {"key_prefix": st.api_key[:100], "status": status_code})
+                log_error(
+                    "Applied long cooldown due to auth/permission error",
+                    "gemini_key_manager",
+                    {"key_prefix": st.api_key[:100], "status": status_code},
+                )
             elif 500 <= status_code <= 599:
                 st.cooldown_until = max(st.cooldown_until, now + 5.0)
                 st.err_5xx += 1
-                log_warning("Applied short cooldown due to server error", "gemini_key_manager", {"key_prefix": st.api_key[:100], "status": status_code})
+                log_warning(
+                    "Applied short cooldown due to server error",
+                    "gemini_key_manager",
+                    {"key_prefix": st.api_key[:100], "status": status_code},
+                )
             else:
                 # Success or other statuses: no cooldown
                 pass
@@ -275,17 +309,21 @@ class GeminiKeyManager:
                 combined_errs["auth_401_403"] = st.err_auth
                 combined_errs["5xx"] = st.err_5xx
 
-                keys_out.append({
-                    "key_prefix": st.api_key[:100],
-                    "cooldown_until": st.cooldown_until if cooldown_remaining > 0 else 0.0,
-                    "cooldown_remaining_s": round(cooldown_remaining, 3),
-                    "rpm_last_min": rpm_last_min,
-                    "rps_last_sec": rps_last_sec,
-                    "tpm_last_min": tpm_last_min,
-                    "daily_date": st.daily_date,
-                    "daily_count": st.daily_count,
-                    "error_counts": combined_errs,
-                })
+                keys_out.append(
+                    {
+                        "key_prefix": st.api_key[:100],
+                        "cooldown_until": st.cooldown_until
+                        if cooldown_remaining > 0
+                        else 0.0,
+                        "cooldown_remaining_s": round(cooldown_remaining, 3),
+                        "rpm_last_min": rpm_last_min,
+                        "rps_last_sec": rps_last_sec,
+                        "tpm_last_min": tpm_last_min,
+                        "daily_date": st.daily_date,
+                        "daily_count": st.daily_count,
+                        "error_counts": combined_errs,
+                    }
+                )
 
         status = {
             "timestamp": now,

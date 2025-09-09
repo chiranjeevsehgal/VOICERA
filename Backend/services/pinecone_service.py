@@ -13,7 +13,11 @@ from dotenv import load_dotenv
 import requests
 from utils.logging import log_info, log_warning, log_error
 from services.gemini_key_manager import gemini_key_manager
-from services.circuit_breaker import ServiceCircuitBreakers, CircuitBreakerError, CircuitState
+from services.circuit_breaker import (
+    ServiceCircuitBreakers,
+    CircuitBreakerError,
+    CircuitState,
+)
 
 # Load environment variables
 load_dotenv()
@@ -23,8 +27,12 @@ TOGETHER_API_KEY = os.getenv("TOGETHER_API_KEY")
 PINECONE_API_KEY = os.getenv("PINECONE_API_KEY")
 PINECONE_ENVIRONMENT = os.getenv("PINECONE_ENVIRONMENT", "gcp-starter")
 PINECONE_INDEX_NAME = os.getenv("PINECONE_INDEX_NAME", "voicera-audio-search")
-EMBEDDING_MODEL = os.getenv("TOGETHER_EMBEDDING_MODEL", "togethercomputer/m2-bert-80M-32k-retrieval")
-EMBEDDING_DIMENSION = int(os.getenv("EMBEDDING_DIMENSION", "768"))  # 768 for m2-bert-80M-32k-retrieval
+EMBEDDING_MODEL = os.getenv(
+    "TOGETHER_EMBEDDING_MODEL", "togethercomputer/m2-bert-80M-32k-retrieval"
+)
+EMBEDDING_DIMENSION = int(
+    os.getenv("EMBEDDING_DIMENSION", "768")
+)  # 768 for m2-bert-80M-32k-retrieval
 EMBED_MAX_CONCURRENCY = int(os.getenv("EMBED_MAX_CONCURRENCY", "3"))
 EMBED_MAX_RETRIES = int(os.getenv("EMBED_MAX_RETRIES", "5"))
 EMBED_RETRY_BASE_DELAY = float(os.getenv("EMBED_RETRY_BASE_DELAY", "0.5"))
@@ -37,13 +45,21 @@ UPSERT_RETRY_BASE_DELAY = float(os.getenv("UPSERT_RETRY_BASE_DELAY", "0.5"))
 EMBED_PROVIDER = int(os.getenv("EMBED_PROVIDER", "1"))
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 GEMINI_EMBED_MODEL = os.getenv("GEMINI_EMBED_MODEL", "gemini-embedding-001")
-GEMINI_EMBED_RPM = int(os.getenv("GEMINI_EMBED_RPM", "100"))       # requests per minute
-GEMINI_EMBED_TPM = int(os.getenv("GEMINI_EMBED_TPM", "30000"))      # tokens per minute
-GEMINI_EMBED_RPD = int(os.getenv("GEMINI_EMBED_RPD", "1000"))       # requests per day
-GEMINI_BATCH_SIZE = int(os.getenv("GEMINI_BATCH_SIZE", "16"))       # max texts per batch request
-GEMINI_EMBED_RPS = int(os.getenv("GEMINI_EMBED_RPS", "2"))          # requests per second (soft throttle)
-GEMINI_TPM_SAFETY = float(os.getenv("GEMINI_TPM_SAFETY", "0.9"))    # use 90% of TPM to be safe
-GEMINI_TOKEN_OVERHEAD = int(os.getenv("GEMINI_TOKEN_OVERHEAD", "32")) # overhead tokens per request
+GEMINI_EMBED_RPM = int(os.getenv("GEMINI_EMBED_RPM", "100"))  # requests per minute
+GEMINI_EMBED_TPM = int(os.getenv("GEMINI_EMBED_TPM", "30000"))  # tokens per minute
+GEMINI_EMBED_RPD = int(os.getenv("GEMINI_EMBED_RPD", "1000"))  # requests per day
+GEMINI_BATCH_SIZE = int(
+    os.getenv("GEMINI_BATCH_SIZE", "16")
+)  # max texts per batch request
+GEMINI_EMBED_RPS = int(
+    os.getenv("GEMINI_EMBED_RPS", "2")
+)  # requests per second (soft throttle)
+GEMINI_TPM_SAFETY = float(
+    os.getenv("GEMINI_TPM_SAFETY", "0.9")
+)  # use 90% of TPM to be safe
+GEMINI_TOKEN_OVERHEAD = int(
+    os.getenv("GEMINI_TOKEN_OVERHEAD", "32")
+)  # overhead tokens per request
 GEMINI_MAX_BATCH_TOKENS = int(os.getenv("GEMINI_MAX_BATCH_TOKENS", "20000"))
 
 SEMANTIC_SIMILARITY = "SEMANTIC_SIMILARITY"
@@ -65,11 +81,12 @@ _upsert_sem = threading.Semaphore(UPSERT_MAX_CONCURRENCY)
 
 # --- Google Gemini embedding rate limiter (RPM/TPM/RPD) ---
 _rate_lock = threading.Lock()
-_rpm_timestamps: deque = deque()           # timestamps of requests in last 60s
-_tpm_entries: deque = deque()              # (timestamp, token_count) in last 60s
-_rps_timestamps: deque = deque()           # timestamps of requests in last 1s
+_rpm_timestamps: deque = deque()  # timestamps of requests in last 60s
+_tpm_entries: deque = deque()  # (timestamp, token_count) in last 60s
+_rps_timestamps: deque = deque()  # timestamps of requests in last 1s
 _daily_date: Optional[str] = None
 _daily_count: int = 0
+
 
 def _estimate_tokens_for_gemini(text: str) -> int:
     """Rough token estimate for Gemini embeddings. ~4 chars per token heuristic.
@@ -81,6 +98,7 @@ def _estimate_tokens_for_gemini(text: str) -> int:
     words = len([w for w in text.split() if w])
     approx_chars = max(1, len(text))
     return max(1, max(words, approx_chars // 3))
+
 
 def _enforce_gemini_rate_limits(token_count: int) -> None:
     """Block until Gemini RPM/TPM budgets allow another request.
@@ -150,9 +168,11 @@ def _enforce_gemini_rate_limits(token_count: int) -> None:
         sleep_s = max(0.05, min(max(waits) if waits else 0.5, 60.0))
         time.sleep(sleep_s)
 
+
 # Initialize Pinecone client
 pc = None
 index = None
+
 
 def _l2_normalize(vec: List[float]) -> List[float]:
     """L2-normalize a vector to unit length."""
@@ -163,23 +183,33 @@ def _l2_normalize(vec: List[float]) -> List[float]:
         return vec
     return [x / norm for x in vec]
 
+
 def init_pinecone():
     """Initialize the Pinecone client and create index if it doesn't exist"""
     global pc, index
     try:
         if not PINECONE_API_KEY:
-            log_warning("PINECONE_API_KEY is not set. Vector search will not work.", "pinecone_service")
+            log_warning(
+                "PINECONE_API_KEY is not set. Vector search will not work.",
+                "pinecone_service",
+            )
             return False
 
-        log_info(f"Initializing Pinecone with API key: {PINECONE_API_KEY[:5]}...", "pinecone_service")
-        
+        log_info(
+            f"Initializing Pinecone with API key: {PINECONE_API_KEY[:5]}...",
+            "pinecone_service",
+        )
+
         # Initialize the Pinecone client
         pc = Pinecone(api_key=PINECONE_API_KEY)
-        
+
         # List all indexes and print them
         existing_indexes = pc.list_indexes()
-        log_info(f"Found existing indexes: {[index.name for index in existing_indexes]}", "pinecone_service")
-        
+        log_info(
+            f"Found existing indexes: {[index.name for index in existing_indexes]}",
+            "pinecone_service",
+        )
+
         # Check if our index already exists
         if PINECONE_INDEX_NAME not in [index.name for index in existing_indexes]:
             log_info(f"Creating new index: {PINECONE_INDEX_NAME}", "pinecone_service")
@@ -189,32 +219,48 @@ def init_pinecone():
                 dimension=EMBEDDING_DIMENSION,
                 metric="cosine",
                 spec=ServerlessSpec(
-                    cloud=CloudProvider.AWS,
-                    region=AwsRegion.US_EAST_1
-                )
+                    cloud=CloudProvider.AWS, region=AwsRegion.US_EAST_1
+                ),
             )
-            log_info(f"Created new Pinecone index: {PINECONE_INDEX_NAME}", "pinecone_service")
+            log_info(
+                f"Created new Pinecone index: {PINECONE_INDEX_NAME}", "pinecone_service"
+            )
             # Wait for index initialization
             time.sleep(10)
-        
+
         # Connect to the index
         index_info = pc.describe_index(PINECONE_INDEX_NAME)
         log_info(f"Index info: {index_info}", "pinecone_service")
         index = pc.Index(host=index_info.host)
-        
+
         # Get index stats
         try:
             stats = index.describe_index_stats()
             log_info(f"Index stats: {stats}", "pinecone_service")
-            log_info(f"Total vectors in index: {stats.get('total_vector_count', 0)}", "pinecone_service")
+            log_info(
+                f"Total vectors in index: {stats.get('total_vector_count', 0)}",
+                "pinecone_service",
+            )
         except Exception as e:
-            log_error(f"Error getting index stats: {str(e)}", "pinecone_service", {"error": str(e)})
-        
-        log_info(f"Successfully connected to Pinecone index: {PINECONE_INDEX_NAME}", "pinecone_service")
+            log_error(
+                f"Error getting index stats: {str(e)}",
+                "pinecone_service",
+                {"error": str(e)},
+            )
+
+        log_info(
+            f"Successfully connected to Pinecone index: {PINECONE_INDEX_NAME}",
+            "pinecone_service",
+        )
         return True
     except Exception as e:
-        log_error(f"Error initializing Pinecone: {str(e)}", "pinecone_service", {"error": str(e)})
+        log_error(
+            f"Error initializing Pinecone: {str(e)}",
+            "pinecone_service",
+            {"error": str(e)},
+        )
         return False
+
 
 def get_embedding(text: str, task_type: Optional[str] = None) -> List[float]:
     """
@@ -238,24 +284,41 @@ def get_embedding(text: str, task_type: Optional[str] = None) -> List[float]:
             try:
                 # Bound concurrency across threads
                 with _embedding_sem:
-                    log_info(f"Generating embedding (attempt {attempt}) for text: {text[:100]}...", "pinecone_service", {"attempt": attempt, "model": EMBEDDING_MODEL})
+                    log_info(
+                        f"Generating embedding (attempt {attempt}) for text: {text[:100]}...",
+                        "pinecone_service",
+                        {"attempt": attempt, "model": EMBEDDING_MODEL},
+                    )
                     response = together_client.embeddings.create(
-                        model=EMBEDDING_MODEL,
-                        input=text
+                        model=EMBEDDING_MODEL, input=text
                     )
                 embedding = response.data[0].embedding
-                log_info(f"Generated embedding of dimension: {len(embedding)}", "pinecone_service", {"dimension": len(embedding)})
+                log_info(
+                    f"Generated embedding of dimension: {len(embedding)}",
+                    "pinecone_service",
+                    {"dimension": len(embedding)},
+                )
                 return embedding
             except Exception as e:
                 last_err = e
                 # Exponential backoff with jitter
-                sleep_s = EMBED_RETRY_BASE_DELAY * (2 ** (attempt - 1)) + random.uniform(0, 0.3)
+                sleep_s = EMBED_RETRY_BASE_DELAY * (
+                    2 ** (attempt - 1)
+                ) + random.uniform(0, 0.3)
                 msg = str(e)
-                log_warning(f"Together embedding attempt {attempt} failed: {msg}. Retrying in {sleep_s:.2f}s...", "pinecone_service", {"attempt": attempt, "error": msg, "sleep_time": sleep_s})
+                log_warning(
+                    f"Together embedding attempt {attempt} failed: {msg}. Retrying in {sleep_s:.2f}s...",
+                    "pinecone_service",
+                    {"attempt": attempt, "error": msg, "sleep_time": sleep_s},
+                )
                 time.sleep(sleep_s)
 
         # Exhausted retries
-        log_error(f"Failed to generate Together embedding after {EMBED_MAX_RETRIES} attempts: {last_err}", "pinecone_service", {"max_retries": EMBED_MAX_RETRIES, "error": str(last_err)})
+        log_error(
+            f"Failed to generate Together embedding after {EMBED_MAX_RETRIES} attempts: {last_err}",
+            "pinecone_service",
+            {"max_retries": EMBED_MAX_RETRIES, "error": str(last_err)},
+        )
         raise last_err
 
     # Provider: Google Gemini
@@ -276,10 +339,16 @@ def get_embedding(text: str, task_type: Optional[str] = None) -> List[float]:
                     "x-goog-api-key": api_key,
                 }
                 with _embedding_sem:
-                    log_info(f"Generating Google embedding (attempt {attempt}) for text: {text[:100]}...", "pinecone_service", {"attempt": attempt, "model": GEMINI_EMBED_MODEL, "dimension": EMBEDDING_DIMENSION})
-                    payload: Dict[str, Any] = {
-                        "content": {"parts": [{"text": text}]}
-                    }
+                    log_info(
+                        f"Generating Google embedding (attempt {attempt}) for text: {text[:100]}...",
+                        "pinecone_service",
+                        {
+                            "attempt": attempt,
+                            "model": GEMINI_EMBED_MODEL,
+                            "dimension": EMBEDDING_DIMENSION,
+                        },
+                    )
+                    payload: Dict[str, Any] = {"content": {"parts": [{"text": text}]}}
                     if EMBEDDING_DIMENSION and EMBEDDING_DIMENSION != 3072:
                         payload["outputDimensionality"] = EMBEDDING_DIMENSION
                     # Respect caller-provided task_type; default to document embeddings
@@ -291,42 +360,78 @@ def get_embedding(text: str, task_type: Optional[str] = None) -> List[float]:
                     # Check circuit breaker before making request
                     gemini_breaker = ServiceCircuitBreakers.get_gemini_breaker()
                     if gemini_breaker.state.value == "open":
-                        log_error("Circuit breaker is OPEN - blocking Gemini embedding request", "pinecone_service", {"circuit_state": "open"})
+                        log_error(
+                            "Circuit breaker is OPEN - blocking Gemini embedding request",
+                            "pinecone_service",
+                            {"circuit_state": "open"},
+                        )
                         raise CircuitBreakerError("Gemini API circuit breaker is open")
-                    
+
                     # Track request
                     gemini_breaker.stats["total_requests"] += 1
 
                     try:
-                        resp = requests.post(url, headers=headers, data=json.dumps(payload), timeout=30)
-                    except (requests.Timeout, requests.ConnectionError, requests.RequestException) as e:
+                        resp = requests.post(
+                            url, headers=headers, data=json.dumps(payload), timeout=30
+                        )
+                    except (
+                        requests.Timeout,
+                        requests.ConnectionError,
+                        requests.RequestException,
+                    ) as e:
                         # Record failure in circuit breaker (sync version)
                         gemini_breaker.stats["failed_requests"] += 1
                         gemini_breaker.failure_count += 1
                         gemini_breaker.last_failure_time = time.time()
-                        if gemini_breaker.failure_count >= gemini_breaker.config.failure_threshold:
+                        if (
+                            gemini_breaker.failure_count
+                            >= gemini_breaker.config.failure_threshold
+                        ):
                             gemini_breaker.state = CircuitState.OPEN
                             gemini_breaker.stats["circuit_opens"] += 1
-                            log_error(f"Circuit breaker opened after {gemini_breaker.failure_count} failures", "pinecone_service")
-                        
+                            log_error(
+                                f"Circuit breaker opened after {gemini_breaker.failure_count} failures",
+                                "pinecone_service",
+                            )
+
                         if isinstance(e, requests.Timeout):
-                            gemini_key_manager.report_result(api_key, 504, None, status="DEADLINE_EXCEEDED")
+                            gemini_key_manager.report_result(
+                                api_key, 504, None, status="DEADLINE_EXCEEDED"
+                            )
                         elif isinstance(e, requests.ConnectionError):
-                            gemini_key_manager.report_result(api_key, 503, None, status="UNAVAILABLE")
+                            gemini_key_manager.report_result(
+                                api_key, 503, None, status="UNAVAILABLE"
+                            )
                         else:
-                            gemini_key_manager.report_result(api_key, 500, None, status="INTERNAL")
+                            gemini_key_manager.report_result(
+                                api_key, 500, None, status="INTERNAL"
+                            )
                         raise
 
                 # Handle HTTP response
                 if resp.status_code == 429:
                     retry_after = resp.headers.get("Retry-After")
                     try:
-                        ra = float(retry_after) if retry_after and str(retry_after).isdigit() else None
+                        ra = (
+                            float(retry_after)
+                            if retry_after and str(retry_after).isdigit()
+                            else None
+                        )
                     except Exception:
                         ra = None
-                    gemini_key_manager.report_result(api_key, 429, ra, status="RESOURCE_EXHAUSTED")
-                    sleep_s = ra if ra is not None else EMBED_RETRY_BASE_DELAY * (2 ** (attempt - 1))
-                    log_warning(f"Google embedding 429. Respecting Retry-After: sleeping {sleep_s:.2f}s", "pinecone_service", {"sleep_time": sleep_s})
+                    gemini_key_manager.report_result(
+                        api_key, 429, ra, status="RESOURCE_EXHAUSTED"
+                    )
+                    sleep_s = (
+                        ra
+                        if ra is not None
+                        else EMBED_RETRY_BASE_DELAY * (2 ** (attempt - 1))
+                    )
+                    log_warning(
+                        f"Google embedding 429. Respecting Retry-After: sleeping {sleep_s:.2f}s",
+                        "pinecone_service",
+                        {"sleep_time": sleep_s},
+                    )
                     time.sleep(sleep_s)
                     continue
 
@@ -339,18 +444,28 @@ def get_embedding(text: str, task_type: Optional[str] = None) -> List[float]:
                             err_status = err.get("status")
                     except Exception:
                         err_status = None
-                    gemini_key_manager.report_result(api_key, resp.status_code, None, status=err_status)
-                    
+                    gemini_key_manager.report_result(
+                        api_key, resp.status_code, None, status=err_status
+                    )
+
                     # Record failure in circuit breaker
                     gemini_breaker.stats["failed_requests"] += 1
                     gemini_breaker.failure_count += 1
                     gemini_breaker.last_failure_time = time.time()
-                    if gemini_breaker.failure_count >= gemini_breaker.config.failure_threshold:
+                    if (
+                        gemini_breaker.failure_count
+                        >= gemini_breaker.config.failure_threshold
+                    ):
                         gemini_breaker.state = CircuitState.OPEN
                         gemini_breaker.stats["circuit_opens"] += 1
-                        log_error(f"Circuit breaker opened after {gemini_breaker.failure_count} failures", "pinecone_service")
-                    
-                    raise RuntimeError(f"Google Embedding HTTP {resp.status_code}: {resp.text}")
+                        log_error(
+                            f"Circuit breaker opened after {gemini_breaker.failure_count} failures",
+                            "pinecone_service",
+                        )
+
+                    raise RuntimeError(
+                        f"Google Embedding HTTP {resp.status_code}: {resp.text}"
+                    )
 
                 # Success - reset circuit breaker failure count
                 gemini_key_manager.report_result(api_key, 200, None)
@@ -359,42 +474,68 @@ def get_embedding(text: str, task_type: Optional[str] = None) -> List[float]:
                 gemini_breaker.last_success_time = time.time()
                 if gemini_breaker.state == CircuitState.HALF_OPEN:
                     gemini_breaker.success_count += 1
-                    if gemini_breaker.success_count >= gemini_breaker.config.success_threshold:
+                    if (
+                        gemini_breaker.success_count
+                        >= gemini_breaker.config.success_threshold
+                    ):
                         gemini_breaker.state = CircuitState.CLOSED
                         gemini_breaker.stats["circuit_closes"] += 1
-                
+
                 data = resp.json()
                 # Response may be either {"embedding": {"values": [...]}} or batched {"embeddings": [{"values": [...]}]}
                 embedding = None
                 if isinstance(data, dict):
                     if "embedding" in data and isinstance(data["embedding"], dict):
                         embedding = data["embedding"].get("values")
-                    elif "embeddings" in data and isinstance(data["embeddings"], list) and data["embeddings"]:
+                    elif (
+                        "embeddings" in data
+                        and isinstance(data["embeddings"], list)
+                        and data["embeddings"]
+                    ):
                         embedding = data["embeddings"][0].get("values")
 
                 if not embedding or not isinstance(embedding, list):
-                    raise RuntimeError(f"Google Embedding: no embedding values in response: {data}")
+                    raise RuntimeError(
+                        f"Google Embedding: no embedding values in response: {data}"
+                    )
 
                 # Normalize for non-default dimensionality (per Google guidance)
                 if EMBEDDING_DIMENSION != 3072:
                     embedding = _l2_normalize([float(x) for x in embedding])
 
-                log_info(f"Generated Google embedding of dimension: {len(embedding)}", "pinecone_service", {"dimension": len(embedding)})
+                log_info(
+                    f"Generated Google embedding of dimension: {len(embedding)}",
+                    "pinecone_service",
+                    {"dimension": len(embedding)},
+                )
                 return embedding  # type: ignore
             except Exception as e:
                 last_err = e
-                sleep_s = EMBED_RETRY_BASE_DELAY * (2 ** (attempt - 1)) + random.uniform(0, 0.3)
+                sleep_s = EMBED_RETRY_BASE_DELAY * (
+                    2 ** (attempt - 1)
+                ) + random.uniform(0, 0.3)
                 msg = str(e)
-                log_warning(f"Google embedding attempt {attempt} failed: {msg}. Retrying in {sleep_s:.2f}s...", "pinecone_service", {"attempt": attempt, "error": msg, "sleep_time": sleep_s})
+                log_warning(
+                    f"Google embedding attempt {attempt} failed: {msg}. Retrying in {sleep_s:.2f}s...",
+                    "pinecone_service",
+                    {"attempt": attempt, "error": msg, "sleep_time": sleep_s},
+                )
                 time.sleep(sleep_s)
 
-        log_error(f"Failed to generate Google embedding after {EMBED_MAX_RETRIES} attempts: {last_err}", "pinecone_service", {"max_retries": EMBED_MAX_RETRIES, "error": str(last_err)})
+        log_error(
+            f"Failed to generate Google embedding after {EMBED_MAX_RETRIES} attempts: {last_err}",
+            "pinecone_service",
+            {"max_retries": EMBED_MAX_RETRIES, "error": str(last_err)},
+        )
         raise last_err
 
     else:
         raise ValueError(f"Unsupported EMBED_PROVIDER value: {EMBED_PROVIDER}")
 
-def _make_gemini_embedding_request(url: str, headers: dict, payload: dict, api_key: str) -> dict:
+
+def _make_gemini_embedding_request(
+    url: str, headers: dict, payload: dict, api_key: str
+) -> dict:
     """Make a single Gemini embedding API request with circuit breaker protection"""
     try:
         resp = requests.post(url, headers=headers, data=json.dumps(payload), timeout=30)
@@ -407,17 +548,21 @@ def _make_gemini_embedding_request(url: str, headers: dict, payload: dict, api_k
     except requests.RequestException:
         gemini_key_manager.report_result(api_key, 500, None, status="INTERNAL")
         raise
-    
+
     if resp.status_code == 429:
         retry_after = resp.headers.get("Retry-After")
         try:
-            ra = float(retry_after) if retry_after and str(retry_after).isdigit() else None
+            ra = (
+                float(retry_after)
+                if retry_after and str(retry_after).isdigit()
+                else None
+            )
         except Exception:
             ra = None
         gemini_key_manager.report_result(api_key, 429, ra, status="RESOURCE_EXHAUSTED")
         # Convert 429 to a retriable exception that circuit breaker can handle
         raise RuntimeError(f"Google Embedding rate limit: {resp.text}")
-    
+
     if resp.status_code >= 400:
         err_status = None
         try:
@@ -427,14 +572,19 @@ def _make_gemini_embedding_request(url: str, headers: dict, payload: dict, api_k
                 err_status = err.get("status")
         except Exception:
             err_status = None
-        gemini_key_manager.report_result(api_key, resp.status_code, None, status=err_status)
+        gemini_key_manager.report_result(
+            api_key, resp.status_code, None, status=err_status
+        )
         raise RuntimeError(f"Google Embedding HTTP {resp.status_code}: {resp.text}")
-    
+
     # Success
     gemini_key_manager.report_result(api_key, 200, None)
     return resp.json()
 
-def _gemini_embed_batch(texts: List[str], task_type: Optional[str] = None) -> List[List[float]]:
+
+def _gemini_embed_batch(
+    texts: List[str], task_type: Optional[str] = None
+) -> List[List[float]]:
     """
     Batch embed multiple texts with Google Gemini to reduce API calls.
     Respects RPM/TPM/RPD using the same limiter with summed token estimate.
@@ -449,9 +599,7 @@ def _gemini_embed_batch(texts: List[str], task_type: Optional[str] = None) -> Li
     # Build requests array
     reqs: List[Dict[str, Any]] = []
     for t in texts:
-        item: Dict[str, Any] = {
-            "content": {"parts": [{"text": t}]}
-        }
+        item: Dict[str, Any] = {"content": {"parts": [{"text": t}]}}
         # Batch endpoint requires model per request item
         item["model"] = f"models/{GEMINI_EMBED_MODEL}"
         if EMBEDDING_DIMENSION and EMBEDDING_DIMENSION != 3072:
@@ -461,7 +609,9 @@ def _gemini_embed_batch(texts: List[str], task_type: Optional[str] = None) -> Li
         reqs.append(item)
 
     # Token estimate for the whole batch; manager will block until a key is available
-    batch_tokens = sum(_estimate_tokens_for_gemini(t) + GEMINI_TOKEN_OVERHEAD for t in texts)
+    batch_tokens = sum(
+        _estimate_tokens_for_gemini(t) + GEMINI_TOKEN_OVERHEAD for t in texts
+    )
 
     last_err: Optional[Exception] = None
     for attempt in range(1, EMBED_MAX_RETRIES + 1):
@@ -471,45 +621,90 @@ def _gemini_embed_batch(texts: List[str], task_type: Optional[str] = None) -> Li
             headers = {"Content-Type": "application/json", "x-goog-api-key": api_key}
             with _embedding_sem:
                 payload = {"requests": reqs}
-                log_info(f"Batch embedding {len(texts)} items (attempt {attempt}) with model {GEMINI_EMBED_MODEL}, dim {EMBEDDING_DIMENSION}", "pinecone_service", {"batch_size": len(texts), "attempt": attempt, "model": GEMINI_EMBED_MODEL, "dimension": EMBEDDING_DIMENSION})
+                log_info(
+                    f"Batch embedding {len(texts)} items (attempt {attempt}) with model {GEMINI_EMBED_MODEL}, dim {EMBEDDING_DIMENSION}",
+                    "pinecone_service",
+                    {
+                        "batch_size": len(texts),
+                        "attempt": attempt,
+                        "model": GEMINI_EMBED_MODEL,
+                        "dimension": EMBEDDING_DIMENSION,
+                    },
+                )
                 # Circuit breaker protection (synchronous)
                 gemini_breaker = ServiceCircuitBreakers.get_gemini_breaker()
                 if gemini_breaker.state.value == "open":
-                    log_error("Circuit breaker is OPEN - blocking Gemini batch embedding request", "pinecone_service", {"circuit_state": "open"})
+                    log_error(
+                        "Circuit breaker is OPEN - blocking Gemini batch embedding request",
+                        "pinecone_service",
+                        {"circuit_state": "open"},
+                    )
                     raise CircuitBreakerError("Gemini API circuit breaker is open")
 
                 # Track request
                 gemini_breaker.stats["total_requests"] += 1
 
                 try:
-                    response = requests.post(url, headers=headers, data=json.dumps(payload), timeout=60)
-                except (requests.Timeout, requests.ConnectionError, requests.RequestException) as e:
+                    response = requests.post(
+                        url, headers=headers, data=json.dumps(payload), timeout=60
+                    )
+                except (
+                    requests.Timeout,
+                    requests.ConnectionError,
+                    requests.RequestException,
+                ) as e:
                     # Record failure in circuit breaker (sync version)
                     gemini_breaker.stats["failed_requests"] += 1
                     gemini_breaker.failure_count += 1
                     gemini_breaker.last_failure_time = time.time()
-                    if gemini_breaker.failure_count >= gemini_breaker.config.failure_threshold:
+                    if (
+                        gemini_breaker.failure_count
+                        >= gemini_breaker.config.failure_threshold
+                    ):
                         gemini_breaker.state = CircuitState.OPEN
                         gemini_breaker.stats["circuit_opens"] += 1
-                        log_error(f"Circuit breaker opened after {gemini_breaker.failure_count} failures", "pinecone_service")
+                        log_error(
+                            f"Circuit breaker opened after {gemini_breaker.failure_count} failures",
+                            "pinecone_service",
+                        )
 
                     if isinstance(e, requests.Timeout):
-                        gemini_key_manager.report_result(api_key, 504, None, status="DEADLINE_EXCEEDED")
+                        gemini_key_manager.report_result(
+                            api_key, 504, None, status="DEADLINE_EXCEEDED"
+                        )
                     elif isinstance(e, requests.ConnectionError):
-                        gemini_key_manager.report_result(api_key, 503, None, status="UNAVAILABLE")
+                        gemini_key_manager.report_result(
+                            api_key, 503, None, status="UNAVAILABLE"
+                        )
                     else:
-                        gemini_key_manager.report_result(api_key, 500, None, status="INTERNAL")
+                        gemini_key_manager.report_result(
+                            api_key, 500, None, status="INTERNAL"
+                        )
                     raise
 
                 if response.status_code == 429:
                     retry_after = response.headers.get("Retry-After")
                     try:
-                        ra = float(retry_after) if retry_after and str(retry_after).isdigit() else None
+                        ra = (
+                            float(retry_after)
+                            if retry_after and str(retry_after).isdigit()
+                            else None
+                        )
                     except Exception:
                         ra = None
-                    gemini_key_manager.report_result(api_key, 429, ra, status="RESOURCE_EXHAUSTED")
-                    sleep_s = ra if ra is not None else EMBED_RETRY_BASE_DELAY * (2 ** (attempt - 1))
-                    log_warning(f"Google batch embedding 429. Respecting Retry-After: sleeping {sleep_s:.2f}s", "pinecone_service", {"sleep_time": sleep_s})
+                    gemini_key_manager.report_result(
+                        api_key, 429, ra, status="RESOURCE_EXHAUSTED"
+                    )
+                    sleep_s = (
+                        ra
+                        if ra is not None
+                        else EMBED_RETRY_BASE_DELAY * (2 ** (attempt - 1))
+                    )
+                    log_warning(
+                        f"Google batch embedding 429. Respecting Retry-After: sleeping {sleep_s:.2f}s",
+                        "pinecone_service",
+                        {"sleep_time": sleep_s},
+                    )
                     time.sleep(sleep_s)
                     continue
                 if response.status_code >= 400:
@@ -521,31 +716,51 @@ def _gemini_embed_batch(texts: List[str], task_type: Optional[str] = None) -> Li
                             err_status = err.get("status")
                     except Exception:
                         err_status = None
-                    gemini_key_manager.report_result(api_key, response.status_code, None, status=err_status)
+                    gemini_key_manager.report_result(
+                        api_key, response.status_code, None, status=err_status
+                    )
                     # Record failure in circuit breaker
                     gemini_breaker.stats["failed_requests"] += 1
                     gemini_breaker.failure_count += 1
                     gemini_breaker.last_failure_time = time.time()
-                    if gemini_breaker.failure_count >= gemini_breaker.config.failure_threshold:
+                    if (
+                        gemini_breaker.failure_count
+                        >= gemini_breaker.config.failure_threshold
+                    ):
                         gemini_breaker.state = CircuitState.OPEN
                         gemini_breaker.stats["circuit_opens"] += 1
-                        log_error(f"Circuit breaker opened after {gemini_breaker.failure_count} failures", "pinecone_service")
-                    raise RuntimeError(f"Google Batch Embedding HTTP {response.status_code}: {response.text}")
+                        log_error(
+                            f"Circuit breaker opened after {gemini_breaker.failure_count} failures",
+                            "pinecone_service",
+                        )
+                    raise RuntimeError(
+                        f"Google Batch Embedding HTTP {response.status_code}: {response.text}"
+                    )
                 gemini_key_manager.report_result(api_key, 200, None)
                 data = response.json()
-                if not isinstance(data, dict) or "embeddings" not in data or not isinstance(data["embeddings"], list):
-                    raise RuntimeError(f"Google Batch Embedding: invalid response: {data}")
+                if (
+                    not isinstance(data, dict)
+                    or "embeddings" not in data
+                    or not isinstance(data["embeddings"], list)
+                ):
+                    raise RuntimeError(
+                        f"Google Batch Embedding: invalid response: {data}"
+                    )
                 embeddings_out: List[List[float]] = []
                 for e in data["embeddings"]:
                     vals = e.get("values") if isinstance(e, dict) else None
                     if not vals or not isinstance(vals, list):
-                        raise RuntimeError("Google Batch Embedding: missing values in one item")
+                        raise RuntimeError(
+                            "Google Batch Embedding: missing values in one item"
+                        )
                     if EMBEDDING_DIMENSION != 3072:
                         vals = _l2_normalize([float(x) for x in vals])
                     embeddings_out.append(vals)  # type: ignore
 
                 if len(embeddings_out) != len(texts):
-                    raise RuntimeError("Google Batch Embedding: response count mismatch")
+                    raise RuntimeError(
+                        "Google Batch Embedding: response count mismatch"
+                    )
 
                 # Success - reset circuit breaker failures
                 gemini_breaker.failure_count = 0
@@ -553,158 +768,243 @@ def _gemini_embed_batch(texts: List[str], task_type: Optional[str] = None) -> Li
                 gemini_breaker.last_success_time = time.time()
                 if gemini_breaker.state == CircuitState.HALF_OPEN:
                     gemini_breaker.success_count += 1
-                    if gemini_breaker.success_count >= gemini_breaker.config.success_threshold:
+                    if (
+                        gemini_breaker.success_count
+                        >= gemini_breaker.config.success_threshold
+                    ):
                         gemini_breaker.state = CircuitState.CLOSED
                         gemini_breaker.stats["circuit_closes"] += 1
                 return embeddings_out
         except Exception as e:
             last_err = e
-            sleep_s = EMBED_RETRY_BASE_DELAY * (2 ** (attempt - 1)) + random.uniform(0, 0.3)
-            log_warning(f"Google batch embedding attempt {attempt} failed: {e}. Retrying in {sleep_s:.2f}s...", "pinecone_service", {"attempt": attempt, "error": str(e), "sleep_time": sleep_s})
+            sleep_s = EMBED_RETRY_BASE_DELAY * (2 ** (attempt - 1)) + random.uniform(
+                0, 0.3
+            )
+            log_warning(
+                f"Google batch embedding attempt {attempt} failed: {e}. Retrying in {sleep_s:.2f}s...",
+                "pinecone_service",
+                {"attempt": attempt, "error": str(e), "sleep_time": sleep_s},
+            )
             time.sleep(sleep_s)
 
-    log_error(f"Failed Google batch embedding after {EMBED_MAX_RETRIES} attempts: {last_err}", "pinecone_service", {"max_retries": EMBED_MAX_RETRIES, "error": str(last_err)})
+    log_error(
+        f"Failed Google batch embedding after {EMBED_MAX_RETRIES} attempts: {last_err}",
+        "pinecone_service",
+        {"max_retries": EMBED_MAX_RETRIES, "error": str(last_err)},
+    )
     raise last_err  # type: ignore
+
 
 def chunk_transcript(transcript_data: Dict) -> List[Dict]:
     """
     Break transcript into meaningful chunks with metadata
-    
+
     Args:
         transcript_data: The complete transcript data from Deepgram
-        
+
     Returns:
         List of chunks with text and metadata
     """
     chunks = []
-    
+
     # Extract results from transcript if present
     if not transcript_data or "results" not in transcript_data:
         return chunks
-    
+
     results = transcript_data.get("results", {})
     utterances = results.get("utterances", [])
     channels = results.get("channels", [])
     paragraphs = results.get("paragraphs", {}).get("paragraphs", [])
-    
+
     # If we have diarized utterances, use them as the primary chunk boundaries
     if utterances:
         for utterance in utterances:
-            chunks.append({
-                "text": utterance.get("transcript", ""),
-                "start_time": utterance.get("start", 0),
-                "end_time": utterance.get("end", 0),
-                "speaker": utterance.get("speaker", 0),
-                "confidence": utterance.get("confidence", 0)
-            })
+            chunks.append(
+                {
+                    "text": utterance.get("transcript", ""),
+                    "start_time": utterance.get("start", 0),
+                    "end_time": utterance.get("end", 0),
+                    "speaker": utterance.get("speaker", 0),
+                    "confidence": utterance.get("confidence", 0),
+                }
+            )
     # If we have paragraphs, use them
     elif paragraphs:
         for paragraph in paragraphs:
-            chunks.append({
-                "text": paragraph.get("text", ""),
-                "start_time": paragraph.get("start", 0),
-                "end_time": paragraph.get("end", 0),
-                "confidence": paragraph.get("confidence", 0)
-            })
+            chunks.append(
+                {
+                    "text": paragraph.get("text", ""),
+                    "start_time": paragraph.get("start", 0),
+                    "end_time": paragraph.get("end", 0),
+                    "confidence": paragraph.get("confidence", 0),
+                }
+            )
     # If we have channel data, use that
     elif channels and len(channels) > 0 and "alternatives" in channels[0]:
         # Get the best alternative from the first channel
         alternatives = channels[0].get("alternatives", [])
         if alternatives and len(alternatives) > 0:
             words = alternatives[0].get("words", [])
-            
+
             # Group words into chunks of roughly 50-100 words
             current_chunk = []
             current_start = None
             current_end = None
-            
+
             for word in words:
                 if current_start is None:
                     current_start = word.get("start", 0)
-                
+
                 current_chunk.append(word.get("word", ""))
                 current_end = word.get("end", 0)
-                
+
                 # If chunk is long enough or there's a meaningful pause, create a new chunk
-                if len(current_chunk) >= 50 or (len(current_chunk) > 10 and word.get("punctuated_word", "").endswith((".", "!", "?"))):
-                    chunks.append({
+                if len(current_chunk) >= 50 or (
+                    len(current_chunk) > 10
+                    and word.get("punctuated_word", "").endswith((".", "!", "?"))
+                ):
+                    chunks.append(
+                        {
+                            "text": " ".join(current_chunk),
+                            "start_time": current_start,
+                            "end_time": current_end,
+                            "confidence": sum(
+                                word.get("confidence", 0) for word in words
+                            )
+                            / len(words)
+                            if words
+                            else 0,
+                        }
+                    )
+                    current_chunk = []
+                    current_start = None
+
+            # Add any remaining words as the final chunk
+            if current_chunk:
+                chunks.append(
+                    {
                         "text": " ".join(current_chunk),
                         "start_time": current_start,
                         "end_time": current_end,
-                        "confidence": sum(word.get("confidence", 0) for word in words) / len(words) if words else 0
-                    })
-                    current_chunk = []
-                    current_start = None
-            
-            # Add any remaining words as the final chunk
-            if current_chunk:
-                chunks.append({
-                    "text": " ".join(current_chunk),
-                    "start_time": current_start,
-                    "end_time": current_end,
-                    "confidence": sum(word.get("confidence", 0) for word in words) / len(words) if words else 0
-                })
-    
+                        "confidence": sum(word.get("confidence", 0) for word in words)
+                        / len(words)
+                        if words
+                        else 0,
+                    }
+                )
+
     return chunks
 
-async def index_transcript(transcript_data: Dict, file_url: str, file_name: str, is_permanent_url: bool = False) -> bool:
+
+async def index_transcript(
+    transcript_data: Dict, file_url: str, file_name: str, is_permanent_url: bool = False
+) -> bool:
     """
     Index a transcript in Pinecone for search.
-    
+
     Args:
         transcript_data: The transcription data
         file_url: URL to the audio file
         file_name: Name of the audio file
         is_permanent_url: Whether the URL is permanent (Supabase) or temporary (tmpfiles)
-        
+
     Returns:
         bool: True if indexing was successful, False otherwise
     """
     global index
     if not index:
-        log_warning("Pinecone index not initialized, attempting to initialize...", "pinecone_service")
+        log_warning(
+            "Pinecone index not initialized, attempting to initialize...",
+            "pinecone_service",
+        )
         if not init_pinecone():
             log_error("Failed to initialize Pinecone", "pinecone_service")
             return False
-    
+
     try:
-        log_info(f"Indexing transcript for file: {file_name}", "pinecone_service", {"file_name": file_name, "file_url": file_url, "is_permanent_url": is_permanent_url})
-        
-        # Build a stable, unique file_id using the (ideally permanent) URL to avoid collisions across same filenames
-        file_key_src = (file_url or "")
-        # Prefer Supabase URL if available later; we'll recompute after lookup below
-        file_id = hashlib.sha1(file_key_src.encode("utf-8")).hexdigest()[:12] if file_key_src else (
-            hashlib.sha1(file_name.encode("utf-8")).hexdigest()[:12]
+        log_info(
+            f"Indexing transcript for file: {file_name}",
+            "pinecone_service",
+            {
+                "file_name": file_name,
+                "file_url": file_url,
+                "is_permanent_url": is_permanent_url,
+            },
         )
-        log_info(f"Initial file_id (pre-supabase-lookup): {file_id}", "pinecone_service", {"file_id": file_id})
-        
+
+        # Build a stable, unique file_id using the (ideally permanent) URL to avoid collisions across same filenames
+        file_key_src = file_url or ""
+        # Prefer Supabase URL if available later; we'll recompute after lookup below
+        file_id = (
+            hashlib.sha1(file_key_src.encode("utf-8")).hexdigest()[:12]
+            if file_key_src
+            else (hashlib.sha1(file_name.encode("utf-8")).hexdigest()[:12])
+        )
+        log_info(
+            f"Initial file_id (pre-supabase-lookup): {file_id}",
+            "pinecone_service",
+            {"file_id": file_id},
+        )
+
         # Look up the Supabase URL from the database if not already a permanent URL
         supabase_url = file_url  # Default to the provided URL
-        
+
         if not is_permanent_url:
             from services.database import uploads_collection, podcasts_collection
-            
+
             try:
                 # Check uploads collection first
-                upload_record = await uploads_collection.find_one({"file_name": {"$regex": file_name}})
-                if upload_record and "supabase_url" in upload_record and upload_record["supabase_url"]:
+                upload_record = await uploads_collection.find_one(
+                    {"file_name": {"$regex": file_name}}
+                )
+                if (
+                    upload_record
+                    and "supabase_url" in upload_record
+                    and upload_record["supabase_url"]
+                ):
                     supabase_url = upload_record["supabase_url"]
-                    log_info(f"Found Supabase URL in uploads collection: {supabase_url}", "pinecone_service", {"supabase_url": supabase_url})
+                    log_info(
+                        f"Found Supabase URL in uploads collection: {supabase_url}",
+                        "pinecone_service",
+                        {"supabase_url": supabase_url},
+                    )
                 else:
-                    # If not in uploads, try podcasts collection 
-                    podcast_record = await podcasts_collection.find_one({"file_name": {"$regex": file_name}})
-                    if podcast_record and "supabase_url" in podcast_record and podcast_record["supabase_url"]:
+                    # If not in uploads, try podcasts collection
+                    podcast_record = await podcasts_collection.find_one(
+                        {"file_name": {"$regex": file_name}}
+                    )
+                    if (
+                        podcast_record
+                        and "supabase_url" in podcast_record
+                        and podcast_record["supabase_url"]
+                    ):
                         supabase_url = podcast_record["supabase_url"]
-                        log_info(f"Found Supabase URL in podcasts collection: {supabase_url}", "pinecone_service", {"supabase_url": supabase_url})
+                        log_info(
+                            f"Found Supabase URL in podcasts collection: {supabase_url}",
+                            "pinecone_service",
+                            {"supabase_url": supabase_url},
+                        )
                     else:
-                        log_warning(f"No Supabase URL found for {file_name}, using original URL", "pinecone_service", {"file_name": file_name})
+                        log_warning(
+                            f"No Supabase URL found for {file_name}, using original URL",
+                            "pinecone_service",
+                            {"file_name": file_name},
+                        )
             except Exception as e:
-                log_error(f"Error looking up Supabase URL: {str(e)}", "pinecone_service", {"error": str(e), "file_name": file_name})
-        
+                log_error(
+                    f"Error looking up Supabase URL: {str(e)}",
+                    "pinecone_service",
+                    {"error": str(e), "file_name": file_name},
+                )
+
         # If we resolved a permanent URL, recompute file_id for uniqueness
         if supabase_url:
             file_id = hashlib.sha1(supabase_url.encode("utf-8")).hexdigest()[:12]
-            log_info(f"Resolved file_id from Supabase URL: {file_id}", "pinecone_service", {"file_id": file_id})
+            log_info(
+                f"Resolved file_id from Supabase URL: {file_id}",
+                "pinecone_service",
+                {"file_id": file_id},
+            )
 
         # Get the complete transcript text
         complete_text = ""
@@ -714,19 +1014,31 @@ async def index_transcript(transcript_data: Dict, file_url: str, file_name: str,
                 alternatives = channels[0]["alternatives"]
                 if alternatives and len(alternatives) > 0:
                     complete_text = alternatives[0].get("transcript", "")
-        
-        log_info(f"Complete text length: {len(complete_text)}", "pinecone_service", {"text_length": len(complete_text)})
-        
+
+        log_info(
+            f"Complete text length: {len(complete_text)}",
+            "pinecone_service",
+            {"text_length": len(complete_text)},
+        )
+
         # Chunk the transcript
         chunks = chunk_transcript(transcript_data)
-        log_info(f"Created {len(chunks)} chunks", "pinecone_service", {"chunk_count": len(chunks)})
-        
+        log_info(
+            f"Created {len(chunks)} chunks",
+            "pinecone_service",
+            {"chunk_count": len(chunks)},
+        )
+
         # Prepare items (id, text, metadata) for embedding
         items: List[Dict[str, Any]] = []
         for i, chunk in enumerate(chunks):
             txt = (chunk.get("text") or "").strip()
             if not txt:
-                log_warning(f"Skipping empty text chunk at index {i}", "pinecone_service", {"chunk_index": i})
+                log_warning(
+                    f"Skipping empty text chunk at index {i}",
+                    "pinecone_service",
+                    {"chunk_index": i},
+                )
                 continue
             vector_id = f"{file_id}_{i}"
             meta = {
@@ -738,7 +1050,7 @@ async def index_transcript(transcript_data: Dict, file_url: str, file_name: str,
                 "end_time": chunk["end_time"],
                 "confidence": chunk.get("confidence", 0),
                 "chunk_index": i,  # Chunk index
-                "total_chunks": len(chunks)  # Total chunks for this file
+                "total_chunks": len(chunks),  # Total chunks for this file
             }
             if chunk.get("speaker") is not None:
                 meta["speaker"] = chunk.get("speaker")
@@ -749,13 +1061,19 @@ async def index_transcript(transcript_data: Dict, file_url: str, file_name: str,
         # Create vectors for each chunk (batched for Gemini)
         vectors = []
         if not items:
-            log_warning("No non-empty chunks available, skipping Pinecone update", "pinecone_service")
+            log_warning(
+                "No non-empty chunks available, skipping Pinecone update",
+                "pinecone_service",
+            )
             return False
 
         if EMBED_PROVIDER == 1:
             # Gemini: token-aware batch embed
             # Precompute token estimates (including overhead)
-            token_counts = [_estimate_tokens_for_gemini(it["text"]) + GEMINI_TOKEN_OVERHEAD for it in items]
+            token_counts = [
+                _estimate_tokens_for_gemini(it["text"]) + GEMINI_TOKEN_OVERHEAD
+                for it in items
+            ]
             i = 0
             while i < len(items):
                 cur_batch = []
@@ -769,18 +1087,30 @@ async def index_transcript(transcript_data: Dict, file_url: str, file_name: str,
                     i += 1
                 texts = [b["text"] for b in cur_batch]
                 try:
-                    embeddings = _gemini_embed_batch(texts, task_type="RETRIEVAL_DOCUMENT")
+                    embeddings = _gemini_embed_batch(
+                        texts, task_type="RETRIEVAL_DOCUMENT"
+                    )
                 except Exception as e:
                     start_idx = i - len(cur_batch)
                     end_idx = i - 1
-                    log_warning(f"Batch embedding failed for items {start_idx}-{end_idx}: {e}. Falling back to single calls for this batch.", "pinecone_service", {"start_idx": start_idx, "end_idx": end_idx, "error": str(e)})
+                    log_warning(
+                        f"Batch embedding failed for items {start_idx}-{end_idx}: {e}. Falling back to single calls for this batch.",
+                        "pinecone_service",
+                        {"start_idx": start_idx, "end_idx": end_idx, "error": str(e)},
+                    )
                     embeddings = []
                     for j, b in enumerate(cur_batch):
                         try:
-                            emb = get_embedding(b["text"], task_type="RETRIEVAL_DOCUMENT")
+                            emb = get_embedding(
+                                b["text"], task_type="RETRIEVAL_DOCUMENT"
+                            )
                             embeddings.append(emb)
                         except Exception as e2:
-                            log_error(f"Single embedding failed for item {start_idx + j}: {e2}. Skipping.", "pinecone_service", {"item_index": start_idx + j, "error": str(e2)})
+                            log_error(
+                                f"Single embedding failed for item {start_idx + j}: {e2}. Skipping.",
+                                "pinecone_service",
+                                {"item_index": start_idx + j, "error": str(e2)},
+                            )
                             embeddings.append([])  # placeholder
 
                 for b, emb in zip(cur_batch, embeddings):
@@ -788,7 +1118,15 @@ async def index_transcript(transcript_data: Dict, file_url: str, file_name: str,
                         continue
                     vector = {"id": b["id"], "values": emb, "metadata": b["metadata"]}
                     vectors.append(vector)
-                    log_info(f"Created vector {len(vectors)}/{len(items)}: {b['id']}", "pinecone_service", {"vector_count": len(vectors), "total_items": len(items), "vector_id": b['id']})
+                    log_info(
+                        f"Created vector {len(vectors)}/{len(items)}: {b['id']}",
+                        "pinecone_service",
+                        {
+                            "vector_count": len(vectors),
+                            "total_items": len(items),
+                            "vector_id": b["id"],
+                        },
+                    )
         else:
             # Together or other: single calls
             for idx, it in enumerate(items):
@@ -796,86 +1134,147 @@ async def index_transcript(transcript_data: Dict, file_url: str, file_name: str,
                     emb = get_embedding(it["text"], task_type="RETRIEVAL_DOCUMENT")
                     vector = {"id": it["id"], "values": emb, "metadata": it["metadata"]}
                     vectors.append(vector)
-                    log_info(f"Created vector {len(vectors)}/{len(items)}: {it['id']}", "pinecone_service", {"vector_count": len(vectors), "total_items": len(items), "vector_id": it['id']})
+                    log_info(
+                        f"Created vector {len(vectors)}/{len(items)}: {it['id']}",
+                        "pinecone_service",
+                        {
+                            "vector_count": len(vectors),
+                            "total_items": len(items),
+                            "vector_id": it["id"],
+                        },
+                    )
                 except Exception as e:
-                    log_error(f"Error creating vector for item {idx}: {e}", "pinecone_service", {"item_index": idx, "error": str(e)})
-        
+                    log_error(
+                        f"Error creating vector for item {idx}: {e}",
+                        "pinecone_service",
+                        {"item_index": idx, "error": str(e)},
+                    )
+
         # Skip update if no vectors were created
         if not vectors:
-            log_warning("No vectors created, skipping Pinecone update", "pinecone_service")
+            log_warning(
+                "No vectors created, skipping Pinecone update", "pinecone_service"
+            )
             return False
-            
+
         # Upsert vectors in batches with retries and bounded concurrency
         failed_batches = 0
         total_batches = (len(vectors) + UPSERT_BATCH_SIZE - 1) // UPSERT_BATCH_SIZE
         for i in range(0, len(vectors), UPSERT_BATCH_SIZE):
-            batch = vectors[i:i+UPSERT_BATCH_SIZE]
+            batch = vectors[i : i + UPSERT_BATCH_SIZE]
             batch_no = i // UPSERT_BATCH_SIZE + 1
             attempts = 0
             while attempts < UPSERT_MAX_RETRIES:
                 attempts += 1
                 try:
                     with _upsert_sem:
-                        log_info(f"Upserting batch {batch_no}/{total_batches} (size={len(batch)}), attempt {attempts}", "pinecone_service", {"batch_no": batch_no, "total_batches": total_batches, "batch_size": len(batch), "attempt": attempts})
+                        log_info(
+                            f"Upserting batch {batch_no}/{total_batches} (size={len(batch)}), attempt {attempts}",
+                            "pinecone_service",
+                            {
+                                "batch_no": batch_no,
+                                "total_batches": total_batches,
+                                "batch_size": len(batch),
+                                "attempt": attempts,
+                            },
+                        )
                         response = index.upsert(vectors=batch)
-                        log_info(f"Batch {batch_no} upsert response: {response}", "pinecone_service", {"batch_no": batch_no, "response": response})
+                        log_info(
+                            f"Batch {batch_no} upsert response: {response}",
+                            "pinecone_service",
+                            {"batch_no": batch_no, "response": response},
+                        )
                     break
                 except Exception as e:
-                    sleep_s = UPSERT_RETRY_BASE_DELAY * (2 ** (attempts - 1)) + random.uniform(0, 0.3)
-                    log_warning(f"Upsert batch {batch_no} failed on attempt {attempts}: {e}. Retrying in {sleep_s:.2f}s...", "pinecone_service", {"batch_no": batch_no, "attempt": attempts, "error": str(e), "sleep_time": sleep_s})
+                    sleep_s = UPSERT_RETRY_BASE_DELAY * (
+                        2 ** (attempts - 1)
+                    ) + random.uniform(0, 0.3)
+                    log_warning(
+                        f"Upsert batch {batch_no} failed on attempt {attempts}: {e}. Retrying in {sleep_s:.2f}s...",
+                        "pinecone_service",
+                        {
+                            "batch_no": batch_no,
+                            "attempt": attempts,
+                            "error": str(e),
+                            "sleep_time": sleep_s,
+                        },
+                    )
                     time.sleep(sleep_s)
             else:
-                log_error(f"Upsert batch {batch_no} failed after {UPSERT_MAX_RETRIES} attempts.", "pinecone_service", {"batch_no": batch_no, "max_retries": UPSERT_MAX_RETRIES})
+                log_error(
+                    f"Upsert batch {batch_no} failed after {UPSERT_MAX_RETRIES} attempts.",
+                    "pinecone_service",
+                    {"batch_no": batch_no, "max_retries": UPSERT_MAX_RETRIES},
+                )
                 failed_batches += 1
-            
+
         if failed_batches == 0:
-            log_info(f"Successfully indexed transcript with {len(vectors)} chunks across {total_batches} batches", "pinecone_service", {"vector_count": len(vectors), "total_batches": total_batches})
+            log_info(
+                f"Successfully indexed transcript with {len(vectors)} chunks across {total_batches} batches",
+                "pinecone_service",
+                {"vector_count": len(vectors), "total_batches": total_batches},
+            )
             return True
         else:
-            log_warning(f"Indexed transcript with errors: {failed_batches}/{total_batches} batches failed", "pinecone_service", {"failed_batches": failed_batches, "total_batches": total_batches})
+            log_warning(
+                f"Indexed transcript with errors: {failed_batches}/{total_batches} batches failed",
+                "pinecone_service",
+                {"failed_batches": failed_batches, "total_batches": total_batches},
+            )
             return False
     except Exception as e:
-        log_error(f"Error indexing transcript: {str(e)}", "pinecone_service", {"error": str(e), "file_name": file_name})
+        log_error(
+            f"Error indexing transcript: {str(e)}",
+            "pinecone_service",
+            {"error": str(e), "file_name": file_name},
+        )
         import traceback
+
         traceback.print_exc()
         return False
 
-async def search_transcripts(query: str, limit: int = None, filter_dict: Dict = None) -> List[Dict]:
+
+async def search_transcripts(
+    query: str, limit: int = None, filter_dict: Dict = None
+) -> List[Dict]:
     """
     Search for transcripts by vector similarity
     """
     global index
     if not index:
-        log_warning("Pinecone index not initialized, attempting to initialize...", "pinecone_service")
+        log_warning(
+            "Pinecone index not initialized, attempting to initialize...",
+            "pinecone_service",
+        )
         if not init_pinecone():
             log_error("Failed to initialize Pinecone", "pinecone_service")
             return []
-    
+
     try:
         # RAJDEEP_TESTING
         query_embedding = get_embedding(query, task_type="RETRIEVAL_QUERY")
-        
+
         # Execute search
         search_response = index.query(
             vector=query_embedding,
             top_k=limit,
             include_metadata=True,
-            filter=filter_dict
+            filter=filter_dict,
         )
-        
+
         # Process results
         results = []
         for match in search_response.get("matches", []):
             # Get metadata
             metadata = match.get("metadata", {})
-            
+
             # Get the best available URL - prioritize file_url (which should be Supabase)
             file_url = metadata.get("file_url", "")
-            
+
             # If file_url contains tmpfiles.org and we have a supabase_url, use that instead
             if "tmpfiles.org" in file_url and metadata.get("supabase_url"):
                 file_url = metadata.get("supabase_url")
-            
+
             result = {
                 "file_url": file_url,
                 "file_name": metadata.get("file_name", ""),
@@ -883,25 +1282,31 @@ async def search_transcripts(query: str, limit: int = None, filter_dict: Dict = 
                 "start_time": metadata.get("start_time", 0),
                 "end_time": metadata.get("end_time", 0),
                 "confidence": metadata.get("confidence", 0),
-                "score": match.get("score", 0)
+                "score": match.get("score", 0),
             }
-            
+
             # Add speaker only if it's not None/null
             if "speaker" in metadata and metadata["speaker"] is not None:
                 result["speaker"] = metadata["speaker"]
-            
+
             # If we have a temporary URL, include it for reference
             if metadata.get("tmp_url"):
                 result["tmp_url"] = metadata.get("tmp_url")
-            
+
             results.append(result)
-        
+
         return results
     except Exception as e:
-        log_error(f"Error searching transcripts: {str(e)}", "pinecone_service", {"error": str(e), "query": query})
+        log_error(
+            f"Error searching transcripts: {str(e)}",
+            "pinecone_service",
+            {"error": str(e), "query": query},
+        )
         import traceback
+
         traceback.print_exc()
         return []
+
 
 async def delete_by_file_id(file_id: str) -> Dict[str, Any]:
     """
@@ -916,42 +1321,47 @@ async def delete_by_file_id(file_id: str) -> Dict[str, Any]:
     try:
         # Collect matching vector IDs via a filtered query
         dummy_vector = [0.0] * EMBEDDING_DIMENSION
-        
+
         search_response = index.query(
             vector=dummy_vector,
             top_k=10000,
             include_metadata=True,
-            filter={"file_id": {"$eq": file_id}}
+            filter={"file_id": {"$eq": file_id}},
         )
-        
+
         # Access matches from Pinecone response object
-        matches = search_response.matches if hasattr(search_response, 'matches') else []
-        
+        matches = search_response.matches if hasattr(search_response, "matches") else []
+
         if not matches:
             return {"success": True, "deleted_count": 0, "error": None}
 
-        vector_ids = [m.id for m in matches if hasattr(m, 'id')]
+        vector_ids = [m.id for m in matches if hasattr(m, "id")]
 
         batch_size = 1000  # Pinecone's delete limit per request
         deleted_count = 0
         errors = []
 
         for i in range(0, len(vector_ids), batch_size):
-            batch_ids = vector_ids[i:i + batch_size]
+            batch_ids = vector_ids[i : i + batch_size]
             try:
                 index.delete(ids=batch_ids)
                 deleted_count += len(batch_ids)
             except Exception as de:
-                err = f"Error deleting batch {i//batch_size + 1}: {str(de)}"
+                err = f"Error deleting batch {i // batch_size + 1}: {str(de)}"
                 errors.append(err)
 
         if errors:
-            return {"success": False, "deleted_count": deleted_count, "error": "; ".join(errors)}
+            return {
+                "success": False,
+                "deleted_count": deleted_count,
+                "error": "; ".join(errors),
+            }
 
         return {"success": True, "deleted_count": deleted_count, "error": None}
     except Exception as e:
         error_msg = f"Error deleting vectors for file_id {file_id}: {str(e)}"
         return {"success": False, "deleted_count": 0, "error": error_msg}
+
 
 async def count_vectors_by_file_id(file_id: str) -> Dict[str, Any]:
     """
@@ -981,33 +1391,53 @@ async def count_vectors_by_file_id(file_id: str) -> Dict[str, Any]:
     except Exception as e:
         return {"success": False, "total_count": 0, "error": str(e)}
 
+
 def test_pinecone_connection():
     """Test Pinecone connection and index status"""
     try:
         if not init_pinecone():
             log_error("Failed to initialize Pinecone", "pinecone_service")
             return
-            
+
         # Get index stats
         stats = index.describe_index_stats()
-        log_info("Pinecone Index Status", "pinecone_service", {"total_vectors": stats.get('total_vector_count', 0), "index_fullness": stats.get('index_fullness', 0), "dimension": stats.get('dimension', 0)})
-        
+        log_info(
+            "Pinecone Index Status",
+            "pinecone_service",
+            {
+                "total_vectors": stats.get("total_vector_count", 0),
+                "index_fullness": stats.get("index_fullness", 0),
+                "dimension": stats.get("dimension", 0),
+            },
+        )
+
         # Try a simple query
-        if stats.get('total_vector_count', 0) > 0:
+        if stats.get("total_vector_count", 0) > 0:
             log_info("Testing simple query...", "pinecone_service")
             results = index.query(
                 vector=[0.0] * EMBEDDING_DIMENSION,  # Zero vector
                 top_k=1,
-                include_metadata=True
+                include_metadata=True,
             )
-            if results and results.get('matches'):
-                log_info("Query successful!", "pinecone_service", {"match_count": len(results['matches']), "sample_metadata": results['matches'][0]['metadata']})
+            if results and results.get("matches"):
+                log_info(
+                    "Query successful!",
+                    "pinecone_service",
+                    {
+                        "match_count": len(results["matches"]),
+                        "sample_metadata": results["matches"][0]["metadata"],
+                    },
+                )
             else:
                 log_warning("Query returned no results", "pinecone_service")
     except Exception as e:
-        log_error(f"Error testing Pinecone: {str(e)}", "pinecone_service", {"error": str(e)})
+        log_error(
+            f"Error testing Pinecone: {str(e)}", "pinecone_service", {"error": str(e)}
+        )
         import traceback
+
         traceback.print_exc()
 
+
 # Initialize on module import
-init_pinecone() 
+init_pinecone()

@@ -1,6 +1,23 @@
 from fastapi import FastAPI, Depends, Request
 from fastapi.middleware.cors import CORSMiddleware
-from api import health, transcribe, embedding, upload, llm_translation, supabase_upload, auth, ip_detection, search, credit_management, oauth, admin, content_management, send_email, process_audio, system_health
+from api import (
+    health,
+    transcribe,
+    embedding,
+    upload,
+    llm_translation,
+    supabase_upload,
+    auth,
+    ip_detection,
+    search,
+    credit_management,
+    oauth,
+    admin,
+    content_management,
+    send_email,
+    process_audio,
+    system_health,
+)
 import uvicorn
 import time
 import logging
@@ -15,6 +32,7 @@ logger = logging.getLogger("voicera.main")
 from middleware.user_status import UserStatusMiddleware
 from middleware.rate_limiter import rate_limit_middleware, initialize_rate_limiter
 import os
+
 
 # Create a middleware class for API usage tracking
 class APIUsageMiddleware(BaseHTTPMiddleware):
@@ -69,15 +87,14 @@ class APIUsageMiddleware(BaseHTTPMiddleware):
 
         return response
 
+
 # Initialize rate limiter with optional Redis support
 redis_url = os.getenv("REDIS_URL")  # e.g., "redis://localhost:6379"
 initialize_rate_limiter(redis_url)
 
 # Create FastAPI application with concurrency settings
 app = FastAPI(
-    title="VOICERA Backend", 
-    description="Backend for VOICERA",
-    version="1.0.0"
+    title="VOICERA Backend", description="Backend for VOICERA", version="1.0.0"
 )
 
 # Add rate limiting middleware (first to catch requests early)
@@ -100,12 +117,12 @@ app.add_middleware(
 
 @app.get("/")
 async def root():
-    
     return {
         "status": "Online",
         "message": "Voicera backend is running",
-        "version": app.version
+        "version": app.version,
     }
+
 
 # Health check router
 app.include_router(health.router)
@@ -162,5 +179,5 @@ if __name__ == "__main__":
         host="0.0.0.0",
         port=8000,
         workers=4,  # Run with multiple worker processes
-        reload=True
+        reload=True,
     )
