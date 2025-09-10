@@ -4,6 +4,7 @@ from typing import Dict, Optional, Tuple, List
 from fastapi import Request, HTTPException, status
 from fastapi.responses import JSONResponse
 import logging
+from services.ip_utils import get_client_ip
 
 logger = logging.getLogger(__name__)
 
@@ -333,20 +334,7 @@ def get_rate_limiter() -> RateLimiter:
     return rate_limiter
 
 
-def get_client_ip(request: Request) -> str:
-    """Extract client IP address from request, considering proxies"""
-    # Check for forwarded headers (common in production behind proxies)
-    forwarded_for = request.headers.get("X-Forwarded-For")
-    if forwarded_for:
-        # X-Forwarded-For can contain multiple IPs, take the first one
-        return forwarded_for.split(",")[0].strip()
-
-    real_ip = request.headers.get("X-Real-IP")
-    if real_ip:
-        return real_ip.strip()
-
-    # Fallback to direct client IP
-    return request.client.host
+        
 
 
 def get_user_id(request: Request) -> Optional[str]:

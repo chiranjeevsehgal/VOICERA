@@ -4,6 +4,7 @@ from typing import Dict, Any, Optional
 from fastapi import Request, Response, BackgroundTasks
 import time
 import logging
+from services.ip_utils import get_client_ip
 from services.database import (
     api_usage_collection,
     search_trends_collection,
@@ -34,7 +35,7 @@ async def track_api_usage(
         "endpoint": f"{request.method} {request.url.path}",
         "response_time": response_time,
         "status_code": response.status_code,
-        "ip_address": request.client.host if request.client else None,
+        "ip_address": get_client_ip(request),
         "user_agent": request.headers.get("user-agent"),
     }
 

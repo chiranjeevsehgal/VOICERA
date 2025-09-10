@@ -24,6 +24,7 @@ import logging
 from utils.analytics import track_api_usage
 from starlette.middleware.base import BaseHTTPMiddleware
 from services.auth import decode_token
+from services.ip_utils import get_client_ip
 from utils.logging_config import setup_logging
 
 # Initialize logging before app and routers
@@ -71,6 +72,7 @@ class APIUsageMiddleware(BaseHTTPMiddleware):
         response_time = (time.time() - start_time) * 1000  # Convert to milliseconds
 
         # Structured access log
+        client_ip = get_client_ip(request)
         logger.info(
             "HTTP %s %s status=%s user=%s rt=%.2fms ip=%s ua=%s",
             request.method,
@@ -78,7 +80,7 @@ class APIUsageMiddleware(BaseHTTPMiddleware):
             response.status_code,
             user_id,
             response_time,
-            request.client.host if request.client else None,
+            client_ip,
             request.headers.get("user-agent"),
         )
 
