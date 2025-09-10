@@ -77,6 +77,22 @@
   <main
     class="container mx-auto px-4 py-6 sm:py-8 md:py-12 max-w-9xl relative -mt-6 sm:-mt-8 md:-mt-12 z-20"
   >
+    <!-- Backend down / Backoff banner -->
+    <div *ngIf="isBackoffActive()" class="mb-4 sm:mb-6">
+      <div class="flex items-center justify-between gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-amber-800">
+        <div class="text-sm">
+          Backend temporarily unavailable. Pausing requests for
+          <span class="font-semibold">{{ getBackoffRemainingSeconds() }}s</span>.
+        </div>
+        <button
+          type="button"
+          class="px-3 py-1.5 rounded-lg bg-amber-600 text-white text-sm font-medium hover:bg-amber-700 focus:outline-none focus:ring-2 focus:ring-amber-500 cursor-pointer"
+          (click)="retryNow()"
+        >
+          Retry now
+        </button>
+      </div>
+    </div>
     <!-- Search Card -->
     <div
       class="bg-white rounded-2xl shadow-sm p-5 sm:p-6 md:p-8 mb-6 sm:mb-8 md:mb-12 border border-gray-200"
@@ -613,7 +629,7 @@
         <span class="text-sm">Loading more...</span>
       </div>
 
-      <!-- Infinite scroll sentinel -->
+      <!-- Infinite scroll sentinel (kept in DOM; guarded in code to avoid requests during backoff) -->
       <div #infiniteAnchor style="height: 1px"></div>
     </section>
   </main>

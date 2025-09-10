@@ -1,9 +1,9 @@
-<header class="border-b border-gray-200 py-3 px-4 bg-white relative">
+<header class="sticky top-0 z-40 border-b border-gray-200/70 px-4 py-3 bg-white/80 backdrop-blur relative">
   <div class="container mx-auto flex items-center justify-between">
     <!-- Logo -->
     <a
       routerLink="/library"
-      class="flex items-center space-x-2 cursor-pointer focus:outline-none focus:ring-2 focus:ring-indigo-500 rounded-md px-1 py-0.5"
+      class="flex items-center space-x-2 cursor-pointer rounded-xl px-1.5 py-1 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-opacity hover:opacity-90"
       aria-label="Go to Library"
     >
       <img src="logo.svg" alt="VOICERA" />
@@ -11,103 +11,73 @@
     </a>
 
     <!-- Desktop Navigation -->
-    <div class="hidden md:flex items-center space-x-3">
-      <!-- Library Button -->
-      <a
-        routerLink="/library"
-        routerLinkActive="ring-2 ring-indigo-500"
-        [routerLinkActiveOptions]="{ exact: true }"
-        #libRLA="routerLinkActive"
-        [attr.aria-current]="libRLA.isActive ? 'page' : null"
-        [ngClass]="libRLA.isActive ? 'bg-slate-700' : 'bg-indigo-600'"
-        class="flex items-center space-x-2 text-white px-4 py-1.5 rounded-full text-sm font-medium cursor-pointer hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors shadow-sm hover:shadow-md"
-      >
-        <svg
-          class="w-4 h-4"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
+    <div class="hidden md:flex items-center gap-2">
+      <!-- Browse Dropdown -->
+      <div class="relative" #navMenuContainer>
+        <button
+          (click)="toggleNavDropdown()"
+          class="flex items-center gap-2 px-3 py-1.5 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-100 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 cursor-pointer"
+          [attr.aria-expanded]="showNavDropdown"
+          aria-controls="desktop-browse-menu"
+          aria-haspopup="menu"
         >
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="2"
-            d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
-          />
-        </svg>
-        <span>Library</span>
-      </a>
+          <span>Browse</span>
+          <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+          </svg>
+        </button>
 
-      <!-- AI Search Button -->
-      <a
-        routerLink="/ai-search"
-        routerLinkActive="ring-2 ring-indigo-500"
-        [routerLinkActiveOptions]="{ exact: true }"
-        #aiRLA="routerLinkActive"
-        [attr.aria-current]="aiRLA.isActive ? 'page' : null"
-        [ngClass]="aiRLA.isActive ? 'bg-slate-700' : 'bg-indigo-600'"
-        class="flex items-center space-x-2 text-white px-4 py-1.5 rounded-full text-sm font-medium cursor-pointer hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors shadow-sm hover:shadow-md"
-      >
-        <svg
-          class="w-4 h-4"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
+        <!-- Dropdown Menu -->
+        <div
+          *ngIf="showNavDropdown"
+          id="desktop-browse-menu"
+          class="absolute right-0 mt-3 w-80 bg-white rounded-2xl shadow-sm border border-gray-200 p-2 z-50"
+          role="menu"
         >
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="2"
-            d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-          />
-        </svg>
-        <span>AI Search</span>
-      </a>
+          <ng-container *ngFor="let item of navItems">
+            <button
+              *ngIf="!item.requiresAdmin || canAccessAdminSide()"
+              (click)="goTo(item.route)"
+              [ngClass]="isActiveRoute(item.route) ? 'bg-gray-100 ring-1 ring-gray-200' : ''"
+              class="flex w-full items-start gap-3 rounded-xl p-3 text-left hover:bg-gray-50 transition-colors cursor-pointer"
+            >
+              <!-- Icon -->
+              <ng-container [ngSwitch]="item.icon">
+                <!-- Library -->
+                <svg *ngSwitchCase="'library'" class="w-4 h-4 text-gray-600 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                </svg>
+                <!-- Search -->
+                <svg *ngSwitchCase="'search'" class="w-4 h-4 text-gray-600 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+                <!-- Upload -->
+                <svg *ngSwitchCase="'upload'" class="w-4 h-4 text-gray-600 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                </svg>
+                <!-- Admin -->
+                <svg *ngSwitchCase="'admin'" class="w-4 h-4 text-gray-600 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 11c1.657 0 3-1.567 3-3.5S13.657 4 12 4 9 5.567 9 7.5 10.343 11 12 11zm0 2c-2.21 0-6 1.12-6 3.333V19a1 1 0 001 1h10a1 1 0 001-1v-2.667C18 14.12 14.21 13 12 13z" />
+                </svg>
+              </ng-container>
 
-      <!-- Upload Button -->
-      <a
-        routerLink="/upload"
-        routerLinkActive="ring-2 ring-indigo-500"
-        [routerLinkActiveOptions]="{ exact: true }"
-        #uplRLA="routerLinkActive"
-        [attr.aria-current]="uplRLA.isActive ? 'page' : null"
-        [ngClass]="uplRLA.isActive ? 'bg-slate-700' : 'bg-indigo-600'"
-        class="flex items-center space-x-2 text-white px-4 py-1.5 rounded-full text-sm font-semibold cursor-pointer hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors shadow-sm hover:shadow-md"
-      >
-        <svg
-          class="w-4 h-4"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="2"
-            d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
-          />
-        </svg>
-        <span>Upload</span>
-      </a>
-
-      <!-- Move to Admin Side Button -->
-      <button
-        *ngIf="canAccessAdminSide()"
-        (click)="navigateToAdminSide()"
-        class="flex items-center space-x-2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white px-4 py-1.5 rounded-full text-sm font-medium cursor-pointer hover:from-purple-700 hover:to-indigo-700 focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all duration-200 shadow-sm hover:shadow-md"
-      >
-        <lucide-icon [img]="ArrowRight" class="w-4 h-4"></lucide-icon>
-        <span>Admin</span>
-      </button>
+              <div class="min-w-0">
+                <div class="text-sm font-medium text-gray-900 truncate">{{ item.label }}</div>
+                <div class="text-xs text-gray-500 truncate" *ngIf="item.description">{{ item.description }}</div>
+              </div>
+            </button>
+          </ng-container>
+        </div>
+      </div>
 
       <!-- Divider -->
-      <div class="w-px h-8 bg-gray-200"></div>
+      <div class="w-px h-8 bg-gray-200/80"></div>
 
       <!-- Desktop Profile Dropdown -->
       <div class="relative" #profileDropdown>
         <button
           (click)="onProfileClick()"
-          class="relative focus:outline-none group"
+          class="relative focus:outline-none group cursor-pointer"
           id="profile-menu-button"
           aria-haspopup="menu"
           [attr.aria-expanded]="showProfileDropdown"
@@ -274,7 +244,7 @@
       <div class="relative" #mobileProfileDropdown>
         <button
           (click)="onProfileClick()"
-          class="relative focus:outline-none group"
+          class="relative focus:outline-none group cursor-pointer"
           id="mobile-profile-menu-button"
           aria-haspopup="menu"
           [attr.aria-expanded]="showProfileDropdown"
@@ -424,7 +394,7 @@
         (click)="toggleMobileMenu()"
         #mobileMenuButton
         id="mobileMenuButton"
-        class="flex items-center justify-center h-10 w-10 rounded-lg bg-white border border-gray-200 hover:bg-gray-50 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500"
+        class="flex items-center justify-center h-10 w-10 rounded-xl bg-white/70 border border-gray-200/80 hover:bg-gray-50 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500/50 cursor-pointer"
         [attr.aria-expanded]="showMobileMenu"
         aria-controls="mobileMenu"
         aria-label="Toggle navigation"
@@ -480,8 +450,8 @@
         [routerLinkActiveOptions]="{ exact: true }"
         #mlibRLA="routerLinkActive"
         [attr.aria-current]="mlibRLA.isActive ? 'page' : null"
-        [ngClass]="mlibRLA.isActive ? 'bg-slate-700' : 'bg-indigo-600'"
-        class="flex items-center space-x-3 w-full p-3 text-left text-white rounded-xl font-medium hover:bg-slate-800 transition-colors shadow-sm hover:shadow-md"
+        [ngClass]="mlibRLA.isActive ? 'bg-gray-900 text-white shadow-sm' : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900'"
+        class="flex items-center gap-3 w-full p-3 text-left rounded-xl font-medium transition-colors cursor-pointer"
       >
         <svg
           class="w-5 h-5"
@@ -507,8 +477,8 @@
         [routerLinkActiveOptions]="{ exact: true }"
         #maiRLA="routerLinkActive"
         [attr.aria-current]="maiRLA.isActive ? 'page' : null"
-        [ngClass]="maiRLA.isActive ? 'bg-slate-700' : 'bg-indigo-600'"
-        class="flex items-center space-x-3 w-full p-3 text-left text-white rounded-xl font-medium hover:bg-slate-800 transition-colors shadow-sm hover:shadow-md"
+        [ngClass]="maiRLA.isActive ? 'bg-gray-900 text-white shadow-sm' : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900'"
+        class="flex items-center gap-3 w-full p-3 text-left rounded-xl font-medium transition-colors cursor-pointer"
       >
         <svg
           class="w-5 h-5"
@@ -534,8 +504,8 @@
         [routerLinkActiveOptions]="{ exact: true }"
         #muplRLA="routerLinkActive"
         [attr.aria-current]="muplRLA.isActive ? 'page' : null"
-        [ngClass]="muplRLA.isActive ? 'bg-slate-700' : 'bg-indigo-600'"
-        class="flex items-center space-x-3 w-full p-3 text-left text-white rounded-xl font-semibold hover:bg-slate-800 transition-colors shadow-sm hover:shadow-md"
+        [ngClass]="muplRLA.isActive ? 'bg-gray-900 text-white shadow-sm' : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900'"
+        class="flex items-center gap-3 w-full p-3 text-left rounded-xl font-semibold transition-colors cursor-pointer"
       >
         <svg
           class="w-5 h-5"
@@ -551,6 +521,29 @@
           />
         </svg>
         <span>Upload</span>
+      </a>
+
+      <!-- Admin Button (conditional) -->
+      <a
+        *ngIf="canAccessAdminSide()"
+        routerLink="/admin/dashboard"
+        (click)="closeMobileMenu()"
+        class="flex items-center gap-3 w-full p-3 text-left rounded-xl font-medium text-gray-700 hover:bg-gray-100 hover:text-gray-900 transition-colors cursor-pointer"
+      >
+        <svg
+          class="w-5 h-5"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M12 11c1.657 0 3-1.567 3-3.5S13.657 4 12 4 9 5.567 9 7.5 10.343 11 12 11zm0 2c-2.21 0-6 1.12-6 3.333V19a1 1 0 001 1h10a1 1 0 001-1v-2.667C18 14.12 14.21 13 12 13z"
+          />
+        </svg>
+        <span>Admin</span>
       </a>
     </div>
   </div>
