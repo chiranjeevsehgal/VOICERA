@@ -153,8 +153,16 @@ export class SearchComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   private setDefaultViewMode(): void {
-    // Use Tailwind's sm breakpoint (640px) as the cutoff for mobile
+    // Read persisted preference first; fallback to breakpoint detection
     try {
+      if (typeof window !== 'undefined' && 'localStorage' in window) {
+        const saved = window.localStorage.getItem('voicera_view_mode');
+        if (saved === 'grid' || saved === 'list') {
+          this.viewMode = saved;
+          return;
+        }
+      }
+      // Use Tailwind's sm breakpoint (640px) as the cutoff for mobile
       if (
         typeof window !== 'undefined' &&
         typeof window.matchMedia === 'function'
@@ -247,6 +255,14 @@ export class SearchComponent implements OnInit, OnDestroy, AfterViewInit {
 
   setViewMode(mode: 'grid' | 'list'): void {
     this.viewMode = mode;
+    // Persist preference for future loads
+    try {
+      if (typeof window !== 'undefined' && 'localStorage' in window) {
+        window.localStorage.setItem('voicera_view_mode', mode);
+      }
+    } catch (e) {
+      // ignore storage errors
+    }
   }
 
   onSearchChange(query: string): void {

@@ -34,11 +34,13 @@
             By {{ podcast.creator }}
           </p>
           <div class="mt-3 flex items-center gap-4 text-xs text-gray-500">
-            <div *ngIf="podcast.audioFile?.duration_seconds">
-              {{
-                podcast.audioFile.duration_seconds / 60 | number: "1.0-0"
-              }}
-              min
+            <div *ngIf="podcast.audioFile?.duration_seconds as secs">
+              <ng-container *ngIf="secs >= 60; else underMinute">
+                {{ (secs / 60) | number: '1.0-0' }} min
+              </ng-container>
+              <ng-template #underMinute>
+                {{ secs | number: '1.0-0' }} s
+              </ng-template>
             </div>
             <div *ngIf="podcast.plays" class="flex items-center gap-1">
               <svg

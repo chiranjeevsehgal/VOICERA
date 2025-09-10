@@ -4,7 +4,7 @@
   (click)="onBackdropClick($event)"
 >
   <div
-    class="bg-white rounded-2xl sm:rounded-3xl shadow-lg max-w-xs sm:max-w-lg md:max-w-xl lg:max-w-2xl w-full max-h-[95vh] overflow-y-auto border border-gray-200 relative"
+    class="bg-white rounded-2xl sm:rounded-3xl shadow-lg max-w-xs sm:max-w-lg md:max-w-xl lg:max-w-2xl w-full max-h-[95vh] border border-gray-200 relative overflow-hidden flex flex-col"
     role="dialog"
     aria-modal="true"
     aria-labelledby="audio-modal-title"
@@ -42,7 +42,8 @@
     </div>
 
     <!-- Content -->
-    <div class="p-4 sm:p-6 relative z-10" *ngIf="podcast">
+    <div class="flex-1 overflow-y-auto">
+      <div class="p-4 sm:p-6 relative z-10" *ngIf="podcast">
       <!-- Image (Centered) -->
       <div class="flex justify-center mb-4 sm:mb-6">
         <div class="relative">
@@ -226,6 +227,7 @@
             {{ transcript }}
           </div>
         </div>
+      </div>
       </div>
     </div>
 

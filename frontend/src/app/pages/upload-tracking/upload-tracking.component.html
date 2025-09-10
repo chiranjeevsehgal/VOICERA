@@ -473,40 +473,47 @@
       class="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 sm:p-8 text-center mb-8 sm:mb-10"
     >
       <div class="max-w-md mx-auto">
-        <div class="flex items-center justify-center space-x-4">
-          <div class="flex-shrink-0">
-            <svg
-              class="w-6 h-6 text-gray-500"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-              />
-            </svg>
+        <div class="flex items-center justify-between gap-4">
+          <div class="flex items-start gap-3 text-left">
+            <div class="flex-shrink-0 mt-0.5">
+              <svg
+                class="w-6 h-6 text-gray-500"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+                aria-hidden="true"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
+              </svg>
+            </div>
+            <div>
+              <div class="text-sm sm:text-base font-semibold text-gray-900">
+                Auto-refresh every 5 seconds
+              </div>
+              <p class="text-xs sm:text-sm text-gray-500 mt-0.5">
+                Automatically check for status updates while processing
+              </p>
+            </div>
           </div>
-          <label class="inline-flex items-center cursor-pointer">
+          <label class="inline-flex items-center cursor-pointer select-none">
             <input
+              id="autoRefreshToggle"
               type="checkbox"
               [(ngModel)]="autoRefresh"
               (change)="toggleAutoRefresh()"
               class="sr-only peer"
+              aria-label="Toggle auto-refresh"
             />
             <div
-              class="relative w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-gradient-to-r peer-checked:from-blue-600 peer-checked:to-indigo-600"
+              class="relative w-14 h-8 bg-gray-200 rounded-full transition-all shadow-inner peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-200 peer-checked:bg-gradient-to-r peer-checked:from-blue-600 peer-checked:to-indigo-600 after:content-[''] after:absolute after:top-[3px] after:left-[3px] after:bg-white after:rounded-full after:h-[26px] after:w-[26px] after:transition-transform peer-checked:after:translate-x-[24px]"
             ></div>
-            <span class="ml-4 text-gray-700 font-medium text-base">
-              Auto-refresh every 5 seconds
-            </span>
           </label>
         </div>
-        <p class="text-sm text-gray-500 mt-2">
-          Automatically check for status updates while processing
-        </p>
       </div>
     </div>
 
