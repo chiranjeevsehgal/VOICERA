@@ -29,22 +29,55 @@ export class HeaderComponent implements OnInit, OnDestroy {
   @ViewChild('mobileMenu') mobileMenu!: ElementRef;
   @ViewChild('profileDropdown') profileDropdown!: ElementRef;
   @ViewChild('mobileProfileDropdown') mobileProfileDropdown!: ElementRef;
+  @ViewChild('navMenuContainer') navMenuContainer!: ElementRef;
   readonly ArrowRight = ArrowRight;
   userProfile: UserProfile | null = null;
   credits: number = 0;
   userInitials: string = '';
   showProfileDropdown: boolean = false;
   showMobileMenu: boolean = false;
+  showNavDropdown: boolean = false;
   isLoadingProfile: boolean = true;
   isLoadingCredits: boolean = true;
   userRole: string = '';
 
+  navItems: Array<{
+    label: string;
+    route: string;
+    icon: 'library' | 'search' | 'upload' | 'admin';
+    requiresAdmin?: boolean;
+    description?: string;
+  }> = [
+    {
+      label: 'Library',
+      route: '/library',
+      icon: 'library',
+      description: 'Browse your transcripts and podcasts',
+    },
+    {
+      label: 'AI Search',
+      route: '/ai-search',
+      icon: 'search',
+      description: 'Search accurate content with natural language',
+    },
+    {
+      label: 'Upload',
+      route: '/upload',
+      icon: 'upload',
+      description: 'Add new audio or files',
+    },
+    {
+      label: 'Admin',
+      route: '/admin/dashboard',
+      icon: 'admin',
+      requiresAdmin: true,
+      description: 'Manage users and system settings',
+    },
+  ];
+
   private destroy$ = new Subject<void>();
 
-  constructor(
-    private router: Router,
-    private profileService: ProfileService,
-  ) {}
+  constructor(private router: Router, private profileService: ProfileService) {}
 
   ngOnInit(): void {
     this.loadUserData();
@@ -92,6 +125,15 @@ export class HeaderComponent implements OnInit, OnDestroy {
     ) {
       this.showMobileMenu = false;
     }
+
+    // Handle nav dropdown clicks
+    if (
+      this.showNavDropdown &&
+      this.navMenuContainer &&
+      !this.navMenuContainer.nativeElement.contains(target)
+    ) {
+      this.showNavDropdown = false;
+    }
   }
 
   @HostListener('window:resize', ['$event'])
@@ -99,6 +141,11 @@ export class HeaderComponent implements OnInit, OnDestroy {
     if (event.target.innerWidth >= 768) {
       this.showMobileMenu = false;
     }
+  }
+
+  @HostListener('document:keydown.escape')
+  onEscape(): void {
+    this.showNavDropdown = false;
   }
 
   onAISearchClick(): void {
@@ -118,11 +165,29 @@ export class HeaderComponent implements OnInit, OnDestroy {
 
     if (this.showMobileMenu) {
       this.showProfileDropdown = false;
+      this.showNavDropdown = false;
     }
   }
 
   closeMobileMenu(): void {
     this.showMobileMenu = false;
+  }
+
+  toggleNavDropdown(): void {
+    this.showNavDropdown = !this.showNavDropdown;
+    if (this.showNavDropdown) {
+      this.showProfileDropdown = false;
+      this.showMobileMenu = false;
+    }
+  }
+
+  goTo(route: string): void {
+    this.showNavDropdown = false;
+    this.router.navigate([route]);
+  }
+
+  isActiveRoute(route: string): boolean {
+    return this.router.url === route || this.router.url.startsWith(route + '/');
   }
 
   private loadUserData(): void {
@@ -136,7 +201,7 @@ export class HeaderComponent implements OnInit, OnDestroy {
         this.userProfile = profile;
         if (profile) {
           this.userInitials = this.profileService.getUserInitials(
-            profile.full_name,
+            profile.full_name
           );
           this.isLoadingProfile = false;
         }

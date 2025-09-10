@@ -56,6 +56,11 @@ export class SearchComponent implements OnInit, OnDestroy, AfterViewInit {
   private io?: IntersectionObserver;
   @ViewChild('infiniteAnchor') infiniteAnchor?: ElementRef;
   private searchSubject = new Subject<string>();
+  // Backoff/Circuit Breaker state
+  private backoffUntil: number | null = null;
+  private backoffCurrentMs = 0;
+  private readonly backoffBaseMs = 15000; // 15s initial wait
+  private readonly backoffMaxMs = 120000; // cap at 2 minutes
   // Filters UI state
   showFilters: boolean = false;
   // Date filters
@@ -99,6 +104,37 @@ export class SearchComponent implements OnInit, OnDestroy, AfterViewInit {
     if (this.io) {
       this.io.disconnect();
     }
+  }
+
+  // ===== Backoff / Circuit Breaker helpers =====
+  private startBackoff(): void {
+    // Exponential backoff with cap
+    this.backoffCurrentMs = this.backoffCurrentMs
+      ? Math.min(this.backoffCurrentMs * 2, this.backoffMaxMs)
+      : this.backoffBaseMs;
+    this.backoffUntil = Date.now() + this.backoffCurrentMs;
+  }
+
+  private clearBackoff(): void {
+    this.backoffUntil = null;
+    this.backoffCurrentMs = 0;
+  }
+
+  isBackoffActive(): boolean {
+    return this.backoffUntil !== null && Date.now() < this.backoffUntil;
+  }
+
+  getBackoffRemainingSeconds(): number {
+    if (!this.isBackoffActive() || this.backoffUntil === null) return 0;
+    return Math.max(0, Math.ceil((this.backoffUntil - Date.now()) / 1000));
+  }
+
+  retryNow(): void {
+    // Allow manual retry and clear backoff window
+    this.clearBackoff();
+    // If nothing loaded yet, load first page; else reload current next state
+    const targetPage = this.podcasts.length ? this.page : 1;
+    this.loadPage(targetPage);
   }
 
   private setupDebouncedSearch(): void {
@@ -145,6 +181,7 @@ export class SearchComponent implements OnInit, OnDestroy, AfterViewInit {
         const entry = entries[0];
         if (!entry || !entry.isIntersecting) return;
         if (this.isLoading || this.loadingMore || !this.hasNext) return;
+        if (this.isBackoffActive()) return; // guard while backend is down
         // Ensure updates happen inside Angular zone
         this.ngZone.run(() => this.loadNextPage());
       },
@@ -160,6 +197,10 @@ export class SearchComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   private loadPage(page: number): void {
+    // Do not attempt to load while in backoff window
+    if (this.isBackoffActive()) {
+      return;
+    }
     if (this.subscription) this.subscription.unsubscribe();
     if (page <= 1) {
       this.isLoading = true;
@@ -181,10 +222,18 @@ export class SearchComponent implements OnInit, OnDestroy, AfterViewInit {
         this.filterPodcasts();
         this.isLoading = false;
         this.loadingMore = false;
+        // Success clears any previous backoff
+        this.clearBackoff();
       },
       error: (error) => {
         console.error('Error loading podcasts:', error);
-        this.toast.error('Failed to load podcasts. Please try again.');
+        // Start/extend backoff window to prevent repeated calls
+        this.startBackoff();
+        const seconds = this.getBackoffRemainingSeconds();
+        this.toast.error(
+          `Failed to load podcasts. Retrying disabled for ${seconds}s.`,
+          { duration: 4000 },
+        );
         this.isLoading = false;
         this.loadingMore = false;
       },
