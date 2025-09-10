@@ -284,11 +284,17 @@ def sync_check_credits(ip: str, current_user: dict) -> Dict[str, Any]:
         # Set up headers
         headers = {
             "Content-Type": "application/json",
+            # Forward the real client IP so credit API doesn't see localhost
+            "X-Client-IP": ip,
         }
 
         # Add authorization if we have a token
         if access_token:
             headers["Authorization"] = f"Bearer {access_token}"
+            # Also add the optional token if we're in dev mode with client IP trust enabled
+            client_ip_token = os.getenv("CLIENT_IP_HEADER_TOKEN")
+            if client_ip_token:
+                headers["X-Client-IP-Token"] = client_ip_token
             log_info(
                 f"Using Authorization header: Bearer {access_token[:10]}...",
                 "utility_wrappers",
