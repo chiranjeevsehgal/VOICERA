@@ -33,7 +33,6 @@ class OAuthCodeExchangeResponse(BaseModel):
     token_type: str
 
 
-JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY")
 ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES"))
 
 # Google OAuth Config
