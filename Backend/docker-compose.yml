@@ -1,0 +1,42 @@
+services:
+  backend:
+    build: .
+    container_name: voicera-backend
+    expose:
+      - "8000"
+    env_file:
+      - .env
+    environment:
+      - TRUST_CLIENT_IP_HEADER=true
+      # - CLIENT_IP_HEADER_TOKEN=dev-ip-token
+    volumes:
+      - .:/app
+    working_dir: /app
+    command: python main.py
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "https://gkdcrl9v-8000.inc1.devtunnels.ms/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  nginx:
+    image: nginx:alpine
+    container_name: voicera-proxy
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    ports:
+      - "8000:8000"
+    depends_on:
+      - backend
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "https://gkdcrl9v-8000.inc1.devtunnels.ms/nginx-health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+networks:
+  default:
+    name: voicera-network
