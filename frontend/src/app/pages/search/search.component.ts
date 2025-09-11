@@ -49,6 +49,8 @@ export class SearchComponent implements OnInit, OnDestroy, AfterViewInit {
   private searchSubscription?: Subscription;
   isSearching = false;
   isLoading = true;
+  // Track whether the initial load has completed so we only show skeletons once
+  hasLoadedOnce = false;
   hasSearched = false;
   page = 1;
   hasNext = true;
@@ -230,6 +232,10 @@ export class SearchComponent implements OnInit, OnDestroy, AfterViewInit {
         this.filterPodcasts();
         this.isLoading = false;
         this.loadingMore = false;
+        // Mark that at least one successful initial load has happened
+        if (!this.hasLoadedOnce && page <= 1) {
+          this.hasLoadedOnce = true;
+        }
         // Success clears any previous backoff
         this.clearBackoff();
       },
