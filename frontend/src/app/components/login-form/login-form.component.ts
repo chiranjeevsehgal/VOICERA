@@ -92,7 +92,7 @@ export class LoginFormComponent {
 
     const params: { [key: string]: string } = {
       client_id: environment.githubClientId,
-      redirect_uri: 'http://localhost:4200/auth/callback',
+      redirect_uri: `${environment.frontendApiUrl}/auth/callback`,
       scope: 'read:user user:email',
       state: 'github-oauth',
     };
