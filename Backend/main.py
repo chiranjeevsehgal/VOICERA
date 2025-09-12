@@ -38,6 +38,10 @@ import os
 # Create a middleware class for API usage tracking
 class APIUsageMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
+        # Skip processing for OPTIONS requests (CORS preflight)
+        if request.method == "OPTIONS":
+            return await call_next(request)
+            
         # Start timer
         start_time = time.time()
 
@@ -151,6 +155,12 @@ async def root():
         "message": "Voicera backend is running",
         "version": app.version,
     }
+
+
+@app.options("/{path:path}")
+async def options_handler(path: str):
+    """Handle OPTIONS requests for CORS preflight"""
+    return {}
 
 
 # Health check router

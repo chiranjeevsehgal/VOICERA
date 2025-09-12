@@ -380,8 +380,8 @@ def get_endpoint_config(path: str) -> dict:
 async def rate_limit_middleware(request: Request, call_next):
     """FastAPI middleware for rate limiting"""
 
-    # Skip rate limiting for health checks and static files
-    if request.url.path in ["/health", "/docs", "/redoc", "/openapi.json"]:
+    # Skip rate limiting for health checks, static files, and OPTIONS requests (CORS preflight)
+    if request.url.path in ["/health", "/docs", "/redoc", "/openapi.json"] or request.method == "OPTIONS":
         return await call_next(request)
 
     limiter = get_rate_limiter()
@@ -435,7 +435,7 @@ async def rate_limit_middleware(request: Request, call_next):
                     content={
                         "error": "User rate limit exceeded",
                         "type": "user_limit",
-                        "message": f"Too many requests for user",
+                        "message": "Too many requests for user",
                         **{k: v for k, v in user_info.items() if k != "allowed"},
                     },
                     headers=_get_rate_limit_headers(user_info),

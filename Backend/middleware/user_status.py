@@ -20,8 +20,8 @@ class UserStatusMiddleware(BaseHTTPMiddleware):
     ]
 
     async def dispatch(self, request: Request, call_next):
-        # Skip status check for excluded routes
-        if self._is_route_excluded(request.url.path):
+        # Skip status check for excluded routes and OPTIONS requests (CORS preflight)
+        if self._is_route_excluded(request.url.path) or request.method == "OPTIONS":
             return await call_next(request)
 
         # Extract and validate token
