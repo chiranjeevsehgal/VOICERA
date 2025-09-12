@@ -39,8 +39,6 @@
       style="animation-delay: 2.5s; animation-duration: 5.5s"
     ></div>
 
-    <!-- Minimal hero: ornaments removed for clean, focused look -->
-
     <!-- Content -->
     <div class="container mx-auto text-center max-w-4xl relative z-10 px-4">
       <div class="animate-fade-in-up">
@@ -77,8 +75,9 @@
   <main
     class="container mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 max-w-9xl relative -mt-8 sm:-mt-12 z-20"
   >
-    <!-- Upload Card -->
+    <!-- Upload Card - Show only when upload is not successful -->
     <div
+      *ngIf="!uploadSuccess"
       class="bg-white rounded-2xl shadow-sm p-5 sm:p-6 md:p-8 mb-8 sm:mb-12 border border-gray-200"
     >
       <!-- Upload Area -->
@@ -86,14 +85,14 @@
         <div
           class="border-2 sm:border-3 border-dashed rounded-2xl sm:rounded-3xl p-6 sm:p-8 md:p-12 transition-all duration-300 cursor-pointer"
           [ngClass]="{
-            'border-gray-300 bg-gray-50': !isDragOver && !selectedFile,
-            'border-indigo-400 bg-indigo-50': isDragOver,
+            'border-gray-300 bg-gray-50': !isDragOver && !selectedFile && !isUploading,
+            'border-indigo-400 bg-indigo-50': isDragOver && !isUploading,
             'border-green-400 bg-green-50': selectedFile && !isUploading,
             'border-blue-400 bg-blue-50': isUploading,
           }"
-          (dragover)="onDragOver($event)"
-          (dragleave)="onDragLeave($event)"
-          (drop)="onDrop($event)"
+          (dragover)="!isUploading && onDragOver($event)"
+          (dragleave)="!isUploading && onDragLeave($event)"
+          (drop)="!isUploading && onDrop($event)"
           role="button"
           [attr.aria-busy]="isUploading ? 'true' : null"
           aria-label="Upload area. Drop your audio file here or press Enter to choose a file."
@@ -209,7 +208,7 @@
                   </p>
                 </div>
                 <button
-                  (click)="clearFile()"
+                  (click)="clearFile(); $event.stopPropagation()"
                   class="w-7 sm:w-8 h-7 sm:h-8 bg-red-100 rounded-full flex items-center justify-center text-red-500 hover:bg-red-200 hover:text-red-600 transition-colors duration-300 flex-shrink-0"
                 >
                   <svg
@@ -229,7 +228,7 @@
               </div>
             </div>
             <button
-              (click)="uploadFile()"
+              (click)="uploadFile(); $event.stopPropagation()"
               class="px-4 sm:px-6 md:px-8 py-3 sm:py-4 bg-indigo-600 cursor-pointer text-white rounded-xl font-semibold hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors shadow-sm hover:shadow-md text-sm sm:text-base"
             >
               Upload & Process
@@ -265,6 +264,9 @@
                 {{ uploadStatus }}
               </p>
             </div>
+            <p class="text-xs sm:text-sm text-blue-600 font-medium">
+              Please don't refresh or navigate away from this page
+            </p>
           </div>
         </div>
 
@@ -275,74 +277,53 @@
           class="hidden"
           accept=".mp3,.wav"
           (change)="onFileSelected($event)"
+          [disabled]="isUploading"
         />
       </div>
 
-      <!-- Supported Formats -->
-      <!-- <div class="text-center">
-        <h4
-          class="font-semibold text-gray-900 mb-3 sm:mb-4 text-sm sm:text-base"
-        >
-          Supported Audio Formats
-        </h4>
-        <div class="flex flex-wrap justify-center gap-2 sm:gap-3">
-          <span
-            *ngFor="let format of supportedFormats"
-            class="px-3 sm:px-4 py-1.5 sm:py-2 bg-gray-100 text-gray-700 rounded-full text-xs sm:text-sm font-medium border border-gray-200"
+      <!-- Track Upload Status Section - Show only when no file is selected and not uploading -->
+      <div
+        class="mt-6 sm:mt-8 pt-4 sm:pt-6 border-t border-gray-200"
+        *ngIf="!selectedFile && !isUploading"
+      >
+        <div class="text-center">
+          <p class="text-xs sm:text-sm text-gray-600 mb-3 sm:mb-4">
+            Already uploaded a file?
+          </p>
+          <button
+            (click)="navigateToTrack()"
+            class="px-4 sm:px-6 py-2.5 sm:py-3 bg-slate-700 cursor-pointer text-white rounded-xl font-semibold hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors shadow-sm hover:shadow-md flex items-center mx-auto text-sm sm:text-base"
           >
-            {{ format }}
-          </span>
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="24"
+              height="24"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              class="lucide lucide-binoculars-icon lucide-binoculars w-5 h-5"
+            >
+              <path d="M10 10h4" />
+              <path d="M19 7V4a1 1 0 0 0-1-1h-2a1 1 0 0 0-1 1v3" />
+              <path
+                d="M20 21a2 2 0 0 0 2-2v-3.851c0-1.39-2-2.962-2-4.829V8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v11a2 2 0 0 0 2 2z"
+              />
+              <path d="M 22 16 L 2 16" />
+              <path
+                d="M4 21a2 2 0 0 1-2-2v-3.851c0-1.39 2-2.962 2-4.829V8a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v11a2 2 0 0 1-2 2z"
+              />
+              <path d="M9 7V4a1 1 0 0 0-1-1H6a1 1 0 0 0-1 1v3" />
+            </svg>
+            <span class="ml-2">Track Upload Status</span>
+          </button>
         </div>
-        <p
-          id="max-file-size-text"
-          class="text-xs sm:text-sm text-gray-500 mt-3 sm:mt-4"
-        >
-          Maximum file size: 50MB
-        </p>
-      </div> -->
-    </div>
-
-    <div
-      class="mt-6 sm:mt-8 pt-4 sm:pt-6 border-t border-gray-200"
-      *ngIf="!uploadSuccess"
-    >
-      <div class="text-center">
-        <p class="text-xs sm:text-sm text-gray-600 mb-3 sm:mb-4">
-          Already uploaded a file?
-        </p>
-        <button
-          (click)="navigateToTrack()"
-          class="px-4 sm:px-6 py-2.5 padding sm:py-3 bg-slate-700 cursor-pointer text-white rounded-xl font-semibold hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors shadow-sm hover:shadow-md flex items-center mx-auto text-sm sm:text-base"
-        >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="24"
-            height="24"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            class="lucide lucide-binoculars-icon lucide-binoculars"
-          >
-            <path d="M10 10h4" />
-            <path d="M19 7V4a1 1 0 0 0-1-1h-2a1 1 0 0 0-1 1v3" />
-            <path
-              d="M20 21a2 2 0 0 0 2-2v-3.851c0-1.39-2-2.962-2-4.829V8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v11a2 2 0 0 0 2 2z"
-            />
-            <path d="M 22 16 L 2 16" />
-            <path
-              d="M4 21a2 2 0 0 1-2-2v-3.851c0-1.39 2-2.962 2-4.829V8a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v11a2 2 0 0 1-2 2z"
-            />
-            <path d="M9 7V4a1 1 0 0 0-1-1H6a1 1 0 0 0-1 1v3" />
-          </svg>
-          <span class="ml-2">Track Upload Status</span>
-        </button>
       </div>
     </div>
 
-    <!-- Success Message -->
+    <!-- Success Message - Show only when upload is successful -->
     <div
       *ngIf="uploadSuccess && uploadResponse"
       class="bg-white rounded-2xl shadow-sm border border-gray-200 p-4 sm:p-6 md:p-8 mb-6 sm:mb-8"
@@ -410,9 +391,9 @@
       </div>
     </div>
 
-    <!-- Error Message -->
+    <!-- Error Message - Show only when there's an upload error -->
     <div
-      *ngIf="uploadError"
+      *ngIf="uploadError && !uploadSuccess"
       class="bg-white rounded-2xl shadow-sm border border-gray-200 p-4 sm:p-6 md:p-8"
     >
       <div class="text-center">
