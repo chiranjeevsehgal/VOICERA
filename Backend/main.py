@@ -99,7 +99,42 @@ app = FastAPI(
     title="VOICERA Backend", description="Backend for VOICERA", version="1.0.0"
 )
 
-# Add rate limiting middleware (first to catch requests early)
+# IMPORTANT: Add CORS middleware FIRST before any other middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "https://voicera.trixlabs.in",
+        "http://voicera.trixlabs.in",  # Include both http and https
+        "http://localhost:8000",  # For local development
+        "http://localhost:4200",  # For Angular dev server
+    ],
+    allow_credentials=True,
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
+    allow_headers=[
+        "Accept",
+        "Accept-Language",
+        "Content-Language",
+        "Content-Type",
+        "Authorization",
+        "X-Requested-With",
+        "Origin",
+        "Cache-Control",
+        "Pragma",
+        "User-Agent",
+        "DNT",
+        "If-Modified-Since",
+        "Keep-Alive",
+        "X-Requested-With",
+        "X-CSRF-Token",
+        "X-Accept-Version",
+        "Content-Length",
+        "X-Api-Version",
+        "X-File-Name",
+    ],
+    expose_headers=["*"],
+)
+
+# Add rate limiting middleware (after CORS)
 app.middleware("http")(rate_limit_middleware)
 
 # Add user status checking middleware
@@ -107,14 +142,6 @@ app.add_middleware(UserStatusMiddleware)
 
 # Add API usage tracking middleware
 app.add_middleware(APIUsageMiddleware)
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
 
 
 @app.get("/")
@@ -180,6 +207,6 @@ if __name__ == "__main__":
         "main:app",
         host="0.0.0.0",
         port=8000,
-        # workers=4,  
+        # workers=4,
         reload=True,
     )
