@@ -134,6 +134,8 @@ app.add_middleware(
         "Content-Length",
         "X-Api-Version",
         "X-File-Name",
+        "X-Client-IP",
+        "X-Client-IP-Token",
     ],
     expose_headers=["*"],
 )
