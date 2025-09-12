@@ -109,7 +109,6 @@ app.add_middleware(
     allow_origins=[
         "https://voicera.trixlabs.in",
         "http://voicera.trixlabs.in",  # Include both http and https
-        "http://localhost:8000",  # For local development
         "http://localhost:4200",  # For Angular dev server
     ],
     allow_credentials=True,
@@ -134,6 +133,8 @@ app.add_middleware(
         "Content-Length",
         "X-Api-Version",
         "X-File-Name",
+        "X-Client-IP",
+        "X-Client-IP-Token",
     ],
     expose_headers=["*"],
 )
