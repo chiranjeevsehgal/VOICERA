@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Query, Path, Body
+from fastapi import APIRouter, Request, Depends, HTTPException, status, Query, Path, Body
 from fastapi.responses import JSONResponse
 from typing import List, Optional, Dict, Any
 from bson import ObjectId
@@ -8,7 +8,7 @@ from pydantic import BaseModel, EmailStr, Field
 import os
 import shutil
 import asyncio
-from services.database import ip_credits_collection
+from services.database import ip_credits_collection, credit_requests_collection
 
 from services.auth import (
     get_current_user,
@@ -1531,3 +1531,55 @@ async def cleanup_audio_uploads(
         "deleted_bytes": deleted_bytes,
         "errors": errors,
     }
+
+
+@router.get("/credit-requests")
+async def get_all_credit_requests(
+    request: Request,
+    current_user: Dict[str, Any] = Depends(requires_role("admin")),
+    status_filter: Optional[str] = None,
+    limit: int = 50,
+    skip: int = 0
+):
+    """
+    Admin endpoint to view all credit requests.
+    """
+    try:
+
+        # Build query
+        query = {}
+        if status_filter:
+            query["status"] = status_filter
+
+        # Get requests
+        cursor = credit_requests_collection.find(query).sort("created_at", -1).skip(skip).limit(limit)
+
+        requests = []
+        async for request_doc in cursor:
+            request_doc["_id"] = str(request_doc["_id"])
+            request_doc["created_at"] = datetime.fromtimestamp(
+                request_doc["created_at"]
+            ).isoformat()
+            if request_doc.get("updated_at"):
+                request_doc["updated_at"] = datetime.fromtimestamp(
+                    request_doc["updated_at"]
+                ).isoformat()
+            
+            requests.append(request_doc)
+
+        return {
+            "status": True,
+            "requests": requests,
+            "total": await credit_requests_collection.count_documents(query)
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        return JSONResponse(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            content={
+                "status": False,
+                "detail": f"An error occurred: {str(e)}"
+            }
+        )

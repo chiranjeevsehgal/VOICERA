@@ -58,6 +58,7 @@ except Exception as e:
 users_collection = db.users
 guests_collection = db.guests
 ip_credits_collection = db.ip_credits
+credit_requests_collection = db.credit_requests
 
 # Analytics and monitoring collections
 api_usage_collection = db.api_usage

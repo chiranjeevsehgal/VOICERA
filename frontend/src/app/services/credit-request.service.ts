@@ -19,6 +19,6 @@ export class CreditRequestService {
       'Content-Type': 'application/json',
     });
 
-    return this.http.post(`${this.baseUrl}/request-credits`, requestData, { headers });
+    return this.http.post(`${this.baseUrl}/api/request-credits`, requestData, { headers });
   }
 }
