@@ -203,10 +203,10 @@ async def request_more_credits(
     """
     try:
         # Validate input
-        if not request_data.reason or len(request_data.reason.strip()) < 10:
+        if not request_data.reason or len(request_data.reason.strip()) < 5:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Reason must be at least 10 characters long"
+                detail="Reason must be at least 5 characters long"
             )
 
         if not request_data.userInfo.full_name or not request_data.userInfo.email:

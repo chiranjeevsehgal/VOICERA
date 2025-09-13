@@ -19,11 +19,20 @@ import { getCurrentUserRole } from '../../utils/role.utils';
 import { ArrowRight, LogOut, LucideAngularModule } from 'lucide-angular';
 import { CreditRequestService } from '../../services/credit-request.service';
 import { HotToastService } from '@ngxpert/hot-toast';
-import { CreditRequestData, RequestCreditsModalComponent } from '../request-credits-modal/request-credits-modal.component';
+import {
+  CreditRequestData,
+  RequestCreditsModalComponent,
+} from '../request-credits-modal/request-credits-modal.component';
 
 @Component({
   selector: 'app-header',
-  imports: [CommonModule, FormsModule, RouterModule, LucideAngularModule, RequestCreditsModalComponent],
+  imports: [
+    CommonModule,
+    FormsModule,
+    RouterModule,
+    LucideAngularModule,
+    RequestCreditsModalComponent,
+  ],
   templateUrl: './header.component.html',
   styles: ``,
 })
@@ -45,6 +54,8 @@ export class HeaderComponent implements OnInit, OnDestroy {
   isLoadingCredits: boolean = true;
   userRole: string = '';
   showRequestCreditsModal: boolean = false;
+  isSubmittingCreditRequest: boolean = false;
+
   navItems: Array<{
     label: string;
     route: string;
@@ -85,7 +96,7 @@ export class HeaderComponent implements OnInit, OnDestroy {
     private router: Router,
     private profileService: ProfileService,
     private creditRequestService: CreditRequestService,
-    private toast: HotToastService,
+    private toast: HotToastService
   ) {}
 
   ngOnInit(): void {
@@ -263,15 +274,25 @@ export class HeaderComponent implements OnInit, OnDestroy {
   }
 
   async onSubmitCreditRequest(requestData: CreditRequestData): Promise<void> {
+    this.isSubmittingCreditRequest = true;
     try {
       await this.creditRequestService.requestCredits(requestData).toPromise();
 
-      this.toast.success("We've received your credit request and will review it soon. You'll hear back from us within 24 hours.");
+      this.toast.success(
+        "We've received your credit request and will review it soon. You'll hear back from us within 24 hours."
+      );
 
       this.showRequestCreditsModal = false;
-    } catch (error) {
+    } catch (error:any) {
       console.error('Error submitting credit request:', error);
-      this.toast.error("Sorry, we couldn't process your request right now. Please try again later.");
+
+      const errorMessage =
+        error?.error?.detail ||
+        "Sorry, we couldn't process your request right now. Please try again later.";
+
+      this.toast.error(errorMessage);
+    } finally {
+      this.isSubmittingCreditRequest = false;
     }
   }
 }

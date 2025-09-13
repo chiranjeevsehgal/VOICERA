@@ -22,12 +22,11 @@ export class RequestCreditsModalComponent implements OnInit {
   @Input() isVisible: boolean = false;
   @Input() userProfile: UserProfile | null = null;
   @Input() userInitials: string = '';
-  
+  @Input() isSubmitting: boolean = false;
   @Output() closeModal = new EventEmitter<void>();
   @Output() submitRequest = new EventEmitter<CreditRequestData>();
   
   reason: string = '';
-  isSubmitting: boolean = false;
 
   ngOnInit() {
     // Focus on textarea when modal opens
@@ -53,7 +52,7 @@ export class RequestCreditsModalComponent implements OnInit {
   }
 
   async onSubmit() {
-    if (!this.userProfile || this.reason.trim().length < 10 || this.isSubmitting) {
+    if (!this.userProfile || this.reason.trim().length < 5 || this.isSubmitting) {
       return;
     }
 
