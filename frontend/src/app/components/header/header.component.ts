@@ -16,7 +16,7 @@ import { Subject, takeUntil } from 'rxjs';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { getCurrentUserRole } from '../../utils/role.utils';
-import { ArrowRight, LucideAngularModule } from 'lucide-angular';
+import { ArrowRight, LogOut, LucideAngularModule } from 'lucide-angular';
 import { CreditRequestService } from '../../services/credit-request.service';
 import { HotToastService } from '@ngxpert/hot-toast';
 import { CreditRequestData, RequestCreditsModalComponent } from '../request-credits-modal/request-credits-modal.component';
@@ -34,6 +34,7 @@ export class HeaderComponent implements OnInit, OnDestroy {
   @ViewChild('mobileProfileDropdown') mobileProfileDropdown!: ElementRef;
   @ViewChild('navMenuContainer') navMenuContainer!: ElementRef;
   readonly ArrowRight = ArrowRight;
+  readonly LogOut = LogOut;
   userProfile: UserProfile | null = null;
   credits: number = 0;
   userInitials: string = '';
