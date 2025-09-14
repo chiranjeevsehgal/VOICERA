@@ -12,7 +12,6 @@ from fastapi import (
 from fastapi.responses import JSONResponse
 from typing import Optional, Dict, Any, List
 import json
-import threading
 import asyncio
 
 import os
@@ -24,16 +23,16 @@ from services.job_tracker import create_job, get_job_status, clean_old_jobs
 from api.upload import AUDIO_MIME_TYPES
 
 # Import the background processor entrypoint
-from services.background_processor import run_processing_in_thread
+from services.background_processor import process_audio_background
 
 router = APIRouter()
 
-# Limit concurrent background processing threads for bulk uploads to reduce memory spikes
-MAX_CONCURRENT_BULK_THREADS = 4
-_thread_semaphore = threading.Semaphore(MAX_CONCURRENT_BULK_THREADS)
+# Limit concurrent bulk tasks using asyncio semaphore (no threads)
+MAX_CONCURRENT_BULK_TASKS = 4
+_bulk_semaphore: asyncio.Semaphore | None = None
 
 
-def _run_with_semaphore(
+async def _run_bulk_task(
     job_id: str,
     file_content: bytes,
     file_info: Dict[str, Any],
@@ -43,9 +42,11 @@ def _run_with_semaphore(
     detected_ip: str,
     background_tasks: BackgroundTasks,
 ):
-    try:
-        _thread_semaphore.acquire()
-        run_processing_in_thread(
+    global _bulk_semaphore
+    if _bulk_semaphore is None:
+        _bulk_semaphore = asyncio.Semaphore(MAX_CONCURRENT_BULK_TASKS)
+    async with _bulk_semaphore:
+        await process_audio_background(
             job_id,
             file_content,
             file_info,
@@ -55,8 +56,6 @@ def _run_with_semaphore(
             detected_ip,
             background_tasks,
         )
-    finally:
-        _thread_semaphore.release()
 
 
 def sanitize_filename(name: str) -> str:
@@ -73,8 +72,10 @@ async def setup_job_cleaner():
         while True:
             clean_old_jobs()
             await asyncio.sleep(3600)
-
     asyncio.create_task(cleanup_jobs())
+    # Initialize bulk semaphore on startup
+    global _bulk_semaphore
+    _bulk_semaphore = asyncio.Semaphore(MAX_CONCURRENT_BULK_TASKS)
 
 
 @router.post("/process_audio", status_code=202)
@@ -129,10 +130,9 @@ async def process_audio(
         "size": len(file_content),
     }
 
-    # Dispatch processing thread
-    thread = threading.Thread(
-        target=run_processing_in_thread,
-        args=(
+    # Schedule background processing on the current event loop to avoid cross-loop DB futures
+    asyncio.create_task(
+        process_audio_background(
             job_id,
             file_content,
             file_info,
@@ -141,10 +141,8 @@ async def process_audio(
             enhanced_user,
             detected_ip,
             background_tasks,
-        ),
+        )
     )
-    thread.daemon = True
-    thread.start()
 
     return {
         "job_id": job_id,
@@ -287,22 +285,19 @@ async def process_audio_bulk(
                 "size": len(file_content),
             }
 
-            # Start processing thread with concurrency gating
-            thread = threading.Thread(
-                target=_run_with_semaphore,
-                args=(
+            # Schedule processing as an asyncio task with semaphore gating
+            asyncio.create_task(
+                _run_bulk_task(
                     job_id,
                     file_content,
                     file_info,
                     custom_name,
-                    filename_map,
+                    "{}",
                     enhanced_user,
                     detected_ip,
                     background_tasks,
-                ),
+                )
             )
-            thread.daemon = True
-            thread.start()
 
             job_items.append({"file": file.filename, "job_id": job_id})
 
