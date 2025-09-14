@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Depends, Request
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from api import (
     health,
@@ -21,18 +21,19 @@ from api import (
 import uvicorn
 import time
 import logging
+import os
 from utils.analytics import track_api_usage
 from starlette.middleware.base import BaseHTTPMiddleware
 from services.auth import decode_token
 from services.ip_utils import get_client_ip
 from utils.logging_config import setup_logging
+from services.credit_reset_scheduler import start_scheduler, shutdown_scheduler
+from middleware.user_status import UserStatusMiddleware
+from middleware.rate_limiter import rate_limit_middleware, initialize_rate_limiter
 
 # Initialize logging before app and routers
 setup_logging()
 logger = logging.getLogger("voicera.main")
-from middleware.user_status import UserStatusMiddleware
-from middleware.rate_limiter import rate_limit_middleware, initialize_rate_limiter
-import os
 
 
 # Create a middleware class for API usage tracking
@@ -61,7 +62,7 @@ class APIUsageMiddleware(BaseHTTPMiddleware):
         # Process the request with error logging
         try:
             response = await call_next(request)
-        except Exception as ex:
+        except Exception:
             response_time = (time.time() - start_time) * 1000
             logger.exception(
                 "Unhandled exception processing %s %s for user=%s after %.2fms",
@@ -147,6 +148,18 @@ app.add_middleware(UserStatusMiddleware)
 
 # Add API usage tracking middleware
 app.add_middleware(APIUsageMiddleware)
+
+
+@app.on_event("startup")
+async def _start_scheduler():
+    # Start background scheduler for daily 04:00 IST credit reset
+    start_scheduler()
+
+
+@app.on_event("shutdown")
+async def _shutdown_scheduler():
+    # Stop scheduler gracefully on shutdown
+    shutdown_scheduler()
 
 
 @app.get("/")
