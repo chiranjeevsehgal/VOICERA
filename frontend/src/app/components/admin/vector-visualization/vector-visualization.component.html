@@ -1,3 +1,4 @@
+<ng-container *ngIf="!isGuest; else guestModeBlocked">
 <div class="space-y-4">
   <div class="flex items-center justify-between">
     <div>
@@ -72,3 +73,10 @@
   <div id="vector-3d-plot" class="w-full" style="height: 600px;"></div>
   <p class="text-xs text-gray-500">Tip: rotate (drag), zoom (wheel), and pan (right-drag) the plot. Use legend to show/hide groups.</p>
 </div>
+</ng-container>
+<ng-template #guestModeBlocked>
+  <div class="p-4 bg-yellow-50 text-yellow-800 border border-yellow-200 rounded-lg">
+    <div class="font-medium">Feature unavailable in guest mode</div>
+    <div class="text-sm mt-1">This admin feature is disabled for guest accounts. Please sign in with an admin account to access Vector Space Visualization.</div>
+  </div>
+</ng-template>

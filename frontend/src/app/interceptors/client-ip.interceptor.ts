@@ -1,6 +1,7 @@
 import { HttpInterceptorFn } from '@angular/common/http';
 import { from, of } from 'rxjs';
 import { catchError, map, switchMap } from 'rxjs/operators';
+import { environment } from '../../environments/environment';
 
 function fetchPublicIp$() {
   // Use fetch directly to avoid HttpClient recursion inside interceptor
@@ -20,7 +21,28 @@ export const clientIpInterceptor: HttpInterceptorFn = (req, next) => {
 
   const token = localStorage.getItem('client_ip_header_token') || undefined; // Optional dev token
 
-  // Always fetch fresh IP on every request - no caching
+  // Decide whether to attach the header only for our backend or same-origin routes
+  let shouldAttach = false;
+  try {
+    const backendOrigin = new URL(environment.backendApiUrl).origin;
+    if (req.url.startsWith('http://') || req.url.startsWith('https://')) {
+      const requestOrigin = new URL(req.url).origin;
+      shouldAttach = requestOrigin === backendOrigin;
+    } else if (req.url.startsWith('/')) {
+      // Relative URLs are same-origin to the Angular app
+      shouldAttach = true;
+    }
+  } catch {
+    // If parsing fails, be conservative and only add for relative URLs
+    shouldAttach = req.url.startsWith('/');
+  }
+
+  if (!shouldAttach) {
+    // Bypass modification for third-party domains (e.g., https://api.pexels.com)
+    return next(req);
+  }
+
+  // Always fetch fresh IP on every qualified request - no caching
   return fetchPublicIp$().pipe(
     switchMap((ip) => {
       if (ip) {

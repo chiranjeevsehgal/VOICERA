@@ -2,6 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { VectorVisualizationService } from '../../../services/admin/vector-visualization.service';
+import { shouldUseMockData } from '../../../utils/role.utils';
 
 interface VectorPoint {
   id?: string;
@@ -27,6 +28,7 @@ export class VectorVisualizationComponent implements OnInit {
   loading = false;
   error: string | null = null;
   total = 0;
+  isGuest = shouldUseMockData();
 
   // UI options
   topK = 1000;
@@ -40,10 +42,17 @@ export class VectorVisualizationComponent implements OnInit {
   constructor(private vecService: VectorVisualizationService) {}
 
   ngOnInit(): void {
+    if (this.isGuest) {
+      return;
+    }
     this.fetchAndRender();
   }
 
   private fetchAndRender(): void {
+    if (this.isGuest) {
+      this.loading = false;
+      return;
+    }
     this.loading = true;
     this.error = null;
     this.vecService
@@ -66,10 +75,12 @@ export class VectorVisualizationComponent implements OnInit {
   }
 
   applyOptions(): void {
+    if (this.isGuest) return;
     this.fetchAndRender();
   }
 
   resetOptions(): void {
+    if (this.isGuest) return;
     this.topK = 1000;
     this.fileNameContains = '';
     this.markerSize = 4;
