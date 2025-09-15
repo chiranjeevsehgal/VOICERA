@@ -5,6 +5,7 @@ from fastapi import Request, HTTPException, status
 from fastapi.responses import JSONResponse
 import logging
 from services.ip_utils import get_client_ip
+from services.redis_client import get_async_client
 
 logger = logging.getLogger(__name__)
 
@@ -26,7 +27,8 @@ class RateLimiter:
     """
 
     def __init__(self, redis_client: Optional[object] = None):
-        self.redis_client = redis_client if REDIS_AVAILABLE else None
+        # Accept provided client as-is; if None or unusable, code will fallback to local cache
+        self.redis_client = redis_client
         self.local_cache: Dict[str, Dict] = {}  # Fallback when Redis unavailable
         self.cleanup_interval = 300  # Clean local cache every 5 minutes
         self.last_cleanup = time.time()
@@ -313,13 +315,14 @@ def initialize_rate_limiter(redis_url: Optional[str] = None):
     global rate_limiter
 
     redis_client = None
-    if redis_url and REDIS_AVAILABLE:
-        try:
-            redis_client = redis.from_url(redis_url, decode_responses=True)
-            logger.info("Rate limiter initialized with Redis backend")
-        except Exception as e:
+    # Use centralized client factory which includes connection pooling and timeouts
+    if redis_url:
+        redis_client = get_async_client(redis_url)
+        if redis_client is not None:
+            logger.info("Rate limiter initialized with Redis backend (pooled client)")
+        else:
             logger.warning(
-                f"Failed to connect to Redis, using in-memory rate limiting: {str(e)}"
+                "Redis client could not be created; defaulting to in-memory rate limiting"
             )
 
     rate_limiter = RateLimiter(redis_client)

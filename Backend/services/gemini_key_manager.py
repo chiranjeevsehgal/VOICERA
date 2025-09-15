@@ -3,8 +3,11 @@ import time
 import threading
 from collections import deque
 from typing import Deque, List, Tuple, Optional, Dict
+import json
+import hashlib
 
 from utils.logging import log_info, log_warning, log_error
+from services.redis_client import get_sync_client
 
 
 class _KeyState:
@@ -53,6 +56,20 @@ class GeminiKeyManager:
         self._keys: List[_KeyState] = []
         self._mgr_lock = threading.Lock()
         self._parse_keys_from_env()
+        # Optional Redis integration (observability/state mirroring)
+        try:
+            self._redis = get_sync_client()
+            if self._redis:
+                log_info("GeminiKeyManager Redis backend available (sync, pooled)", "gemini_key_manager")
+                # Restore persisted per-key daily usage and cooldown/error counters
+                try:
+                    self._restore_from_redis()
+                except Exception:
+                    # Non-fatal; continue with fresh in-memory state
+                    pass
+        except Exception as e:
+            self._redis = None
+            log_warning(f"GeminiKeyManager Redis init failed: {e}", "gemini_key_manager")
 
     def _parse_keys_from_env(self) -> None:
         keys: List[str] = []
@@ -118,6 +135,71 @@ class GeminiKeyManager:
     def _effective_tpm(self) -> int:
         return int(self.tpm * self.tpm_safety)
 
+    def _redis_enabled(self) -> bool:
+        return self._redis is not None
+
+    def _key_hash(self, api_key: str) -> str:
+        return hashlib.sha1(api_key.encode("utf-8")).hexdigest()[:12]
+
+    def _rkey(self, api_key: str) -> str:
+        return f"gkm:key:{self._key_hash(api_key)}"
+
+    def _restore_from_redis(self) -> None:
+        """
+        Restore per-key persisted state from Redis if available:
+        - daily_date (YYYY-MM-DD)
+        - daily_count (int)
+        - cooldown_until (float epoch seconds)
+        - error counters (err_429, err_auth, err_5xx)
+        Data is best-effort and only used to initialize in-memory state.
+        """
+        if not self._redis_enabled():
+            return
+        now = self._now()
+        today = time.strftime("%Y-%m-%d", time.localtime(now))
+        with self._mgr_lock:
+            keys_snapshot = list(self._keys)
+        for st in keys_snapshot:
+            try:
+                rkey = self._rkey(st.api_key)
+                data = self._redis.hgetall(rkey) or {}
+                if not data:
+                    continue
+                stored_date = data.get("daily_date")
+                stored_count = data.get("daily_count")
+                stored_cooldown = data.get("cooldown_until")
+                err_429 = data.get("err_429")
+                err_auth = data.get("err_auth")
+                err_5xx = data.get("err_5xx")
+                with st.lock:
+                    st.daily_date = today
+                    if stored_date == today and stored_count is not None:
+                        try:
+                            st.daily_count = int(stored_count)
+                        except Exception:
+                            st.daily_count = st.daily_count
+                    # Restore cooldown if it's still in the future
+                    if stored_cooldown is not None:
+                        try:
+                            sc = float(stored_cooldown)
+                            if sc > now:
+                                st.cooldown_until = max(st.cooldown_until, sc)
+                        except Exception:
+                            pass
+                    # Restore error aggregates (optional)
+                    try:
+                        if err_429 is not None:
+                            st.err_429 = int(err_429)
+                        if err_auth is not None:
+                            st.err_auth = int(err_auth)
+                        if err_5xx is not None:
+                            st.err_5xx = int(err_5xx)
+                    except Exception:
+                        pass
+            except Exception:
+                # Ignore restore errors per key
+                pass
+
     def _check_capacity_and_reserve(
         self, st: _KeyState, tokens: int, now: float
     ) -> Tuple[bool, float]:
@@ -151,6 +233,20 @@ class GeminiKeyManager:
                 st.rps_timestamps.append(now)
                 st.tpm_entries.append((now, tokens))
                 st.daily_count += 1
+                # Best-effort mirror to Redis for observability
+                if self._redis_enabled():
+                    try:
+                        self._redis.hset(
+                            self._rkey(st.api_key),
+                            mapping={
+                                "last_reservation": now,
+                                "daily_count": st.daily_count,
+                                "daily_date": st.daily_date,
+                            },
+                        )
+                        self._redis.expire(self._rkey(st.api_key), 86400)
+                    except Exception:
+                        pass
                 return True, 0.0
 
             waits: List[float] = []
@@ -280,6 +376,38 @@ class GeminiKeyManager:
                 # Success or other statuses: no cooldown
                 pass
 
+        # Mirror outcome to Redis (non-blocking best-effort)
+        if self._redis_enabled():
+            try:
+                rkey = self._rkey(api_key)
+                payload = {
+                    "cooldown_until": st.cooldown_until,
+                    "err_429": st.err_429,
+                    "err_auth": st.err_auth,
+                    "err_5xx": st.err_5xx,
+                    "daily_date": st.daily_date,
+                    "daily_count": st.daily_count,
+                    "updated_at": int(now),
+                }
+                self._redis.hset(rkey, mapping=payload)
+                self._redis.expire(rkey, 86400)
+                # Publish event message for subscribers (optional)
+                try:
+                    self._redis.publish(
+                        "gkm:events",
+                        json.dumps({
+                            "type": "report_result",
+                            "key": rkey,
+                            "status_code": status_code,
+                            "retry_after": retry_after,
+                            "ts": int(now),
+                        }),
+                    )
+                except Exception:
+                    pass
+            except Exception:
+                pass
+
     def get_status(self) -> dict:
         """
         Return aggregated usage and per-key status for observability.
@@ -339,6 +467,12 @@ class GeminiKeyManager:
             },
             "keys": keys_out,
         }
+        # Best-effort publish snapshot to Redis for observability
+        if self._redis_enabled():
+            try:
+                self._redis.set("gkm:status", json.dumps(status), ex=30)
+            except Exception:
+                pass
         return status
 
 
