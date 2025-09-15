@@ -14,6 +14,8 @@ import {
 } from '../../../services/admin/credit.service';
 import { FormsModule } from '@angular/forms';
 import { HotToastService } from '@ngxpert/hot-toast';
+import { shouldUseMockData } from '../../../utils/role.utils';
+import * as mockCreditRequestsData from '../../../utils/mockData/mockCreditRequests.json';
 
 @Component({
   selector: 'app-credit-requests-modal',
@@ -58,6 +60,20 @@ export class CreditRequestsModalComponent implements OnInit, OnChanges {
   loadRequests() {
     this.loading = true;
 
+    // Check if we should use mock data
+    if (shouldUseMockData()) {
+      // Mock data response with proper typing
+      const mockResponse = mockCreditRequestsData as any;
+
+      // Process mock data the same way as API response
+      this.creditRequests = mockResponse.requests.map((request: any) =>
+        this.creditService.transformApiCreditRequest(request)
+      );
+      this.loading = false;
+      return;
+    }
+
+    // Normal API call flow
     this.creditService.getCreditRequests().subscribe({
       next: (response) => {
         this.creditRequests = response.requests.map((request) =>
@@ -114,6 +130,14 @@ export class CreditRequestsModalComponent implements OnInit, OnChanges {
   }
 
   onApproveClick(requestId: string): void {
+    // Block action for guest users
+    if (shouldUseMockData()) {
+      this.toast.info(
+        'Credit request modifications are disabled in the guest environment.'
+      );
+      return;
+    }
+
     // Find the request and set showApproveInput to true
     const request = this.creditRequests.find((r) => r.id === requestId);
     if (request) {
@@ -132,6 +156,14 @@ export class CreditRequestsModalComponent implements OnInit, OnChanges {
   }
 
   onConfirmApprove(requestId: string, creditsToAdd: number): void {
+    // Additional check in case action somehow triggered in mock mode
+    if (shouldUseMockData()) {
+      this.toast.info(
+        'Credit request modifications are disabled in the guest environment.'
+      );
+      return;
+    }
+
     if (!creditsToAdd || creditsToAdd < 1) {
       return;
     }
@@ -163,6 +195,14 @@ export class CreditRequestsModalComponent implements OnInit, OnChanges {
   }
 
   onReject(requestId: string): void {
+    // Block action for guest users
+    if (shouldUseMockData()) {
+      this.toast.info(
+        'Credit request modifications are disabled in the guest environment.'
+      );
+      return;
+    }
+
     const request = this.creditRequests.find((r) => r.id === requestId);
     if (!request) return;
 
