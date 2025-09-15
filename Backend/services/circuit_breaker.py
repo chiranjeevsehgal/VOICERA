@@ -4,6 +4,8 @@ from enum import Enum
 from typing import Callable, Any, Dict, Optional
 from dataclasses import dataclass
 import logging
+import json
+from services.redis_client import get_sync_client
 
 logger = logging.getLogger(__name__)
 
@@ -57,6 +59,49 @@ class CircuitBreaker:
             "circuit_opens": 0,
             "circuit_closes": 0,
         }
+        # Optional Redis integration for cross-process observability
+        try:
+            self._redis = get_sync_client()
+        except Exception:
+            self._redis = None
+
+    def _redis_enabled(self) -> bool:
+        return getattr(self, "_redis", None) is not None
+
+    def _rkey(self) -> str:
+        return f"cb:{self.name}"
+
+    def _persist_state(self, reason: str = "update") -> None:
+        if not self._redis_enabled():
+            return
+        try:
+            payload = {
+                "name": self.name,
+                "state": self.state.value,
+                "failure_count": self.failure_count,
+                "success_count": self.success_count,
+                "last_failure_time": self.last_failure_time,
+                "last_success_time": self.last_success_time,
+                "stats_total_requests": self.stats.get("total_requests", 0),
+                "stats_successful_requests": self.stats.get("successful_requests", 0),
+                "stats_failed_requests": self.stats.get("failed_requests", 0),
+                "stats_circuit_opens": self.stats.get("circuit_opens", 0),
+                "stats_circuit_closes": self.stats.get("circuit_closes", 0),
+                "updated_at": int(time.time()),
+                "reason": reason,
+            }
+            self._redis.hset(self._rkey(), mapping=payload)
+            self._redis.expire(self._rkey(), 86400)
+            try:
+                self._redis.publish(
+                    "cb:events",
+                    json.dumps({"breaker": self.name, "state": self.state.value, "reason": reason, "ts": int(time.time())}),
+                )
+            except Exception:
+                pass
+        except Exception:
+            # Best-effort only; never block or raise
+            pass
 
     async def call(self, func: Callable, *args, **kwargs) -> Any:
         """
@@ -136,10 +181,12 @@ class CircuitBreaker:
                     logger.info(
                         f"Circuit breaker '{self.name}' closed - service recovered"
                     )
+                    self._persist_state(reason="closed")
 
             elif self.state == CircuitState.CLOSED:
                 # Reset failure count on success in CLOSED state
                 self.failure_count = 0
+                self._persist_state(reason="success")
 
     async def _on_failure(self):
         """Handle failed request"""
@@ -161,6 +208,9 @@ class CircuitBreaker:
                 logger.error(
                     f"Circuit breaker '{self.name}' opened after {self.failure_count} failures"
                 )
+                self._persist_state(reason="opened")
+            else:
+                self._persist_state(reason="failure")
 
     def get_state(self) -> Dict[str, Any]:
         """Get current circuit breaker state and statistics"""
@@ -187,6 +237,7 @@ class CircuitBreaker:
             self.failure_count = 0
             self.success_count = 0
             logger.info(f"Circuit breaker '{self.name}' manually reset to CLOSED")
+            self._persist_state(reason="manual_reset")
 
 
 # Global registry of circuit breakers

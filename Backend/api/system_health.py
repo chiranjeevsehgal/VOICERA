@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, status
-from typing import Dict, Any, List
+from typing import Dict, Any
 from services.auth import requires_role
 from services.circuit_breaker import (
     get_all_circuit_breakers,
@@ -7,6 +7,8 @@ from services.circuit_breaker import (
 )
 from middleware.rate_limiter import get_rate_limiter
 import logging
+from services.redis_client import check_redis_health_async, get_async_client
+import time
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -36,10 +38,20 @@ async def get_system_health(
             else "N/A",
         }
 
+        # Redis health (if available via rate limiter)
+        redis_health = {"available": False}
+        if getattr(rate_limiter, "redis_client", None):
+            try:
+                health = await check_redis_health_async(rate_limiter.redis_client)
+                redis_health = {"available": True, **health}
+            except Exception as e:
+                redis_health = {"available": True, "healthy": False, "error": str(e)}
+
         return {
             "status": "healthy",
             "circuit_breakers": circuit_status,
             "rate_limiter": rate_limiter_status,
+            "redis": redis_health,
             "total_circuit_breakers": len(circuit_breakers),
         }
 
@@ -163,3 +175,38 @@ async def get_rate_limit_info(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error retrieving rate limit info: {str(e)}",
         )
+
+
+@router.get("/system/redis-ping", status_code=status.HTTP_200_OK)
+async def redis_ping(
+    current_user: Dict[str, Any] = Depends(requires_role("admin")),
+):
+    """
+    Simple Redis ping/pong endpoint to verify connectivity and measure latency.
+    Tries the rate limiter's Redis client first, then falls back to creating one
+    from REDIS_URL via services.redis_client.get_async_client().
+    """
+    try:
+        rate_limiter = get_rate_limiter()
+        client = getattr(rate_limiter, "redis_client", None)
+        if client is None:
+            client = get_async_client()
+
+        if not client:
+            return {
+                "available": False,
+                "healthy": False,
+                "error": "Redis client not configured",
+            }
+
+        start = time.perf_counter()
+        pong = await client.ping()
+        latency_ms = (time.perf_counter() - start) * 1000.0
+        return {
+            "available": True,
+            "healthy": bool(pong),
+            "pong": pong,
+            "latency_ms": round(latency_ms, 2),
+        }
+    except Exception as e:
+        return {"available": True, "healthy": False, "error": str(e)}
