@@ -13,6 +13,7 @@ import {
   CreditRequestUser,
 } from '../../../services/admin/credit.service';
 import { FormsModule } from '@angular/forms';
+import { HotToastService } from '@ngxpert/hot-toast';
 
 @Component({
   selector: 'app-credit-requests-modal',
@@ -27,7 +28,7 @@ export class CreditRequestsModalComponent implements OnInit, OnChanges {
   creditRequests: CreditRequest[] = [];
   loading: boolean = false;
 
-  constructor(private creditService: CreditService) {}
+  constructor(private creditService: CreditService, private toast: HotToastService) {}
 
   ngOnInit() {
     if (this.isVisible) {
@@ -128,19 +129,56 @@ export class CreditRequestsModalComponent implements OnInit, OnChanges {
   }
 
   onConfirmApprove(requestId: string, creditsToAdd: number): void {
-    if (!creditsToAdd || creditsToAdd < 1) {
-      return;
+  if (!creditsToAdd || creditsToAdd < 1) {
+    return;
+  }
+
+  const request = this.creditRequests.find((r) => r.id === requestId);
+  if (!request) return;
+
+  request.isProcessing = true;
+
+  this.creditService.updateCreditRequest(requestId, 'approve', creditsToAdd).subscribe({
+    next: (response) => {
+      this.toast.success('Request approved successfully.');
+      request.status = 'approved';
+      request.updatedAt = new Date();
+      request.showApproveInput = false;
+      request.creditsToAdd = undefined;
+      request.isProcessing = false;
+      
+      this.loadRequests();
+    },
+    error: (error) => {
+      console.error('Error approving request:', error);
+      request.isProcessing = false;
+      this.toast.error('Failed to approve request. Please try again.');
     }
+  });
+}
 
-    // TODO: Call backend API to approve request with credits
-    console.log(`Approving request ${requestId} with ${creditsToAdd} credits`);
+onReject(requestId: string): void {
+  const request = this.creditRequests.find((r) => r.id === requestId);
+  if (!request) return;
 
-    // For now, just hide the input
-    this.onCancelApprove(requestId);
-  }
+  request.isProcessing = true;
 
-  onReject(requestId: string): void {
-    // TODO: Call backend API to reject request
-    console.log(`Rejecting request ${requestId}`);
-  }
+  this.creditService.updateCreditRequest(requestId, 'reject').subscribe({
+    next: (response) => {
+      console.log('Request rejected successfully:', response);
+      this.toast.success('Request rejected successfully.');
+      request.status = 'rejected';
+      request.updatedAt = new Date();
+      request.isProcessing = false;
+      
+      this.loadRequests();
+    },
+    error: (error) => {
+      console.error('Error rejecting request:', error);
+      request.isProcessing = false;
+      
+      this.toast.error('Failed to reject request. Please try again.');
+    }
+  });
+}
 }

@@ -65,6 +65,7 @@ export interface CreditRequest {
   updatedAt: Date;
   showApproveInput?: boolean;
   creditsToAdd?: number;
+  isProcessing?: boolean;
 }
 
 @Injectable({
@@ -123,25 +124,19 @@ export class CreditService {
     );
   }
 
-  // TODO: Add API to update increase credit status
   updateCreditRequest(
     requestId: string,
     action: 'approve' | 'reject',
-    creditsGranted?: number,
-    reviewNotes?: string
+    creditsToAdd?: number
   ): Observable<any> {
     const payload: any = { action };
 
-    if (creditsGranted) {
-      payload.credits_granted = creditsGranted;
-    }
-
-    if (reviewNotes) {
-      payload.review_notes = reviewNotes;
+    if (action === 'approve' && creditsToAdd) {
+      payload.credits_to_add = creditsToAdd;
     }
 
     return this.http.put(
-      `${this.baseUrl}/api/admin/credit-requests/${requestId}`,
+      `${this.baseUrl}/api/admin/credit-requests/${requestId}/status`,
       payload,
       { headers: this.getHeaders() }
     );
