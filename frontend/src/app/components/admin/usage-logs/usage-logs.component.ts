@@ -1,6 +1,5 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { HttpClientModule } from '@angular/common/http';
 import { FormsModule } from '@angular/forms';
 import {
   AnalyticsService,
@@ -31,7 +30,7 @@ interface IPEntry {
 @Component({
   selector: 'app-usage-logs',
   standalone: true,
-  imports: [CommonModule, HttpClientModule, FormsModule],
+  imports: [CommonModule, FormsModule],
   providers: [AnalyticsService],
   templateUrl: './usage-logs.component.html',
   styles: ``,

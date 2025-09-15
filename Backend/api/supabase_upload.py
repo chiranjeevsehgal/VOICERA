@@ -1,15 +1,13 @@
-from fastapi import APIRouter, UploadFile, File, HTTPException, status, Depends
-from fastapi.responses import JSONResponse
+from fastapi import APIRouter, UploadFile, File, HTTPException, status, Depends, Query
 import os
 import tempfile
 import shutil
 from werkzeug.utils import secure_filename
-import time
-from typing import Dict, Any
-import uuid
+import time  # noqa: F401  # kept for potential future use in logging/timing
+from typing import Dict, Any, Optional
 import json
 
-from services.supabase_service import upload_file_to_supabase, list_files_in_bucket
+from services.supabase_service import upload_file_to_supabase
 from services.pinecone_service import index_transcript
 from api.embedding import extract_metadata_from_mp3_to_json
 from services.auth import get_current_user
@@ -156,6 +154,8 @@ async def list_audio_files(
     current_user: dict = Depends(get_current_user),
     user_files_only: bool = False,
     page: int = 1,
+    limit: Optional[int] = Query(None, ge=1, le=100, description="Items per page (default 10)"),
+    search: Optional[str] = Query(None, description="Search in title, author, or file name"),
 ):
     """
     List podcasts from MongoDB collection
@@ -166,11 +166,11 @@ async def list_audio_files(
         page (int): Page number for pagination
     """
     try:
-        per_page = 10
+        per_page = limit or 10
         skip = (page - 1) * per_page
 
         # Build query filter
-        query_filter = {}
+        query_filter: Dict[str, Any] = {}
         if user_files_only:
             # Support multiple possible shapes for current_user
             user_id = (
@@ -187,9 +187,19 @@ async def list_audio_files(
                 if isinstance(user_id, str):
                     try:
                         user_id = ObjectId(user_id)
-                    except:
+                    except Exception:
                         pass
                 query_filter["user_id"] = user_id
+
+        # Apply text search if provided
+        if search:
+            # Case-insensitive regex search on common fields
+            query_filter["$or"] = [
+                {"title": {"$regex": search, "$options": "i"}},
+                {"author": {"$regex": search, "$options": "i"}},
+                {"file_name": {"$regex": search, "$options": "i"}},
+                {"user_data.file_name": {"$regex": search, "$options": "i"}},
+            ]
 
         # Fetch podcasts with pagination
         cursor = (

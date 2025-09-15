@@ -96,7 +96,7 @@ class APIUsageMiddleware(BaseHTTPMiddleware):
 
 
 # Initialize rate limiter with optional Redis support
-redis_url = os.getenv("REDIS_URL")  # e.g., "redis://localhost:6379"
+redis_url = os.getenv("REDIS_URL")
 initialize_rate_limiter(redis_url)
 
 # Create FastAPI application with concurrency settings

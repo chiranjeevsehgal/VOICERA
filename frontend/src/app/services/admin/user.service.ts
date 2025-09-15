@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
 
@@ -50,9 +50,31 @@ export class UserService {
     });
   }
 
-  getUsers(): Observable<ApiUsersResponse> {
+  getUsers(params?: {
+    page?: number;
+    limit?: number;
+    sort_by?: string;
+    sort_order?: 1 | -1;
+    role?: string;
+    status?: string;
+    search?: string;
+  }): Observable<ApiUsersResponse> {
+    let httpParams = new HttpParams();
+
+    if (params) {
+      if (params.page != null) httpParams = httpParams.set('page', String(params.page));
+      if (params.limit != null) httpParams = httpParams.set('limit', String(params.limit));
+      if (params.sort_by) httpParams = httpParams.set('sort_by', params.sort_by);
+      if (params.sort_order != null)
+        httpParams = httpParams.set('sort_order', String(params.sort_order));
+      if (params.role) httpParams = httpParams.set('role', params.role);
+      if (params.status) httpParams = httpParams.set('status', params.status);
+      if (params.search) httpParams = httpParams.set('search', params.search);
+    }
+
     return this.http.get<ApiUsersResponse>(`${this.baseUrl}/api/admin/users`, {
       headers: this.getHeaders(),
+      params: httpParams,
     });
   }
 

@@ -142,7 +142,7 @@ export class SearchComponent implements OnInit, OnDestroy, AfterViewInit {
   private setupDebouncedSearch(): void {
     this.searchSubscription = this.searchSubject
       .pipe(
-        debounceTime(300), // Wait 300ms after user stops typing
+        debounceTime(400), // Wait 400ms after user stops typing for better UX
         distinctUntilChanged(), // Only emit if the value has changed
       )
       .subscribe((query: string) => {
@@ -220,38 +220,43 @@ export class SearchComponent implements OnInit, OnDestroy, AfterViewInit {
       this.loadingMore = true;
     }
 
-    this.subscription = this.podcastService.getPodcastsPage(page).subscribe({
-      next: (res) => {
-        if (page <= 1) {
-          this.podcasts = res.podcasts;
-        } else {
-          this.podcasts = [...this.podcasts, ...res.podcasts];
-        }
-        this.page = res.page;
-        this.hasNext = res.hasNext;
-        this.filterPodcasts();
-        this.isLoading = false;
-        this.loadingMore = false;
-        // Mark that at least one successful initial load has happened
-        if (!this.hasLoadedOnce && page <= 1) {
-          this.hasLoadedOnce = true;
-        }
-        // Success clears any previous backoff
-        this.clearBackoff();
-      },
-      error: (error) => {
-        console.error('Error loading podcasts:', error);
-        // Start/extend backoff window to prevent repeated calls
-        this.startBackoff();
-        const seconds = this.getBackoffRemainingSeconds();
-        this.toast.error(
-          `Failed to load podcasts. Retrying disabled for ${seconds}s.`,
-          { duration: 4000 },
-        );
-        this.isLoading = false;
-        this.loadingMore = false;
-      },
-    });
+    this.subscription = this.podcastService
+      .getPodcastsPage(page, {
+        search: this.searchQuery || undefined,
+        limit: 12,
+      })
+      .subscribe({
+        next: (res) => {
+          if (page <= 1) {
+            this.podcasts = res.podcasts;
+          } else {
+            this.podcasts = [...this.podcasts, ...res.podcasts];
+          }
+          this.page = res.page;
+          this.hasNext = res.hasNext;
+          this.filterPodcasts();
+          this.isLoading = false;
+          this.loadingMore = false;
+          // Mark that at least one successful initial load has happened
+          if (!this.hasLoadedOnce && page <= 1) {
+            this.hasLoadedOnce = true;
+          }
+          // Success clears any previous backoff
+          this.clearBackoff();
+        },
+        error: (error) => {
+          console.error('Error loading podcasts:', error);
+          // Start/extend backoff window to prevent repeated calls
+          this.startBackoff();
+          const seconds = this.getBackoffRemainingSeconds();
+          this.toast.error(
+            `Failed to load podcasts. Retrying disabled for ${seconds}s.`,
+            { duration: 4000 },
+          );
+          this.isLoading = false;
+          this.loadingMore = false;
+        },
+      });
   }
 
   private loadNextPage(): void {
@@ -277,19 +282,25 @@ export class SearchComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   private performSearch(query: string): void {
-    this.searchQuery = query;
-    if (!this.searchQuery) {
-      this.hasSearched = false;
-    } else {
-      this.hasSearched = true;
-    }
-    this.filterPodcasts();
+    this.searchQuery = (query || '').trim();
+    this.hasSearched = !!this.searchQuery;
+    // Reset and load first page from server with current search
+    this.podcasts = [];
+    this.filteredPodcasts = [];
+    this.page = 1;
+    this.hasNext = true;
+    this.loadPage(1);
   }
 
   onSearchSubmit(query: string): void {
     this.searchQuery = (query || '').trim();
-    this.hasSearched = true;
-    this.filterPodcasts();
+    this.hasSearched = !!this.searchQuery;
+    // Trigger immediate load with submitted query
+    this.podcasts = [];
+    this.filteredPodcasts = [];
+    this.page = 1;
+    this.hasNext = true;
+    this.loadPage(1);
   }
 
   private sortPodcastsByDate(podcasts: Podcast[]): Podcast[] {
@@ -312,15 +323,8 @@ export class SearchComponent implements OnInit, OnDestroy, AfterViewInit {
     // Start with all podcasts
     let result: Podcast[] = this.podcasts;
 
-    // Text search (title or creator)
-    if (this.searchQuery) {
-      const q = this.searchQuery.toLowerCase();
-      result = result.filter(
-        (p) =>
-          p.title.toLowerCase().includes(q) ||
-          p.creator.toLowerCase().includes(q),
-      );
-    }
+    // Note: Text search is handled server-side via /api/listAudioFiles with `search` param.
+    // We only apply additional client-side filters (date, duration) and sorting here.
 
     // Date filter (published_date preferred, fallback to created_at)
     const { start: dateStart, end: dateEnd } = this.computeDateRange();

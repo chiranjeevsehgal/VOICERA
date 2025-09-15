@@ -1,7 +1,6 @@
 import { Component, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { HttpClientModule } from '@angular/common/http';
 import {
   BulkUploadService,
   BulkUploadResponse,
@@ -19,7 +18,7 @@ interface UploadFileRow {
 @Component({
   selector: 'app-bulk-upload',
   standalone: true,
-  imports: [CommonModule, FormsModule, HttpClientModule],
+  imports: [CommonModule, FormsModule],
   templateUrl: './bulk-upload.component.html',
   styles: ``,
 })

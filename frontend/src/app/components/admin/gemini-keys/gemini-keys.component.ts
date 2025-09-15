@@ -1,6 +1,5 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { HttpClientModule } from '@angular/common/http';
 import { FormsModule } from '@angular/forms';
 import {
   GeminiKeysService,
@@ -14,7 +13,7 @@ import { HotToastService } from '@ngxpert/hot-toast';
 @Component({
   selector: 'app-gemini-keys',
   standalone: true,
-  imports: [CommonModule, HttpClientModule, FormsModule],
+  imports: [CommonModule, FormsModule],
   providers: [GeminiKeysService],
   templateUrl: './gemini-keys.component.html',
   styles: ``,

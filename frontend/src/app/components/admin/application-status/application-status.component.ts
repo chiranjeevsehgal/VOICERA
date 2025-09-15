@@ -1,7 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { HttpClientModule } from '@angular/common/http';
 import {
   SystemHealthService,
   SystemHealthResponse,
@@ -33,7 +32,6 @@ import { HotToastService } from '@ngxpert/hot-toast';
   imports: [
     CommonModule,
     FormsModule,
-    HttpClientModule,
     LucideAngularModule,
   ],
   providers: [SystemHealthService],

@@ -1,6 +1,5 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { HttpClientModule } from '@angular/common/http';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import {
@@ -15,7 +14,7 @@ import { HotToastService } from '@ngxpert/hot-toast';
 @Component({
   selector: 'app-application-logs',
   standalone: true,
-  imports: [CommonModule, HttpClientModule, FormsModule],
+  imports: [CommonModule, FormsModule],
   providers: [LogsService],
   templateUrl: './application-logs.component.html',
   styles: ``,

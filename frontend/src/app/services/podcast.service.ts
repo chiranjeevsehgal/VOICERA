@@ -176,7 +176,10 @@ export class PodcastService {
     return this.getPodcastsPage(1).pipe(map((res) => res.podcasts));
   }
 
-  getPodcastsPage(page: number = 1): Observable<PagedPodcasts> {
+  getPodcastsPage(
+    page: number = 1,
+    opts?: { search?: string; limit?: number; user_files_only?: boolean },
+  ): Observable<PagedPodcasts> {
     const headers = new HttpHeaders({
       Authorization: `Bearer ${this.authToken}`,
       'Content-Type': 'application/json',
@@ -187,7 +190,14 @@ export class PodcastService {
         this.http
           .get<ApiResponse>(`${this.baseUrl}/api/listAudioFiles`, {
             headers,
-            params: { page: String(page) },
+            params: {
+              page: String(page),
+              ...(opts?.search ? { search: opts.search } : {}),
+              ...(opts?.limit ? { limit: String(opts.limit) } : {}),
+              ...(opts?.user_files_only
+                ? { user_files_only: String(!!opts.user_files_only) }
+                : {}),
+            },
           })
           .pipe(
             map((response) => ({

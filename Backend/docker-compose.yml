@@ -1,3 +1,5 @@
+version: "3.8"
+
 services:
   backend:
     image: voicera/voicera-backend:latest
@@ -10,7 +12,20 @@ services:
       - TRUST_CLIENT_IP_HEADER=true
     command: python main.py
     restart: unless-stopped
+    # pull_policy: always 
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
 
-networks:
-  default:
-    name: voicera-network
+  watchtower:
+    image: containrrr/watchtower:latest
+    container_name: watchtower
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    environment:
+      - WATCHTOWER_LABEL_ENABLE=true
+      - WATCHTOWER_POLL_INTERVAL=60
+      - WATCHTOWER_CLEANUP=true
+      - REPO_USER=voicera
+      - REPO_PASS=dckr_pat_vg9H4edVa73XJK5FGnawVBweJNw
+    command: --interval 60 --label-enable --cleanup
+    restart: unless-stopped

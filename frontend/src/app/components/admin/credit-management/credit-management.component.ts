@@ -1,7 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { HttpClientModule } from '@angular/common/http';
 import {
   IPCredit,
   CreditService,
@@ -14,7 +13,7 @@ import { CreditRequestsModalComponent } from '../credit-requests-modal/credit-re
 @Component({
   selector: 'app-credit-management',
   standalone: true,
-  imports: [CommonModule, FormsModule, HttpClientModule, CreditRequestsModalComponent],
+  imports: [CommonModule, FormsModule, CreditRequestsModalComponent],
   providers: [CreditService],
   templateUrl: './credit-management.component.html',
   styles: ``,

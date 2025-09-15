@@ -1,7 +1,6 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { HttpClientModule } from '@angular/common/http';
 import { User, UserService } from '../../../services/admin/user.service';
 import { LucideAngularModule, Check, X, Users } from 'lucide-angular';
 import {
@@ -10,6 +9,8 @@ import {
 } from '../../../utils/role.utils';
 import * as mockUserData from '../../../utils/mockData/mockUsers.json';
 import { HotToastService } from '@ngxpert/hot-toast';
+import { Subject, Subscription } from 'rxjs';
+import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
 
 @Component({
   selector: 'app-user-management',
@@ -17,14 +18,13 @@ import { HotToastService } from '@ngxpert/hot-toast';
   imports: [
     CommonModule,
     FormsModule,
-    HttpClientModule,
     LucideAngularModule,
   ],
   providers: [UserService],
   templateUrl: './user-management.component.html',
   styles: ``,
 })
-export class UserManagementComponent implements OnInit {
+export class UserManagementComponent implements OnInit, OnDestroy {
   users: User[] = [];
   readonly Check = Check;
   readonly X = X;
@@ -43,6 +43,16 @@ export class UserManagementComponent implements OnInit {
   showDeleteModal: boolean = false;
   deletingUserId: string = '';
 
+  // Pagination and sorting
+  page: number = 1;
+  limit: number = 10;
+  sortBy: string = 'created_at';
+  sortOrder: 1 | -1 = -1;
+
+  // Debounced search
+  private searchInput$ = new Subject<string>();
+  private searchSub?: Subscription;
+
   newUser = {
     name: '',
     email: '',
@@ -55,7 +65,23 @@ export class UserManagementComponent implements OnInit {
   ) {}
 
   ngOnInit() {
+    // Debounce search input
+    this.searchSub = this.searchInput$
+      .pipe(debounceTime(400), distinctUntilChanged())
+      .subscribe(() => {
+        this.page = 1;
+        this.loadUsers();
+      });
+
     this.loadUsers();
+  }
+
+  ngOnDestroy(): void {
+    this.searchSub?.unsubscribe();
+  }
+
+  get totalPages(): number {
+    return Math.max(1, Math.ceil(this.totalCount / this.limit));
   }
 
   loadUsers() {
@@ -66,11 +92,48 @@ export class UserManagementComponent implements OnInit {
       // Mock data response with proper typing
       const mockResponse = mockUserData as any;
 
-      // Process mock data the same way as API response
-      this.totalCount = mockResponse.total_count;
-      this.users = mockResponse.users.map((apiUser: any) =>
+      // Transform all users first
+      const allUsers: User[] = mockResponse.users.map((apiUser: any) =>
         this.userService.transformApiUser(apiUser),
       );
+
+      // Apply filters and search on client for mock mode
+      const roleFilter = this.selectedRole !== 'all' ? this.selectedRole : null;
+      const statusFilter =
+        this.selectedStatus !== 'all' ? this.selectedStatus : null;
+      const search = this.searchQuery.trim().toLowerCase();
+
+      const filtered = allUsers.filter((u) => {
+        const matchesRole = roleFilter ? u.role === roleFilter : true;
+        const matchesStatus = statusFilter ? u.status === statusFilter : true;
+        const matchesSearch = search
+          ? u.name.toLowerCase().includes(search) ||
+            u.email.toLowerCase().includes(search)
+          : true;
+        return matchesRole && matchesStatus && matchesSearch;
+      });
+
+      // Sort
+      const sorted = [...filtered].sort((a, b) => {
+        const aVal: any = (a as any)[
+          this.sortBy === 'created_at' ? 'createdAt' : this.sortBy
+        ];
+        const bVal: any = (b as any)[
+          this.sortBy === 'created_at' ? 'createdAt' : this.sortBy
+        ];
+        if (aVal < bVal) return this.sortOrder === 1 ? -1 : 1;
+        if (aVal > bVal) return this.sortOrder === 1 ? 1 : -1;
+        return 0;
+      });
+
+      this.totalCount = sorted.length;
+
+      // Paginate
+      const start = (this.page - 1) * this.limit;
+      const end = start + this.limit;
+      const pageSlice = sorted.slice(start, end);
+
+      this.users = pageSlice;
       this.filteredUsers = [...this.users];
       this.loading = false;
       this.refreshing = false;
@@ -79,7 +142,17 @@ export class UserManagementComponent implements OnInit {
     }
 
     // Normal API call flow
-    this.userService.getUsers().subscribe({
+    this.userService
+      .getUsers({
+        page: this.page,
+        limit: this.limit,
+        sort_by: this.sortBy,
+        sort_order: this.sortOrder,
+        role: this.selectedRole !== 'all' ? this.selectedRole : undefined,
+        status: this.selectedStatus !== 'all' ? this.selectedStatus : undefined,
+        search: this.searchQuery?.trim() ? this.searchQuery.trim() : undefined,
+      })
+      .subscribe({
       next: (response) => {
         this.totalCount = response.total_count;
         this.users = response.users.map((apiUser) =>
@@ -102,18 +175,50 @@ export class UserManagementComponent implements OnInit {
     });
   }
 
-  filterUsers() {
-    this.filteredUsers = this.users.filter((user) => {
-      const matchesSearch =
-        user.name.toLowerCase().includes(this.searchQuery.toLowerCase()) ||
-        user.email.toLowerCase().includes(this.searchQuery.toLowerCase());
-      const matchesRole =
-        this.selectedRole === 'all' || user.role === this.selectedRole;
-      const matchesStatus =
-        this.selectedStatus === 'all' || user.status === this.selectedStatus;
+  onSearchInput(value: string) {
+    this.searchQuery = value;
+    this.searchInput$.next(this.searchQuery);
+  }
 
-      return matchesSearch && matchesRole && matchesStatus;
-    });
+  onFilterChange() {
+    this.page = 1;
+    this.loadUsers();
+  }
+
+  onLimitChange(newLimit: number) {
+    this.limit = newLimit;
+    this.page = 1;
+    this.loadUsers();
+  }
+
+  nextPage() {
+    if (this.page < this.totalPages) {
+      this.page += 1;
+      this.loadUsers();
+    }
+  }
+
+  prevPage() {
+    if (this.page > 1) {
+      this.page -= 1;
+      this.loadUsers();
+    }
+  }
+
+  goToPage(page: number) {
+    if (page >= 1 && page <= this.totalPages) {
+      this.page = page;
+      this.loadUsers();
+    }
+  }
+
+  displayStartIndex(): number {
+    if (this.totalCount === 0) return 0;
+    return (this.page - 1) * this.limit + 1;
+    }
+
+  displayEndIndex(): number {
+    return Math.min(this.page * this.limit, this.totalCount);
   }
 
   getRoleColor(role: string): string {

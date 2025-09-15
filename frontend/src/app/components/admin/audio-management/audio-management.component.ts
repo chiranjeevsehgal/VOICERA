@@ -6,7 +6,6 @@ import {
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { HttpClientModule } from '@angular/common/http';
 import {
   AudioService,
   Podcast,
@@ -23,7 +22,7 @@ import * as mockAudioData from '../../../utils/mockData/mockAudioFiles.json';
 @Component({
   selector: 'app-audio-management',
   standalone: true,
-  imports: [CommonModule, FormsModule, HttpClientModule],
+  imports: [CommonModule, FormsModule],
   providers: [AudioService],
   templateUrl: './audio-management.component.html',
   styles: ``,

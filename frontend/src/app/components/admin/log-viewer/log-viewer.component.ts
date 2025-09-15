@@ -6,7 +6,6 @@ import {
   ViewChild,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { HttpClientModule } from '@angular/common/http';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import {
@@ -18,7 +17,7 @@ import { HotToastService } from '@ngxpert/hot-toast';
 @Component({
   selector: 'app-log-viewer',
   standalone: true,
-  imports: [CommonModule, HttpClientModule, FormsModule],
+  imports: [CommonModule, FormsModule],
   providers: [LogsService],
   templateUrl: './log-viewer.component.html',
   styles: ``,
