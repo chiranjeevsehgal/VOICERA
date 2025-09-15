@@ -10,7 +10,7 @@ import os
 import shutil
 import asyncio
 from services.database import ip_credits_collection, credit_requests_collection
-
+from fastapi.responses import JSONResponse
 from services.auth import (
     get_current_user,
     requires_role,
@@ -1718,6 +1718,8 @@ async def get_all_credit_requests(
         query = {}
         if status_filter:
             query["status"] = status_filter
+        else:
+            query["status"] = "pending"  
 
         # Get requests
         cursor = credit_requests_collection.find(query).sort("created_at", -1).skip(skip).limit(limit)

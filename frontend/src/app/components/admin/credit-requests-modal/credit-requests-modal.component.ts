@@ -28,7 +28,10 @@ export class CreditRequestsModalComponent implements OnInit, OnChanges {
   creditRequests: CreditRequest[] = [];
   loading: boolean = false;
 
-  constructor(private creditService: CreditService, private toast: HotToastService) {}
+  constructor(
+    private creditService: CreditService,
+    private toast: HotToastService
+  ) {}
 
   ngOnInit() {
     if (this.isVisible) {
@@ -53,24 +56,22 @@ export class CreditRequestsModalComponent implements OnInit, OnChanges {
   }
 
   loadRequests() {
-  this.loading = true;
+    this.loading = true;
 
-  this.creditService.getCreditRequests().subscribe({
-    next: (response) => {
-      this.creditRequests = response.requests
-        .filter(request => request.status === 'pending') // Filter pending only
-        .map((request) =>
+    this.creditService.getCreditRequests().subscribe({
+      next: (response) => {
+        this.creditRequests = response.requests.map((request) =>
           this.creditService.transformApiCreditRequest(request)
         );
-      this.loading = false;
-    },
-    error: (error) => {
-      console.error('Error loading credit requests:', error);
-      this.loading = false;
-      this.creditRequests = [];
-    },
-  });
-}
+        this.loading = false;
+      },
+      error: (error) => {
+        console.error('Error loading credit requests:', error);
+        this.loading = false;
+        this.creditRequests = [];
+      },
+    });
+  }
 
   refreshRequests() {
     this.loadRequests();
@@ -131,55 +132,57 @@ export class CreditRequestsModalComponent implements OnInit, OnChanges {
   }
 
   onConfirmApprove(requestId: string, creditsToAdd: number): void {
-  if (!creditsToAdd || creditsToAdd < 1) {
-    return;
+    if (!creditsToAdd || creditsToAdd < 1) {
+      return;
+    }
+
+    const request = this.creditRequests.find((r) => r.id === requestId);
+    if (!request) return;
+
+    request.isProcessing = true;
+
+    this.creditService
+      .updateCreditRequest(requestId, 'approve', creditsToAdd)
+      .subscribe({
+        next: (response) => {
+          this.toast.success('Request approved successfully.');
+          request.status = 'approved';
+          request.updatedAt = new Date();
+          request.showApproveInput = false;
+          request.creditsToAdd = undefined;
+          request.isProcessing = false;
+
+          this.loadRequests();
+        },
+        error: (error) => {
+          console.error('Error approving request:', error);
+          request.isProcessing = false;
+          this.toast.error('Failed to approve request. Please try again.');
+        },
+      });
   }
 
-  const request = this.creditRequests.find((r) => r.id === requestId);
-  if (!request) return;
+  onReject(requestId: string): void {
+    const request = this.creditRequests.find((r) => r.id === requestId);
+    if (!request) return;
 
-  request.isProcessing = true;
+    request.isProcessing = true;
 
-  this.creditService.updateCreditRequest(requestId, 'approve', creditsToAdd).subscribe({
-    next: (response) => {
-      this.toast.success('Request approved successfully.');
-      request.status = 'approved';
-      request.updatedAt = new Date();
-      request.showApproveInput = false;
-      request.creditsToAdd = undefined;
-      request.isProcessing = false;
-      
-      this.loadRequests();
-    },
-    error: (error) => {
-      console.error('Error approving request:', error);
-      request.isProcessing = false;
-      this.toast.error('Failed to approve request. Please try again.');
-    }
-  });
-}
+    this.creditService.updateCreditRequest(requestId, 'reject').subscribe({
+      next: (response) => {
+        this.toast.success('Request rejected successfully.');
+        request.status = 'rejected';
+        request.updatedAt = new Date();
+        request.isProcessing = false;
 
-onReject(requestId: string): void {
-  const request = this.creditRequests.find((r) => r.id === requestId);
-  if (!request) return;
+        this.loadRequests();
+      },
+      error: (error) => {
+        console.error('Error rejecting request:', error);
+        request.isProcessing = false;
 
-  request.isProcessing = true;
-
-  this.creditService.updateCreditRequest(requestId, 'reject').subscribe({
-    next: (response) => {
-      this.toast.success('Request rejected successfully.');
-      request.status = 'rejected';
-      request.updatedAt = new Date();
-      request.isProcessing = false;
-      
-      this.loadRequests();
-    },
-    error: (error) => {
-      console.error('Error rejecting request:', error);
-      request.isProcessing = false;
-      
-      this.toast.error('Failed to reject request. Please try again.');
-    }
-  });
-}
+        this.toast.error('Failed to reject request. Please try again.');
+      },
+    });
+  }
 }
