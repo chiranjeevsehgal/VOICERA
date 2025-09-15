@@ -4,8 +4,9 @@ from datetime import datetime, timedelta
 import os
 from dotenv import load_dotenv
 from services.ip_utils import get_ip_for_request
-from services.database import db, ip_credits_collection
+from services.database import db, ip_credits_collection, credit_requests_collection
 from services.auth import get_current_user
+from pydantic import BaseModel
 import pytz
 
 load_dotenv()
@@ -17,6 +18,14 @@ DEFAULT_CREDITS = int(os.getenv("DEFAULT_CREDITS"))
 # Daily reset at 04:00 IST
 IST_TZ = pytz.timezone("Asia/Kolkata")
 
+class UserInfo(BaseModel):
+    full_name: str
+    email: str
+    role: str
+
+class CreditRequestData(BaseModel):
+    userInfo: UserInfo
+    reason: str
 
 @router.post("/credit")
 async def deduct_credit(
@@ -185,3 +194,90 @@ def should_reset_credits(ip_record):
     last_used_time = ip_record.get("last_used", 0)
 
     return last_used_time < boundary_utc_ts <= now_utc_ts
+
+@router.post("/request-credits")
+async def request_more_credits(
+    request_data: CreditRequestData,
+    request: Request,
+    detected_ip: str = Depends(get_ip_for_request),
+    current_user: dict = Depends(get_current_user),
+):
+    """
+    Endpoint to handle credit increase requests from users.
+    
+    Stores the request in MongoDB for admin review.
+    """
+    try:
+        # Validate input
+        if not request_data.reason or len(request_data.reason.strip()) < 5:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Reason must be at least 5 characters long"
+            )
+
+        if not request_data.userInfo.full_name or not request_data.userInfo.email:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="User information is required"
+            )
+
+        # Check if user has already made a recent request (within last 24 hours)
+        recent_request = await credit_requests_collection.find_one({
+            "userInfo.email": request_data.userInfo.email,
+            "created_at": {
+                "$gte": datetime.utcnow().timestamp() - 86400  # 24 hours ago
+            },
+            "status": {"$in": ["pending", "approved"]}
+        })
+
+        if recent_request:
+            return JSONResponse(
+                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                content={
+                    "status": False,
+                    "detail": "You have already submitted a credit request recently. Please wait 24 hours before submitting another request.",
+                }
+            )
+
+        # Create the credit request record
+        credit_request = {
+            "userInfo": {
+                "full_name": request_data.userInfo.full_name,
+                "email": request_data.userInfo.email,
+                "role": request_data.userInfo.role,
+            },
+            "reason": request_data.reason.strip(),
+            "ip_address": detected_ip,
+            "status": "pending",  # pending, approved, rejected
+            "created_at": datetime.utcnow().timestamp(),
+            "updated_at": datetime.utcnow().timestamp(),
+        }
+
+        # Insert into database
+        result = await credit_requests_collection.insert_one(credit_request)
+
+        if result.inserted_id:
+            # TODO Integrate email to send alert once new request comes
+            # await notify_admins_of_credit_request(credit_request)
+            
+            return {
+                "status": True,
+                "message": "Credit request submitted successfully. We will review your request and get back to you within 24 hours.",
+                "request_id": str(result.inserted_id)
+            }
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Failed to submit credit request"
+            )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        return JSONResponse(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            content={
+                "status": False,
+                "detail": f"An error occurred while processing your request: {str(e)}"
+            }
+        )

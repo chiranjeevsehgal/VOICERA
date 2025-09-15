@@ -16,11 +16,23 @@ import { Subject, takeUntil } from 'rxjs';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { getCurrentUserRole } from '../../utils/role.utils';
-import { ArrowRight, LucideAngularModule } from 'lucide-angular';
+import { ArrowRight, LogOut, LucideAngularModule } from 'lucide-angular';
+import { CreditRequestService } from '../../services/credit-request.service';
+import { HotToastService } from '@ngxpert/hot-toast';
+import {
+  CreditRequestData,
+  RequestCreditsModalComponent,
+} from '../request-credits-modal/request-credits-modal.component';
 
 @Component({
   selector: 'app-header',
-  imports: [CommonModule, FormsModule, RouterModule, LucideAngularModule],
+  imports: [
+    CommonModule,
+    FormsModule,
+    RouterModule,
+    LucideAngularModule,
+    RequestCreditsModalComponent,
+  ],
   templateUrl: './header.component.html',
   styles: ``,
 })
@@ -29,8 +41,11 @@ export class HeaderComponent implements OnInit, OnDestroy {
   @ViewChild('mobileMenu') mobileMenu!: ElementRef;
   @ViewChild('profileDropdown') profileDropdown!: ElementRef;
   @ViewChild('mobileProfileDropdown') mobileProfileDropdown!: ElementRef;
+  @ViewChild(RequestCreditsModalComponent)
+  requestCreditsModal!: RequestCreditsModalComponent;
   @ViewChild('navMenuContainer') navMenuContainer!: ElementRef;
   readonly ArrowRight = ArrowRight;
+  readonly LogOut = LogOut;
   userProfile: UserProfile | null = null;
   credits: number = 0;
   userInitials: string = '';
@@ -40,6 +55,8 @@ export class HeaderComponent implements OnInit, OnDestroy {
   isLoadingProfile: boolean = true;
   isLoadingCredits: boolean = true;
   userRole: string = '';
+  showRequestCreditsModal: boolean = false;
+  isSubmittingCreditRequest: boolean = false;
 
   navItems: Array<{
     label: string;
@@ -77,7 +94,12 @@ export class HeaderComponent implements OnInit, OnDestroy {
 
   private destroy$ = new Subject<void>();
 
-  constructor(private router: Router, private profileService: ProfileService) {}
+  constructor(
+    private router: Router,
+    private profileService: ProfileService,
+    private creditRequestService: CreditRequestService,
+    private toast: HotToastService
+  ) {}
 
   ngOnInit(): void {
     this.loadUserData();
@@ -242,5 +264,40 @@ export class HeaderComponent implements OnInit, OnDestroy {
 
   onLogoClick(): void {
     this.router.navigate(['/library']);
+  }
+
+  onRequestCredits(): void {
+    this.showRequestCreditsModal = true;
+    this.showProfileDropdown = false; // Close profile dropdown
+  }
+
+  onCloseRequestCreditsModal(): void {
+    this.showRequestCreditsModal = false;
+  }
+
+  async onSubmitCreditRequest(requestData: CreditRequestData): Promise<void> {
+    this.isSubmittingCreditRequest = true;
+    try {
+      await this.creditRequestService.requestCredits(requestData).toPromise();
+
+      this.toast.success(
+        "We've received your credit request and will review it soon. You'll hear back from us within 24 hours."
+      );
+
+      this.showRequestCreditsModal = false;
+      if (this.requestCreditsModal) {
+        this.requestCreditsModal.resetForm();
+      }
+    } catch (error: any) {
+      console.error('Error submitting credit request:', error);
+
+      const errorMessage =
+        error?.error?.detail ||
+        "Sorry, we couldn't process your request right now. Please try again later.";
+
+      this.toast.error(errorMessage);
+    } finally {
+      this.isSubmittingCreditRequest = false;
+    }
   }
 }
