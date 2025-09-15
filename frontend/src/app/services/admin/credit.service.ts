@@ -63,6 +63,8 @@ export interface CreditRequest {
   status: 'pending' | 'approved' | 'rejected';
   createdAt: Date;
   updatedAt: Date;
+  showApproveInput?: boolean;
+  creditsToAdd?: number;
 }
 
 @Injectable({

@@ -1,15 +1,23 @@
-import { Component, Input, Output, EventEmitter, OnInit, OnChanges } from '@angular/core';
+import {
+  Component,
+  Input,
+  Output,
+  EventEmitter,
+  OnInit,
+  OnChanges,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { 
-  CreditService, 
+import {
+  CreditService,
   CreditRequest,
-  CreditRequestUser 
+  CreditRequestUser,
 } from '../../../services/admin/credit.service';
+import { FormsModule } from '@angular/forms';
 
 @Component({
   selector: 'app-credit-requests-modal',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, FormsModule],
   templateUrl: './credit-requests-modal.component.html',
 })
 export class CreditRequestsModalComponent implements OnInit, OnChanges {
@@ -45,10 +53,10 @@ export class CreditRequestsModalComponent implements OnInit, OnChanges {
 
   loadRequests() {
     this.loading = true;
-    
+
     this.creditService.getCreditRequests().subscribe({
       next: (response) => {
-        this.creditRequests = response.requests.map(request => 
+        this.creditRequests = response.requests.map((request) =>
           this.creditService.transformApiCreditRequest(request)
         );
         this.loading = false;
@@ -57,7 +65,7 @@ export class CreditRequestsModalComponent implements OnInit, OnChanges {
         console.error('Error loading credit requests:', error);
         this.loading = false;
         this.creditRequests = [];
-      }
+      },
     });
   }
 
@@ -68,7 +76,7 @@ export class CreditRequestsModalComponent implements OnInit, OnChanges {
   getInitials(fullName: string): string {
     return fullName
       .split(' ')
-      .map(name => name.charAt(0))
+      .map((name) => name.charAt(0))
       .join('')
       .toUpperCase()
       .substring(0, 2);
@@ -93,11 +101,46 @@ export class CreditRequestsModalComponent implements OnInit, OnChanges {
       month: 'short',
       day: 'numeric',
       hour: '2-digit',
-      minute: '2-digit'
+      minute: '2-digit',
     });
   }
 
   trackRequestById(index: number, request: CreditRequest): string {
     return request.id;
+  }
+
+  onApproveClick(requestId: string): void {
+    // Find the request and set showApproveInput to true
+    const request = this.creditRequests.find((r) => r.id === requestId);
+    if (request) {
+      request.showApproveInput = true;
+      request.creditsToAdd = 100; // Default value
+    }
+  }
+
+  onCancelApprove(requestId: string): void {
+    // Find the request and hide the approve input
+    const request = this.creditRequests.find((r) => r.id === requestId);
+    if (request) {
+      request.showApproveInput = false;
+      request.creditsToAdd = undefined;
+    }
+  }
+
+  onConfirmApprove(requestId: string, creditsToAdd: number): void {
+    if (!creditsToAdd || creditsToAdd < 1) {
+      return;
+    }
+
+    // TODO: Call backend API to approve request with credits
+    console.log(`Approving request ${requestId} with ${creditsToAdd} credits`);
+
+    // For now, just hide the input
+    this.onCancelApprove(requestId);
+  }
+
+  onReject(requestId: string): void {
+    // TODO: Call backend API to reject request
+    console.log(`Rejecting request ${requestId}`);
   }
 }
