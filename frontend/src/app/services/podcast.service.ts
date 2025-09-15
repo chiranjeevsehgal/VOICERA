@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
-import { Observable, map } from 'rxjs';
+import { Observable, map, of, switchMap, catchError } from 'rxjs';
 import { environment } from '../../environments/environment'; // Adjust path as needed
 
 export interface AudioFile {
@@ -57,6 +57,34 @@ export interface Podcast {
   audioFile: AudioFile;
 }
 
+// Minimal typings for Pexels API search response
+interface PexelsPhotoSrc {
+  original?: string;
+  large2x?: string;
+  large?: string;
+  medium?: string;
+  small?: string;
+  portrait?: string;
+  landscape?: string;
+  tiny?: string;
+}
+
+interface PexelsPhoto {
+  id: number;
+  url?: string;
+  photographer?: string;
+  src?: PexelsPhotoSrc;
+  alt?: string;
+}
+
+interface PexelsSearchResponse {
+  page: number;
+  per_page: number;
+  photos: PexelsPhoto[];
+  total_results?: number;
+  next_page?: string;
+}
+
 export interface WordTiming {
   word: string;
   start: number;
@@ -71,7 +99,77 @@ export class PodcastService {
   private baseUrl = environment.backendApiUrl;
   private authToken = localStorage.getItem('vEra_auth_token');
 
-  constructor(private http: HttpClient) {}
+  // Placeholder and Pexels configuration
+  private readonly placeholderImageUrl =
+    'https://res.cloudinary.com/dpbapzakz/image/upload/v1757304113/podcast_placeholder_nbkdpf.jpg';
+  private pexelsImages: string[] = [];
+  private readonly pexelsApiKey: string =
+    (environment as any).pexelsApiKey || '';
+  private readonly pexelsQuery: string =
+    (environment as any).pexelsQuery || 'Abstract Art';
+  private readonly pexelsPerPage: number = 20;
+
+  constructor(private http: HttpClient) {
+    // Eagerly prefetch to improve UX so first render can benefit when possible
+    this.ensurePexelsImages$().subscribe();
+  }
+
+  // Ensure Pexels images are loaded; returns an observable that completes either way
+  private ensurePexelsImages$(): Observable<void> {
+    if (!this.pexelsApiKey) {
+      return of(void 0);
+    }
+    if (this.pexelsImages && this.pexelsImages.length > 0) {
+      return of(void 0);
+    }
+
+    const headers = new HttpHeaders({
+      Authorization: this.pexelsApiKey, // Pexels expects the raw API key in Authorization header
+    });
+
+    return this.http
+      .get<PexelsSearchResponse>('https://api.pexels.com/v1/search', {
+        headers,
+        params: {
+          query: this.pexelsQuery,
+          per_page: String(this.pexelsPerPage),
+        },
+      })
+      .pipe(
+        map((res) => {
+          const urls = Array.isArray(res?.photos)
+            ? res.photos
+                .map((p) => p?.src?.medium)
+                .filter((u): u is string => typeof u === 'string' && !!u)
+            : [];
+          this.pexelsImages = urls;
+          return void 0;
+        }),
+        catchError(() => {
+          // Silently ignore errors and keep using the placeholder
+          this.pexelsImages = [];
+          return of(void 0);
+        }),
+      );
+  }
+
+  // Simple deterministic hash to keep image selection stable per podcast id
+  private simpleHash(input: string): number {
+    let hash = 0;
+    for (let i = 0; i < input.length; i++) {
+      hash = (hash << 5) - hash + input.charCodeAt(i);
+      hash |= 0; // Convert to 32bit integer
+    }
+    return hash;
+  }
+
+  private pickImageForId(id: string): string {
+    if (!this.pexelsImages || this.pexelsImages.length === 0) {
+      return this.placeholderImageUrl;
+    }
+    const index = Math.abs(this.simpleHash(id)) % this.pexelsImages.length;
+    return this.pexelsImages[index] || this.placeholderImageUrl;
+  }
 
   getPodcasts(): Observable<Podcast[]> {
     // Backward-compatible: fetch first page and return only items
@@ -84,18 +182,22 @@ export class PodcastService {
       'Content-Type': 'application/json',
     });
 
-    return this.http
-      .get<ApiResponse>(`${this.baseUrl}/api/listAudioFiles`, {
-        headers,
-        params: { page: String(page) },
-      })
-      .pipe(
-        map((response) => ({
-          podcasts: this.transformApiResponseToPodcasts(response.files),
-          page: response.page ?? page,
-          hasNext: response.has_next === true,
-        })),
-      );
+    return this.ensurePexelsImages$().pipe(
+      switchMap(() =>
+        this.http
+          .get<ApiResponse>(`${this.baseUrl}/api/listAudioFiles`, {
+            headers,
+            params: { page: String(page) },
+          })
+          .pipe(
+            map((response) => ({
+              podcasts: this.transformApiResponseToPodcasts(response.files),
+              page: response.page ?? page,
+              hasNext: response.has_next === true,
+            })),
+          ),
+      ),
+    );
   }
 
   /**
@@ -183,8 +285,7 @@ export class PodcastService {
           id,
           title: title.replace(/\.mp3$/i, ''),
           creator,
-          imageUrl:
-            'https://res.cloudinary.com/dpbapzakz/image/upload/v1757304113/podcast_placeholder_nbkdpf.jpg',
+          imageUrl: this.pickImageForId(id),
           audioFile: file,
         };
       });

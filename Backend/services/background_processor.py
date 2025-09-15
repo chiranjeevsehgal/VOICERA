@@ -25,15 +25,14 @@ from services.utility_wrappers import (
     sync_upload_to_supabase,
     sync_delete_from_supabase,
     sync_index_transcript,
-    sync_update_podcast_url,
     direct_deduct_credit,
 )
 from utils.content_tracker import (
-    sync_track_upload,
-    sync_update_upload_status,
-    sync_create_podcast,
-    sync_create_transcript,
-    sync_update_podcast_transcription_status,
+    track_upload,
+    update_upload_status,
+    create_podcast,
+    create_transcript,
+    update_podcast_transcription_status,
 )
 from utils.analytics import _insert_transcription_stats
 from utils.logging import log_warning
@@ -200,16 +199,13 @@ async def process_audio_background(
             "user_full_name": current_user.get("full_name", ""),
         }
 
-        upload_id = await asyncio.get_event_loop().run_in_executor(
-            thread_pool,
-            lambda: sync_track_upload(
-                user_id=user_id,
-                file_name=file_name,
-                file_path=local_file_path,
-                file_type="audio",
-                file_size=file_size,
-                metadata=user_metadata,
-            ),
+        upload_id = await track_upload(
+            user_id=user_id,
+            file_name=file_name,
+            file_path=local_file_path,
+            file_type="audio",
+            file_size=file_size,
+            metadata=user_metadata,
         )
 
         # Step 3: Upload to Supabase
@@ -251,11 +247,8 @@ async def process_audio_background(
         original_supabase_bucket = supabase_result.get("bucket")
 
         if upload_id:
-            await asyncio.get_event_loop().run_in_executor(
-                thread_pool,
-                lambda: sync_update_upload_status(
-                    upload_id=upload_id, status="processing", supabase_url=supabase_url
-                ),
+            await update_upload_status(
+                upload_id=upload_id, status="processing", supabase_url=supabase_url
             )
 
         # Step 4: Transcribe the audio
@@ -540,49 +533,37 @@ async def process_audio_background(
             embedded_supabase_url = embedded_upload_result["file_url"]
 
             # Now create the podcast with the embedded URL
-            podcast_id = await asyncio.get_event_loop().run_in_executor(
-                thread_pool,
-                lambda: sync_create_podcast(
-                    title=podcast_creation_data["title"],
-                    description=podcast_creation_data["description"],
-                    raw_audio_url=supabase_url,  # Raw Audio URL
-                    embedded_audio_url=embedded_supabase_url,  # Embedded Audio URL
-                    duration_seconds=podcast_creation_data["duration_seconds"],
-                    author=podcast_creation_data["author"],
-                    language=podcast_creation_data["language"],
-                    upload_id=podcast_creation_data["upload_id"],
-                    user_id=user_id,
-                ),
+            podcast_id = await create_podcast(
+                title=podcast_creation_data["title"],
+                description=podcast_creation_data["description"],
+                raw_audio_url=supabase_url,  # Raw Audio URL
+                embedded_audio_url=embedded_supabase_url,  # Embedded Audio URL
+                duration_seconds=podcast_creation_data["duration_seconds"],
+                author=podcast_creation_data["author"],
+                language=podcast_creation_data["language"],
+                upload_id=podcast_creation_data["upload_id"],
+                user_id=user_id,
             )
 
             # Set transcription status to in_progress
-            await asyncio.get_event_loop().run_in_executor(
-                thread_pool,
-                lambda: sync_update_podcast_transcription_status(
-                    podcast_id=podcast_id, status="in_progress"
-                ),
+            await update_podcast_transcription_status(
+                podcast_id=podcast_id, status="in_progress"
             )
 
             # Create the transcript
-            transcript_id = await asyncio.get_event_loop().run_in_executor(
-                thread_pool,
-                lambda: sync_create_transcript(
-                    podcast_id=podcast_id,
-                    content=transcript_creation_data["content"],
-                    language=transcript_creation_data["language"],
-                    segments=transcript_creation_data["segments"],
-                    confidence_score=transcript_creation_data["confidence_score"],
-                ),
+            transcript_id = await create_transcript(
+                podcast_id=podcast_id,
+                content=transcript_creation_data["content"],
+                language=transcript_creation_data["language"],
+                segments=transcript_creation_data["segments"],
+                confidence_score=transcript_creation_data["confidence_score"],
             )
 
             # Update transcription status to completed
-            await asyncio.get_event_loop().run_in_executor(
-                thread_pool,
-                lambda: sync_update_podcast_transcription_status(
-                    podcast_id=podcast_id,
-                    status="completed",
-                    transcript_id=transcript_id,
-                ),
+            await update_podcast_transcription_status(
+                podcast_id=podcast_id,
+                status="completed",
+                transcript_id=transcript_id,
             )
 
             # Update analytics stats with podcast_id and transcript_id
@@ -590,13 +571,10 @@ async def process_audio_background(
             stats_data["transcript_id"] = transcript_id
 
             if upload_id:
-                await asyncio.get_event_loop().run_in_executor(
-                    thread_pool,
-                    lambda: sync_update_upload_status(
-                        upload_id=upload_id,
-                        status="processing",
-                        supabase_url=embedded_supabase_url,
-                    ),
+                await update_upload_status(
+                    upload_id=upload_id,
+                    status="processing",
+                    supabase_url=embedded_supabase_url,
                 )
 
             try:

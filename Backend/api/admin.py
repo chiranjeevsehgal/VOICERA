@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Request, Depends, HTTPException, status, Query, Path, Body
-from fastapi.responses import JSONResponse
 from typing import List, Optional, Dict, Any
+import numpy as np
+from sklearn.decomposition import PCA
 from bson import ObjectId
 from datetime import datetime, timedelta
 import time
@@ -24,6 +25,7 @@ from services.database import (
     user_activity_collection,
 )
 from services.gemini_key_manager import gemini_key_manager
+from services.pinecone_service import index as pinecone_index, init_pinecone
 from models.analytics import (
     APIUsageStats,
     TranscriptionStats,
@@ -772,6 +774,160 @@ async def get_api_usage_metrics(
 
     return stats
 
+
+@router.get("/vector-space", status_code=status.HTTP_200_OK)
+async def get_vector_space(
+    current_user: Dict[str, Any] = Depends(requires_role("admin")),
+    top_k: int = Query(1000, ge=10, le=5000, description="Number of vectors to sample"),
+    file_name_contains: Optional[str] = Query(
+        None,
+        description="Case-insensitive substring to filter by file_name metadata",
+    ),
+):
+    """
+    Return PCA-reduced 3D coordinates and metadata for a sample of vectors in Pinecone.
+
+    This endpoint issues a random vector query to Pinecone to retrieve a sample of vectors,
+    then reduces their dimensionality to 3D using PCA for visualization.
+    """
+    try:
+        # Ensure Pinecone is initialized
+        if pinecone_index is None:
+            ok = init_pinecone()
+            if not ok:
+                raise HTTPException(
+                    status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                    detail="Pinecone is not initialized",
+                )
+
+        # Defensive: re-import index after init
+        from services.pinecone_service import index as _index, EMBEDDING_DIMENSION as _DIM
+
+        if _index is None:
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="Pinecone index unavailable",
+            )
+
+        dimension = int(os.getenv("EMBEDDING_DIMENSION", str(_DIM if _DIM else 768)))
+
+        # Random vector to sample neighborhood
+        rng = np.random.default_rng()
+        random_vec = rng.random(dimension, dtype=np.float32).tolist()
+
+        # Query Pinecone
+        try:
+            response = _index.query(
+                vector=random_vec,
+                top_k=top_k,
+                include_values=True,
+                include_metadata=True,
+            )
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Pinecone query failed: {str(e)}")
+
+        matches = response.get("matches", []) if isinstance(response, dict) else getattr(response, "matches", [])
+        if not matches:
+            return {
+                "total": 0,
+                "dimension": dimension,
+                "reduced_dimension": 3,
+                "points": [],
+                "message": "No vectors returned from Pinecone",
+            }
+
+        # Extract vectors and metadata
+        vectors = []
+        metas = []
+        ids = []
+        for m in matches:
+            # m may be a dict or object with attributes
+            vals = m.get("values") if isinstance(m, dict) else getattr(m, "values", None)
+            meta = m.get("metadata") if isinstance(m, dict) else getattr(m, "metadata", None)
+            mid = m.get("id") if isinstance(m, dict) else getattr(m, "id", None)
+            if vals is not None:
+                vectors.append(vals)
+                metas.append(meta or {})
+                ids.append(mid)
+
+        if not vectors:
+            return {
+                "total": 0,
+                "dimension": dimension,
+                "reduced_dimension": 3,
+                "points": [],
+                "message": "No vector values included in response",
+            }
+
+        # Optional metadata filter by file name substring
+        if file_name_contains:
+            q = str(file_name_contains).lower()
+            filtered = [
+                (v, m, i)
+                for v, m, i in zip(vectors, metas, ids)
+                if str((m or {}).get("file_name", "")).lower().find(q) != -1
+            ]
+            if filtered:
+                vectors, metas, ids = zip(*filtered)
+                vectors, metas, ids = list(vectors), list(metas), list(ids)
+            else:
+                # No matches after filtering
+                return {
+                    "total": 0,
+                    "dimension": dimension,
+                    "reduced_dimension": 3,
+                    "points": [],
+                    "message": "No vectors matched file_name filter",
+                }
+
+        X = np.array(vectors, dtype=np.float32)
+        n_samples, n_features = X.shape
+        reduced = None
+
+        # If we don't have enough samples or features for PCA, pad/fallback
+        if n_samples >= 3 and n_features >= 3:
+            try:
+                pca = PCA(n_components=3)
+                reduced = pca.fit_transform(X)
+            except Exception:
+                # Fallback to slicing first 3 dims
+                pad_width = max(0, 3 - n_features)
+                X_pad = np.pad(X[:, : min(3, n_features)], ((0, 0), (0, pad_width)))
+                reduced = X_pad[:, :3]
+        else:
+            pad_width = max(0, 3 - n_features)
+            X_pad = np.pad(X[:, : min(3, n_features)], ((0, 0), (0, pad_width)))
+            reduced = X_pad[:, :3]
+
+        points = []
+        for i in range(len(metas)):
+            m = metas[i] or {}
+            x, y, z = float(reduced[i, 0]), float(reduced[i, 1]), float(reduced[i, 2])
+            points.append(
+                {
+                    "id": ids[i],
+                    "x": x,
+                    "y": y,
+                    "z": z,
+                    "file_name": m.get("file_name"),
+                    "chunk_index": m.get("chunk_index"),
+                    "total_chunks": m.get("total_chunks"),
+                    "start_time": m.get("start_time"),
+                    "end_time": m.get("end_time"),
+                    "text": m.get("text"),
+                }
+            )
+
+        return {
+            "total": len(points),
+            "dimension": dimension,
+            "reduced_dimension": 3,
+            "points": points,
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to build vector space: {str(e)}")
 
 @router.get("/analytics/ip-details/{ip_address}", status_code=status.HTTP_200_OK)
 async def get_ip_detailed_analytics(

@@ -16,6 +16,26 @@ VOICERA is a comprehensive audio processing and analysis platform that transform
 - **Credit Management System**: IP-based credit tracking with automatic daily resets
 - **Asynchronous Processing**: Real-time job tracking with status updates
 
+## Table of Contents
+
+- [Overview](#overview)
+- [Key Features](#key-features)
+- [Architecture](#architecture)
+- [Audio Processing Workflow](#audio-processing-workflow)
+- [Setup](#setup)
+  - [Environment Variables](#environment-variables)
+  - [Installation](#installation)
+  - [Running the Application](#running-the-application)
+  - [Running with Docker](#running-with-docker)
+- [API Endpoints](#api-endpoints)
+- [All-in-One Processing Endpoint](#all-in-one-processing-endpoint)
+- [Credit Management System](#credit-management-system)
+- [Search Technology](#search-technology)
+- [Use Cases](#use-cases)
+- [Error Handling and Resilience](#error-handling-and-resilience)
+- [Deployment Notes](#deployment-notes)
+- [License](#license)
+
 ## Architecture
 
 VOICERA consists of two main components:
@@ -41,36 +61,79 @@ VOICERA consists of two main components:
 Create a `.env` file in the root directory with:
 
 ```
-# API Keys
-DEEPGRAM_API_KEY=your_deepgram_api_key
-TOGETHER_API_KEY=your_together_api_key
-PINECONE_API_KEY=your_pinecone_api_key
-GEMINI_API_KEY=your_gemini_api_key
-GEMINI_MODEL=gemini-pro
-
-# MongoDB Authentication
+# Core
 MONGO_URI=your_mongodb_uri
 SECRET_KEY=your_jwt_secret_key
+BACKEND_URL=http://localhost:8000  # used by internal wrappers for self-calls
 
-# Supabase Configuration
+# Auth token expiry (minutes)
+ACCESS_TOKEN_EXPIRE_MINUTES=60
+GUEST_ACCESS_TOKEN_EXPIRE_MINUTES=30
+
+# CORS is configured in code; set your frontend origins in main.py
+
+# Rate limiting / IP trust
+REDIS_URL=redis://localhost:6379            # optional; in-memory fallback if unset
+EXCLUDED_IPS=127.0.0.1                      # comma-separated, bypass limiter
+TRUST_CLIENT_IP_HEADER=false                # true in controlled env only
+CLIENT_IP_HEADER_TOKEN=                     # optional shared secret when trusting header
+
+# Deepgram (transcription)
+DEEPGRAM_API_KEY=your_deepgram_api_key
+
+# Supabase Storage
 SUPABASE_URL=your_supabase_url
-SUPABASE_KEY=your_supabase_key
+SUPABASE_KEY=your_supabase_anon_key
 SUPABASE_BUCKET=audiofiles
 # Optional: Separate buckets for originals vs embedded files
 SUPABASE_BUCKET_ORIGINAL=audiofiles
 SUPABASE_BUCKET_EMBEDDED=audiofiles-embedded
+DELETE_ORIGINAL_SUPABASE_FILE=false
 
-# Vector Database Configuration
+# Pinecone (vector DB)
+PINECONE_API_KEY=your_pinecone_api_key
 PINECONE_ENVIRONMENT=gcp-starter
 PINECONE_INDEX_NAME=voicera-audio-search
-EMBEDDING_MODEL=togethercomputer/m2-bert-80M-8k-retrieval
+
+# Embedding provider (0 = Together, 1 = Gemini)
+EMBED_PROVIDER=1
+# Together AI (if EMBED_PROVIDER=0)
+TOGETHER_API_KEY=your_together_api_key
+TOGETHER_EMBEDDING_MODEL=togethercomputer/m2-bert-80M-32k-retrieval
 EMBEDDING_DIMENSION=768
 
-# Credit System Configuration
-DEFAULT_CREDITS=10
-RESET_TIMEFRAME=86400  # 24 hours in seconds
+# Gemini (LLM/embeddings)
+GEMINI_API_KEYS=key1,key2                 # or GEMINI_API_KEY, or GEMINI_API_KEY_1..N
+GEMINI_MODEL=gemini-1.5-flash             # used by translation/LLM endpoints
+# Budgets (defaults are safe)
+GEMINI_EMBED_RPM=100
+GEMINI_EMBED_RPS=2
+GEMINI_EMBED_TPM=30000
+GEMINI_TPM_SAFETY=0.9
+GEMINI_EMBED_RPD=1000
+GEMINI_BATCH_SIZE=16
+GEMINI_TOKEN_OVERHEAD=32
 
-# Admin Credentials
+# OAuth (optional)
+GOOGLE_CLIENT_ID=
+GOOGLE_CLIENT_SECRET=
+GOOGLE_REDIRECT_URI=
+GITHUB_CLIENT_ID=
+GITHUB_CLIENT_SECRET=
+GITHUB_REDIRECT_URI=
+
+# Credit system
+DEFAULT_CREDITS=10
+RESET_TIMEFRAME=86400
+
+# SMTP email (admin notifications)
+SMTP_HOST=
+SMTP_PORT=
+SMTP_USER=
+SMTP_PASSWORD=
+ADMIN_EMAIL_ALERTS=admin@example.com
+
+# Admin bootstrap (used by internal flows)
 ADMIN_EMAIL=admin@example.com
 ADMIN_PASSWORD=admin123
 ```
@@ -116,6 +179,14 @@ cd frontend
 ng serve
 ```
 
+### Running with Docker
+
+```bash
+# from VOICERA/Backend
+docker build -t voicera-backend .
+docker run --env-file ../.env -p 8000:8000 voicera-backend
+```
+
 ## API Endpoints
 
 ### Authentication
@@ -145,6 +216,15 @@ ng serve
   - LLM query expansion
 - `POST /api/generate-answer`: Generate answers from transcript content
 - `POST /api/search-and-answer`: Combined search and answer generation
+
+### System & Admin
+- `GET /api/system/health`: Circuit breakers and rate limiter summary (admin)
+- `GET /api/system/circuit-breakers`: Detailed breaker states (admin)
+- `POST /api/system/circuit-breakers/reset`: Reset all breakers (admin)
+- `GET /api/system/rate-limits`: Current limiter configuration (admin)
+- `POST /api/send-email`: Admin-only outbound email
+- `GET /api/ip-info`, `GET /api/ip`: IP detection/debug
+- `GET /api/admin/users`, `PUT /api/admin/users/{id}`, `DELETE /api/admin/users/{id}` (admin)
 
 ## All-in-One Processing Endpoint
 
@@ -246,6 +326,13 @@ The application includes robust error handling and resilience features:
 - Graceful degradation when services are unavailable
 - Detailed error reporting through job status API
 - Background tasks for system maintenance
+
+## Deployment Notes
+
+- Configure allowed CORS origins in `Backend/main.py` `CORSMiddleware`. When deploying behind a reverse proxy (e.g., nginx), ensure response headers such as `Access-Control-Allow-Origin` and `Access-Control-Allow-Credentials` are forwarded/set correctly; otherwise some non-OPTIONS requests may fail in browsers.
+- For cluster deployments, set `REDIS_URL` to enable shared rate limiting; the in-memory limiter is suitable for single-instance development.
+- Ensure Supabase buckets exist and are public paths under `public/` to match RLS policies used by the service.
+- Pinecone index must exist or will be created on startup; confirm `PINECONE_INDEX_NAME`, `EMBEDDING_DIMENSION` match your embedding model.
 
 ## License
 

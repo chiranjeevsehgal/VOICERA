@@ -11,6 +11,7 @@ import {
   FileText,
   Upload,
   Activity,
+  Scale3D
 } from 'lucide-angular';
 import { Router } from '@angular/router';
 import { ProfileService } from '../../../services/auth/profile.service';
@@ -85,6 +86,11 @@ export class SidebarComponent {
       id: 'application-status',
       label: 'Application Status',
       icon: Activity,
+    },
+    {
+      id: 'vector-visualization',
+      label: 'Vector Space Visualization',
+      icon: Scale3D,
     },
   ];
 

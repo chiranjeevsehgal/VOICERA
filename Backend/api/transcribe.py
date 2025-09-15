@@ -267,7 +267,7 @@ async def transcribe_audio(
                 title=request.title or file_name,
                 description=request.description
                 or f"Transcribed on {os.environ.get('HOSTNAME', 'Voicera')}",
-                audio_url=request.url,
+                raw_audio_url=request.url,
                 duration_seconds=duration,
                 author=current_user.get("username", "unknown"),
                 language=detected_language or request.language or "en",

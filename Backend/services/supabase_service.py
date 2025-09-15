@@ -2,8 +2,6 @@ import os
 from supabase import create_client, Client
 from dotenv import load_dotenv
 import uuid
-from datetime import datetime
-from models.user_uploads import UserUploadCreate
 from bson import ObjectId
 import json
 from services.database import users_collection  # Add this import
@@ -123,10 +121,16 @@ async def upload_file_to_supabase(
             {"response": str(response)},
         )
 
-        # Generate public URL
+        # Generate public URL and normalize (strip trailing '?' if present)
         file_url = supabase.storage.from_(selected_bucket).get_public_url(
             file_path_in_bucket
         )
+        try:
+            if isinstance(file_url, str) and file_url.endswith("?"):
+                file_url = file_url[:-1]
+        except Exception:
+            # Non-fatal; keep original if any unexpected type
+            pass
 
         result = {
             "success": True,

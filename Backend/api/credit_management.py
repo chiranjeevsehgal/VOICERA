@@ -1,12 +1,13 @@
 from fastapi import APIRouter, Request, HTTPException, status, Depends
 from fastapi.responses import JSONResponse
-from datetime import datetime
+from datetime import datetime, timedelta
 import os
 from dotenv import load_dotenv
 from services.ip_utils import get_ip_for_request
 from services.database import db, ip_credits_collection, credit_requests_collection
 from services.auth import get_current_user
 from pydantic import BaseModel
+import pytz
 
 load_dotenv()
 router = APIRouter()
@@ -14,8 +15,8 @@ router = APIRouter()
 # Get the default credit value
 DEFAULT_CREDITS = int(os.getenv("DEFAULT_CREDITS"))
 
-# Reset timeframe in seconds
-RESET_TIMEFRAME = int(os.getenv("RESET_TIMEFRAME"))
+# Daily reset at 04:00 IST
+IST_TZ = pytz.timezone("Asia/Kolkata")
 
 class UserInfo(BaseModel):
     full_name: str
@@ -170,24 +171,29 @@ async def check_credits(
 
 def should_reset_credits(ip_record):
     """
-    Check if credits should be reset based on time difference.
+    Determine if credits should reset at the daily boundary of 04:00 IST.
 
-    Args:
-        ip_record: The IP record from the database
-
-    Returns:
-        bool: True if credits should be reset, False otherwise
+    Logic:
+    - Compute the most recent 04:00 IST boundary (today at 04:00 if current time >= 04:00 IST,
+      otherwise yesterday at 04:00 IST) and convert to UTC epoch.
+    - If the record's last_used is strictly before that boundary and the current time is after
+      that boundary, return True.
     """
     if not ip_record:
         return False
 
-    current_time = int(datetime.utcnow().timestamp())
-    last_used_time = ip_record.get("last_used")
+    now_utc_ts = int(datetime.utcnow().timestamp())
+    now_ist = datetime.utcnow().replace(tzinfo=pytz.UTC).astimezone(IST_TZ)
 
-    time_diff = current_time - last_used_time
+    # Determine most recent 04:00 IST boundary
+    today_4am_ist = now_ist.replace(hour=4, minute=0, second=0, microsecond=0)
+    boundary_ist = today_4am_ist if now_ist >= today_4am_ist else (today_4am_ist - timedelta(days=1))
 
-    # Returns if time more than RESET_TIMEFRAME have passed
-    return time_diff >= RESET_TIMEFRAME
+    boundary_utc_ts = int(boundary_ist.astimezone(pytz.UTC).timestamp())
+
+    last_used_time = ip_record.get("last_used", 0)
+
+    return last_used_time < boundary_utc_ts <= now_utc_ts
 
 @router.post("/request-credits")
 async def request_more_credits(
