@@ -1,0 +1,71 @@
+{
+    "status": true,
+    "requests": [
+        {
+            "_id": "68c8b2f417a3d5e8f9c12345",
+            "userInfo": {
+                "full_name": "Priya Sharma",
+                "email": "priya.sharma@gmail.com",
+                "role": "user"
+            },
+            "reason": "Need additional credits for podcast transcription project",
+            "ip_address": "192.168.1.45",
+            "status": "approved",
+            "created_at": "2025-09-14T14:22:15.123456",
+            "updated_at": "2025-09-14T15:30:22.987654"
+        },
+        {
+            "_id": "68c8a1e328b4c6d7e8f90123",
+            "userInfo": {
+                "full_name": "Arjun Patel",
+                "email": "arjun.patel@gmail.com",
+                "role": "admin"
+            },
+            "reason": "Request for 500 extra credits for bulk audio processing",
+            "ip_address": "10.0.0.15",
+            "status": "pending",
+            "created_at": "2025-09-14T10:15:30.456789",
+            "updated_at": "2025-09-14T10:15:30.456799"
+        },
+        {
+            "_id": "68c89fd439c5d8e9f0a12456",
+            "userInfo": {
+                "full_name": "Kavya Reddy",
+                "email": "kavya.reddy@gmail.com",
+                "role": "user"
+            },
+            "reason": "Credits exhausted, need more for research analysis",
+            "ip_address": "172.16.0.88",
+            "status": "rejected",
+            "created_at": "2025-09-13T16:45:22.789012",
+            "updated_at": "2025-09-13T18:22:45.123456"
+        },
+        {
+            "_id": "68c88ec54ad6e9f0a1b23456",
+            "userInfo": {
+                "full_name": "Rohit Kumar",
+                "email": "rohit.kumar@gmail.com",
+                "role": "user"
+            },
+            "reason": "Additional credits needed for client presentations",
+            "ip_address": "203.0.113.22",
+            "status": "pending",
+            "created_at": "2025-09-13T08:30:45.321098",
+            "updated_at": "2025-09-13T08:30:45.321108"
+        },
+        {
+            "_id": "68c87db65be7f0a1b2c34567",
+            "userInfo": {
+                "full_name": "Ananya Gupta",
+                "email": "ananya.gupta@gmail.com",
+                "role": "guest"
+            },
+            "reason": "Free tier credits finished, requesting upgrade allowance",
+            "ip_address": "198.51.100.73",
+            "status": "approved",
+            "created_at": "2025-09-12T12:18:33.654321",
+            "updated_at": "2025-09-12T16:25:17.987654"
+        }
+    ],
+    "total": 5
+}
