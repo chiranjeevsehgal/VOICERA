@@ -1,0 +1,103 @@
+import { Component, Input, Output, EventEmitter, OnInit, OnChanges } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { 
+  CreditService, 
+  CreditRequest,
+  CreditRequestUser 
+} from '../../../services/admin/credit.service';
+
+@Component({
+  selector: 'app-credit-requests-modal',
+  standalone: true,
+  imports: [CommonModule],
+  templateUrl: './credit-requests-modal.component.html',
+})
+export class CreditRequestsModalComponent implements OnInit, OnChanges {
+  @Input() isVisible: boolean = false;
+  @Output() closeModal = new EventEmitter<void>();
+
+  creditRequests: CreditRequest[] = [];
+  loading: boolean = false;
+
+  constructor(private creditService: CreditService) {}
+
+  ngOnInit() {
+    if (this.isVisible) {
+      this.loadRequests();
+    }
+  }
+
+  ngOnChanges() {
+    if (this.isVisible && this.creditRequests.length === 0) {
+      this.loadRequests();
+    }
+  }
+
+  onBackdropClick(event: Event) {
+    if (event.target === event.currentTarget) {
+      this.onClose();
+    }
+  }
+
+  onClose() {
+    this.closeModal.emit();
+  }
+
+  loadRequests() {
+    this.loading = true;
+    
+    this.creditService.getCreditRequests().subscribe({
+      next: (response) => {
+        this.creditRequests = response.requests.map(request => 
+          this.creditService.transformApiCreditRequest(request)
+        );
+        this.loading = false;
+      },
+      error: (error) => {
+        console.error('Error loading credit requests:', error);
+        this.loading = false;
+        this.creditRequests = [];
+      }
+    });
+  }
+
+  refreshRequests() {
+    this.loadRequests();
+  }
+
+  getInitials(fullName: string): string {
+    return fullName
+      .split(' ')
+      .map(name => name.charAt(0))
+      .join('')
+      .toUpperCase()
+      .substring(0, 2);
+  }
+
+  getStatusClasses(status: string): string {
+    switch (status) {
+      case 'pending':
+        return 'bg-yellow-100 text-yellow-800';
+      case 'approved':
+        return 'bg-green-100 text-green-800';
+      case 'rejected':
+        return 'bg-red-100 text-red-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
+    }
+  }
+
+  formatDate(date: Date): string {
+    return date.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  }
+
+  trackRequestById(index: number, request: CreditRequest): string {
+    return request.id;
+  }
+}
