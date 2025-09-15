@@ -67,6 +67,18 @@ class UserCreateRequest(BaseModel):
     role: str = "user"
     status: str = "active"
 
+class UpdateCreditRequestStatusRequest(BaseModel):
+    action: str = Field(..., description="Action to take: 'approve' or 'reject'")
+    credits_to_add: Optional[int] = Field(None, description="Credits to add (required for approval)")
+    
+    class Config:
+        schema_extra = {
+            "example": {
+                "action": "approve",
+                "credits_to_add": 100
+            }
+        }
+
 
 @router.get("/gemini-keys/status", status_code=status.HTTP_200_OK)
 async def get_gemini_keys_status(
@@ -1573,6 +1585,137 @@ async def get_all_credit_requests(
             "total": await credit_requests_collection.count_documents(query)
         }
 
+    except HTTPException:
+        raise
+    except Exception as e:
+        return JSONResponse(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            content={
+                "status": False,
+                "detail": f"An error occurred: {str(e)}"
+            }
+        )
+
+@router.put("/credit-requests/{request_id}/status")
+async def update_credit_request_status(
+    request_id: str,
+    request: UpdateCreditRequestStatusRequest,
+    current_user: Dict[str, Any] = Depends(requires_role("admin")),
+):
+    """
+    Admin endpoint to approve or reject credit requests.
+    For approval, adds credits to the user's IP and updates request status.
+    For rejection, only updates request status.
+    """
+    try:
+        # Validate request_id format
+        if not ObjectId.is_valid(request_id):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid request ID format"
+            )
+
+        # Find the credit request
+        credit_request = await credit_requests_collection.find_one(
+            {"_id": ObjectId(request_id)}
+        )
+        
+        if not credit_request:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Credit request not found"
+            )
+        
+        # Check if request is already processed
+        if credit_request["status"] != "pending":
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Request is already {credit_request['status']}"
+            )
+        
+        current_timestamp = int(time.time())
+        print("current_timestamp")
+        print(current_timestamp)
+        updated_by = current_user.get("email", current_user.get("id", "unknown"))
+        
+        # Handle approval
+        if request.action == "approve":
+            if not request.credits_to_add or request.credits_to_add < 1:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Credits to add must be greater than 0 for approval"
+                )
+            
+            # Find and update IP credits
+            ip_address = credit_request["ip_address"]
+            ip_credit = await ip_credits_collection.find_one({"ip": ip_address})
+            
+            if not ip_credit:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail=f"IP address {ip_address} not found in credits system"
+                )
+            
+            # Add credits to existing balance
+            new_credits = ip_credit["credits"] + request.credits_to_add
+            
+            # Update IP credits
+            await ip_credits_collection.update_one(
+                {"ip": ip_address},
+                {
+                    "$set": {
+                        "credits": new_credits,
+                        "last_updated": current_timestamp,
+                        "updated_by": updated_by
+                    }
+                }
+            )
+            
+            # Update credit request status
+            await credit_requests_collection.update_one(
+                {"_id": ObjectId(request_id)},
+                {
+                    "$set": {
+                        "status": "approved",
+                        "credits_added": request.credits_to_add,
+                        "updated_at": current_timestamp,
+                        "updated_by": updated_by
+                    }
+                }
+            )
+            
+            return {
+                "status": True,
+                "message": f"Credit request approved. Added {request.credits_to_add} credits to IP {ip_address}",
+                "credits_added": request.credits_to_add,
+                "new_total_credits": new_credits
+            }
+        
+        # Handle rejection
+        elif request.action == "reject":
+            # Update credit request status only
+            await credit_requests_collection.update_one(
+                {"_id": ObjectId(request_id)},
+                {
+                    "$set": {
+                        "status": "rejected",
+                        "updated_at": current_timestamp,
+                        "updated_by": updated_by
+                    }
+                }
+            )
+            
+            return {
+                "status": True,
+                "message": "Credit request rejected"
+            }
+        
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid action. Must be 'approve' or 'reject'"
+            )
+            
     except HTTPException:
         raise
     except Exception as e:
