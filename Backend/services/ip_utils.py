@@ -2,7 +2,6 @@ from fastapi import Request
 from typing import Optional
 import os
 
-
 def get_client_ip(request: Request) -> str:
     """
     Extract the client's IP address from a request.
@@ -21,27 +20,23 @@ def get_client_ip(request: Request) -> str:
         str: The client's IP address
     """
     headers = request.headers
-
-    # 0) Optional: trust client-provided header when explicitly enabled (for dev or controlled env)
-    if os.getenv("TRUST_CLIENT_IP_HEADER", "false").lower() in {"1", "true", "yes"}:
-        client_ip_header = headers.get("X-Client-IP")
-        # Optional shared secret to avoid abuse in shared networks
-        expected_token = os.getenv("CLIENT_IP_HEADER_TOKEN")
-        provided_token = headers.get("X-Client-IP-Token")
+    if os.getenv('TRUST_CLIENT_IP_HEADER', 'false').lower() in {'1', 'true', 'yes'}:
+        client_ip_header = headers.get('X-Client-IP')
+        expected_token = os.getenv('CLIENT_IP_HEADER_TOKEN')
+        provided_token = headers.get('X-Client-IP-Token')
         if expected_token:
             if provided_token and provided_token == expected_token and client_ip_header:
                 return client_ip_header.strip()
-        else:
-            if client_ip_header:
-                return client_ip_header.strip()
+        elif client_ip_header:
+            return client_ip_header.strip()
 
     def _clean(ip: Optional[str]) -> Optional[str]:
         if not ip:
             return None
-        return ip.strip().strip("\"[]")
+        return ip.strip().strip('"[]')
 
     def _is_private_ipv4(ip: str) -> bool:
-        parts = ip.split(".")
+        parts = ip.split('.')
         if len(parts) != 4:
             return False
         try:
@@ -60,57 +55,42 @@ def get_client_ip(request: Request) -> str:
 
     def _is_private_or_loopback(ip: str) -> bool:
         ip = ip.lower()
-        if ":" in ip:  # rudimentary IPv6 checks
-            return ip == "::1" or ip.startswith("fc") or ip.startswith("fd") or ip.startswith("fe80")
+        if ':' in ip:
+            return ip == '::1' or ip.startswith('fc') or ip.startswith('fd') or ip.startswith('fe80')
         return _is_private_ipv4(ip)
-
-    # 1) CDN-provided real client headers
-    for h in ("CF-Connecting-IP", "True-Client-IP"):
+    for h in ('CF-Connecting-IP', 'True-Client-IP'):
         v = _clean(headers.get(h))
         if v:
             return v
-
-    # 2) RFC 7239 Forwarded: for=1.2.3.4, proto=https; by=...
-    fwd = headers.get("Forwarded")
+    fwd = headers.get('Forwarded')
     if fwd:
         try:
-            # Split by commas for multiple entries, take first 'for'
-            first = fwd.split(",")[0]
-            for part in first.split(";"):
+            first = fwd.split(',')[0]
+            for part in first.split(';'):
                 part = part.strip()
-                if part.lower().startswith("for="):
-                    candidate = _clean(part.split("=", 1)[1])
-                    # Remove optional quotes and possible obfuscated identifiers
-                    if candidate and candidate.lower() != "unknown":
-                        # Strip optional IP:port
-                        if candidate.startswith("\"") and candidate.endswith("\""):
+                if part.lower().startswith('for='):
+                    candidate = _clean(part.split('=', 1)[1])
+                    if candidate and candidate.lower() != 'unknown':
+                        if candidate.startswith('"') and candidate.endswith('"'):
                             candidate = candidate[1:-1]
-                        if candidate.startswith("[") and "]" in candidate:
-                            candidate = candidate[1:candidate.index("]")]
-                        if candidate and candidate != "unknown":
-                            return candidate.split(":")[0]
+                        if candidate.startswith('[') and ']' in candidate:
+                            candidate = candidate[1:candidate.index(']')]
+                        if candidate and candidate != 'unknown':
+                            return candidate.split(':')[0]
         except Exception:
             pass
-
-    # 3) X-Forwarded-For: pick first public IP, otherwise first
-    xff = headers.get("X-Forwarded-For")
+    xff = headers.get('X-Forwarded-For')
     if xff:
-        candidates = [c.strip() for c in xff.split(",") if c.strip()]
+        candidates = [c.strip() for c in xff.split(',') if c.strip()]
         for ip in candidates:
             if not _is_private_or_loopback(ip):
                 return ip
-        # Fall back to the first if none are public
         if candidates:
             return candidates[0]
-
-    # 4) X-Real-IP
-    real_ip = _clean(headers.get("X-Real-IP"))
+    real_ip = _clean(headers.get('X-Real-IP'))
     if real_ip:
         return real_ip
-
-    # 5) Fallback to direct client
     return request.client.host
-
 
 async def get_ip_for_request(request: Request) -> str:
     """
