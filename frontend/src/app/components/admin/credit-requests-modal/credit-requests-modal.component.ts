@@ -53,22 +53,24 @@ export class CreditRequestsModalComponent implements OnInit, OnChanges {
   }
 
   loadRequests() {
-    this.loading = true;
+  this.loading = true;
 
-    this.creditService.getCreditRequests().subscribe({
-      next: (response) => {
-        this.creditRequests = response.requests.map((request) =>
+  this.creditService.getCreditRequests().subscribe({
+    next: (response) => {
+      this.creditRequests = response.requests
+        .filter(request => request.status === 'pending') // Filter pending only
+        .map((request) =>
           this.creditService.transformApiCreditRequest(request)
         );
-        this.loading = false;
-      },
-      error: (error) => {
-        console.error('Error loading credit requests:', error);
-        this.loading = false;
-        this.creditRequests = [];
-      },
-    });
-  }
+      this.loading = false;
+    },
+    error: (error) => {
+      console.error('Error loading credit requests:', error);
+      this.loading = false;
+      this.creditRequests = [];
+    },
+  });
+}
 
   refreshRequests() {
     this.loadRequests();

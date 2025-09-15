@@ -75,7 +75,7 @@ export class RequestCreditsModalComponent implements OnInit {
     }
   }
 
-  private resetForm() {
+  resetForm() {
     this.reason = '';
     this.isSubmitting = false;
   }

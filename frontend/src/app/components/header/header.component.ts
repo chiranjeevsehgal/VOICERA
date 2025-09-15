@@ -41,6 +41,8 @@ export class HeaderComponent implements OnInit, OnDestroy {
   @ViewChild('mobileMenu') mobileMenu!: ElementRef;
   @ViewChild('profileDropdown') profileDropdown!: ElementRef;
   @ViewChild('mobileProfileDropdown') mobileProfileDropdown!: ElementRef;
+  @ViewChild(RequestCreditsModalComponent)
+  requestCreditsModal!: RequestCreditsModalComponent;
   @ViewChild('navMenuContainer') navMenuContainer!: ElementRef;
   readonly ArrowRight = ArrowRight;
   readonly LogOut = LogOut;
@@ -283,7 +285,10 @@ export class HeaderComponent implements OnInit, OnDestroy {
       );
 
       this.showRequestCreditsModal = false;
-    } catch (error:any) {
+      if (this.requestCreditsModal) {
+        this.requestCreditsModal.resetForm();
+      }
+    } catch (error: any) {
       console.error('Error submitting credit request:', error);
 
       const errorMessage =
