@@ -167,7 +167,6 @@ onReject(requestId: string): void {
 
   this.creditService.updateCreditRequest(requestId, 'reject').subscribe({
     next: (response) => {
-      console.log('Request rejected successfully:', response);
       this.toast.success('Request rejected successfully.');
       request.status = 'rejected';
       request.updatedAt = new Date();

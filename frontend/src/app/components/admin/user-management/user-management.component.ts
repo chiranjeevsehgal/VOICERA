@@ -156,33 +156,6 @@ export class UserManagementComponent implements OnInit {
     });
   }
 
-  addUser() {
-    // This would need an API endpoint to create users
-    console.log('Add user functionality needs API endpoint');
-    this.closeAddUserModal();
-  }
-
-  openAddUserModal() {
-    this.showAddUserModal = true;
-  }
-
-  closeAddUserModal() {
-    this.showAddUserModal = false;
-    this.newUser = { name: '', email: '', role: 'user' };
-  }
-
-  editUser(user: User) {
-    console.log('Edit user:', user);
-    // Implement edit functionality
-  }
-
-  deleteUser(user: User) {
-    if (confirm(`Are you sure you want to delete ${user.name}?`)) {
-      // This would need an API endpoint to delete users
-      console.log('Delete user functionality needs API endpoint');
-    }
-  }
-
   toggleUserStatus(user: User) {
     // Prevent multiple simultaneous updates for the same user
     if (shouldUseMockData()) {
