@@ -9,11 +9,12 @@ import {
 import { HotToastService } from '@ngxpert/hot-toast';
 import { shouldUseMockData } from '../../../utils/role.utils';
 import * as mockCreditData from '../../../utils/mockData/mockIps.json';
+import { CreditRequestsModalComponent } from '../credit-requests-modal/credit-requests-modal.component';
 
 @Component({
   selector: 'app-credit-management',
   standalone: true,
-  imports: [CommonModule, FormsModule, HttpClientModule],
+  imports: [CommonModule, FormsModule, HttpClientModule, CreditRequestsModalComponent],
   providers: [CreditService],
   templateUrl: './credit-management.component.html',
   styles: ``,
@@ -30,6 +31,7 @@ export class CreditManagementComponent implements OnInit {
   creditToEdit: IPCredit | null = null;
   newCreditAmount: number = 0;
   updatingCredits: boolean = false;
+showCreditRequestsModal: boolean = false;
 
   constructor(
     private creditService: CreditService,
@@ -191,4 +193,12 @@ export class CreditManagementComponent implements OnInit {
         },
       });
   }
+
+  openCreditRequestsModal(): void {
+  this.showCreditRequestsModal = true;
+}
+
+closeCreditRequestsModal(): void {
+  this.showCreditRequestsModal = false;
+}
 }

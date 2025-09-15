@@ -19,9 +19,6 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
       }
 
       // Check for inactive account (403)
-      console.log(error);
-      console.log(error.status);
-      console.log(error.error);
       if (error.status === 403 && error.error?.code === 'ACCOUNT_INACTIVE') {
         handleAccountInactive(router, toast);
       }

@@ -1,0 +1,305 @@
+<!-- Backdrop -->
+<div
+  *ngIf="isVisible"
+  class="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-300"
+  (click)="onBackdropClick($event)"
+>
+  <!-- Modal Container -->
+  <div
+    class="relative bg-white rounded-2xl sm:rounded-3xl shadow-2xl w-full mx-2 sm:mx-4 max-w-sm sm:max-w-2xl lg:max-w-4xl max-h-[95vh] sm:max-h-[90vh] overflow-hidden transform transition-all duration-300 ease-out"
+    [class.animate-in]="isVisible"
+    [class.slide-in-from-bottom-8]="isVisible"
+    (click)="$event.stopPropagation()"
+  >
+    <!-- Header -->
+    <div
+      class="sticky top-0 bg-white border-b border-gray-200 px-4 sm:px-6 py-3 sm:py-4 z-10"
+    >
+      <div class="flex items-center justify-between">
+        <div class="flex items-center space-x-2 sm:space-x-3">
+          <!-- Icon -->
+          <div
+            class="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-br from-amber-400 to-orange-500 rounded-lg sm:rounded-xl flex items-center justify-center shadow-lg"
+          >
+            <svg
+              class="w-4 h-4 sm:w-5 sm:h-5 text-white"
+              fill="currentColor"
+              viewBox="0 0 20 20"
+            >
+              <path
+                d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"
+              />
+            </svg>
+          </div>
+          <div class="min-w-0 flex-1">
+            <h3 class="text-lg sm:text-xl font-bold text-gray-900 truncate">
+              Credit Requests
+            </h3>
+            <p class="text-xs sm:text-sm text-gray-500 hidden sm:block">
+              Manage user credit requests
+            </p>
+          </div>
+        </div>
+
+        <!-- Controls -->
+        <div class="flex items-center space-x-2 sm:space-x-3">
+          <!-- Refresh Button -->
+          <button
+            (click)="refreshRequests()"
+            [disabled]="loading"
+            class="p-1.5 sm:p-2 text-gray-400 hover:text-gray-600 cursor-pointer hover:bg-gray-100 rounded-lg transition-colors duration-200"
+            title="Refresh requests"
+          >
+            <svg
+              class="w-4 h-4 sm:w-5 sm:h-5 transition-transform duration-200"
+              [class.animate-spin]="loading"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+              />
+            </svg>
+          </button>
+
+          <!-- Close Button -->
+          <button
+            (click)="onClose()"
+            class="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-gray-100 hover:bg-gray-200 cursor-pointer flex items-center justify-center transition-colors duration-200 group"
+            aria-label="Close modal"
+          >
+            <svg
+              class="w-3.5 h-3.5 sm:w-4 sm:h-4 text-gray-500 group-hover:text-gray-700"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M6 18L18 6M6 6l12 12"
+              />
+            </svg>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Content -->
+    <div
+      class="overflow-y-auto max-h-[calc(95vh-4rem)] sm:max-h-[calc(90vh-5rem)]"
+    >
+      <!-- Loading State -->
+      <div
+        *ngIf="loading"
+        class="flex items-center justify-center py-8 sm:py-12"
+      >
+        <div class="flex flex-col items-center space-y-3">
+          <div
+            class="animate-spin rounded-full h-6 w-6 sm:h-8 sm:w-8 border-b-2 border-amber-600"
+          ></div>
+          <p class="text-xs sm:text-sm text-gray-600">
+            Loading credit requests...
+          </p>
+        </div>
+      </div>
+
+      <!-- Requests List -->
+      <div
+        *ngIf="!loading && creditRequests.length > 0"
+        class="divide-y divide-gray-100"
+      >
+        <div
+          *ngFor="let request of creditRequests; trackBy: trackRequestById"
+          class="p-3 sm:p-6 hover:bg-gray-50 transition-colors duration-200"
+        >
+          <!-- User Info Row -->
+          <div class="flex items-start space-x-3 sm:space-x-4 mb-3 sm:mb-4">
+            <!-- Avatar -->
+            <div
+              class="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-orange-400 to-pink-500 rounded-lg sm:rounded-xl flex items-center justify-center text-white font-bold text-sm sm:text-base shadow-md flex-shrink-0"
+            >
+              {{ getInitials(request.userInfo.full_name) }}
+            </div>
+
+            <!-- User Details -->
+            <div class="flex-1 min-w-0">
+              <div
+                class="flex items-start sm:items-center justify-between mb-2 flex-col sm:flex-row gap-2 sm:gap-0"
+              >
+                <div class="min-w-0 flex-1">
+                  <h4
+                    class="text-base sm:text-lg font-semibold text-gray-900 truncate"
+                  >
+                    {{ request.userInfo.full_name }}
+                  </h4>
+                  <p class="text-xs sm:text-sm text-gray-500 truncate">
+                    {{ request.userInfo.email }}
+                  </p>
+                </div>
+                <span
+                  [ngClass]="getStatusClasses(request.status)"
+                  class="inline-flex items-center px-2 sm:px-3 py-1 rounded-full text-xs sm:text-sm font-medium flex-shrink-0"
+                >
+                  {{ request.status | titlecase }}
+                </span>
+              </div>
+
+              <!-- Request Details -->
+              <div
+                class="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-4 text-xs sm:text-sm"
+              >
+                <div class="flex justify-between sm:block">
+                  <span class="text-gray-500">Role:</span>
+                  <span class="ml-2 font-medium text-gray-900">{{
+                    request.userInfo.role
+                  }}</span>
+                </div>
+                <div class="flex justify-between sm:block">
+                  <span class="text-gray-500">IP Address:</span>
+                  <span
+                    class="ml-2 font-medium text-gray-900 font-mono text-xs"
+                    >{{ request.ipAddress }}</span
+                  >
+                </div>
+                <div class="flex justify-between sm:block">
+                  <span class="text-gray-500">Requested:</span>
+                  <span class="ml-2 font-medium text-gray-900">{{
+                    formatDate(request.createdAt)
+                  }}</span>
+                </div>
+                <div
+                  *ngIf="request.status !== 'pending'"
+                  class="flex justify-between sm:block"
+                >
+                  <span class="text-gray-500">Updated:</span>
+                  <span class="ml-2 font-medium text-gray-900">{{
+                    formatDate(request.updatedAt)
+                  }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Reason -->
+          <div class="mb-3 sm:mb-4">
+            <p class="text-xs sm:text-sm font-medium text-gray-700 mb-2">
+              Request Reason:
+            </p>
+            <div
+              class="bg-gray-50 rounded-lg p-2 sm:p-3 border-l-4 border-amber-400"
+            >
+              <p class="text-xs sm:text-sm text-gray-900 leading-relaxed">
+                {{ request.reason }}
+              </p>
+            </div>
+          </div>
+
+          <!-- Actions -->
+          <div
+            class="flex items-center justify-end space-x-2 sm:space-x-3"
+            *ngIf="request.status === 'pending'"
+          >
+            <!-- Show initial buttons when not in approve mode -->
+            <ng-container *ngIf="!request.showApproveInput">
+              <button
+                (click)="onReject(request.id)"
+                class="px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-medium text-red-600 cursor-pointer bg-red-50 rounded-lg hover:bg-red-100 transition-colors duration-200"
+              >
+                Reject
+              </button>
+              <button
+                (click)="onApproveClick(request.id)"
+                class="px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-medium text-white cursor-pointer bg-green-600 rounded-lg hover:bg-green-700 transition-colors duration-200"
+              >
+                Approve
+              </button>
+            </ng-container>
+
+            <!-- Show approve input form when in approve mode -->
+            <div
+              *ngIf="request.showApproveInput"
+              class="flex flex-col sm:flex-row items-end gap-2 sm:gap-3 w-full sm:w-auto"
+            >
+              <div class="flex-1 sm:flex-initial">
+                <label class="block text-xs font-medium text-gray-700 mb-1"
+                  >Credits to Add</label
+                >
+                <input
+                  type="number"
+                  [(ngModel)]="request.creditsToAdd"
+                  min="1"
+                  max="10000"
+                  class="w-full sm:w-24 px-2 py-1.5 text-xs sm:text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                  placeholder="100"
+                />
+              </div>
+              <div class="flex items-center space-x-2 w-full sm:w-auto">
+                <button
+                  (click)="onCancelApprove(request.id)"
+                  class="flex-1 sm:flex-initial px-3 py-1.5 text-xs sm:text-sm font-medium text-gray-600 cursor-pointer bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors duration-200"
+                >
+                  Cancel
+                </button>
+                <button
+                  (click)="
+                    onConfirmApprove(request.id, request.creditsToAdd || 0)
+                  "
+                  [disabled]="!request.creditsToAdd || request.creditsToAdd < 1"
+                  [class]="
+                    !request.creditsToAdd || request.creditsToAdd < 1
+                      ? 'flex-1 sm:flex-initial px-3 py-1.5 text-xs sm:text-sm font-medium text-white bg-gray-400 rounded-lg cursor-not-allowed'
+                      : 'flex-1 sm:flex-initial px-3 py-1.5 text-xs sm:text-sm font-medium text-white cursor-pointer bg-green-600 rounded-lg hover:bg-green-700 transition-colors duration-200'
+                  "
+                >
+                  Confirm
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Processed Status -->
+          <div
+            class="flex items-center justify-end"
+            *ngIf="request.status !== 'pending'"
+          >
+            <div class="text-xs sm:text-sm text-gray-500">
+              Request {{ request.status }}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Empty State -->
+      <div
+        *ngIf="!loading && creditRequests.length === 0"
+        class="text-center py-8 sm:py-12 px-4"
+      >
+        <div
+          class="w-12 h-12 sm:w-16 sm:h-16 mx-auto mb-3 sm:mb-4 bg-gray-100 rounded-full flex items-center justify-center"
+        >
+          <svg
+            class="w-6 h-6 sm:w-8 sm:h-8 text-gray-400"
+            fill="currentColor"
+            viewBox="0 0 20 20"
+          >
+            <path
+              d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"
+            />
+          </svg>
+        </div>
+        <h3 class="text-base sm:text-lg font-semibold text-gray-900 mb-2">
+          No Credit Requests
+        </h3>
+        <p class="text-sm sm:text-base text-gray-600">
+          There are currently no credit requests to review.
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
