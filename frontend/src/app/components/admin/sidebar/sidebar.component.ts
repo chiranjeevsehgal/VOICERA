@@ -11,7 +11,8 @@ import {
   FileText,
   Upload,
   Activity,
-  Scale3D
+  Scale3D,
+  Globe
 } from 'lucide-angular';
 import { Router } from '@angular/router';
 import { ProfileService } from '../../../services/auth/profile.service';
@@ -91,6 +92,11 @@ export class SidebarComponent {
       id: 'vector-visualization',
       label: 'Vector Space Visualization',
       icon: Scale3D,
+    },
+    {
+      id: 'usage-map',
+      label: 'Usage Map',
+      icon: Globe,
     },
   ];
 

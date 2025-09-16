@@ -42,6 +42,12 @@ export const clientIpInterceptor: HttpInterceptorFn = (req, next) => {
     return next(req);
   }
 
+  // Allow explicit opt-out via header
+  const skipClientIp = req.headers.has('X-Skip-Client-IP');
+  if (skipClientIp) {
+    return next(req);
+  }
+
   // Always fetch fresh IP on every qualified request - no caching
   return fetchPublicIp$().pipe(
     switchMap((ip) => {

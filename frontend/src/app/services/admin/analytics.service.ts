@@ -1,7 +1,8 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { Observable, of } from 'rxjs';
 import { environment } from '../../../environments/environment';
+import { shouldUseMockData } from '../../utils/role.utils';
 
 export interface UsageAnalyticsResponse {
   total_requests: number;
@@ -159,5 +160,44 @@ export class AnalyticsService {
     filters: AnalyticsFilters,
   ): Observable<UsageAnalyticsResponse> {
     return this.getUsageAnalytics(filters);
+  }
+
+  // Usage Map: aggregate ip_hits by country only
+  getIpGeoSummary(): Observable<{ items: Array<{ country_code: string; country: string | null; count: number }> }> {
+    // Check if we should use mock data (for guests or users without valid tokens)
+    if (shouldUseMockData()) {
+      // Return mock data for guests
+      const mockData = {
+        "items": [
+          {"count": 1, "country_code": "IN", "country": "India"},
+          {"count": 15, "country_code": "US", "country": "United States"},
+          {"count": 8, "country_code": "BR", "country": "Brazil"},
+          {"count": 23, "country_code": "CN", "country": "China"},
+          {"count": 5, "country_code": "DE", "country": "Germany"},
+          {"count": 12, "country_code": "JP", "country": "Japan"},
+          {"count": 3, "country_code": "AU", "country": "Australia"},
+          {"count": 19, "country_code": "CA", "country": "Canada"},
+          {"count": 7, "country_code": "FR", "country": "France"},
+          {"count": 11, "country_code": "GB", "country": "United Kingdom"},
+          {"count": 4, "country_code": "IT", "country": "Italy"},
+          {"count": 9, "country_code": "MX", "country": "Mexico"},
+          {"count": 14, "country_code": "RU", "country": "Russia"},
+          {"count": 6, "country_code": "ZA", "country": "South Africa"},
+          {"count": 21, "country_code": "KR", "country": "South Korea"},
+          {"count": 2, "country_code": "ES", "country": "Spain"},
+          {"count": 16, "country_code": "AR", "country": "Argentina"},
+          {"count": 10, "country_code": "EG", "country": "Egypt"},
+          {"count": 18, "country_code": "NG", "country": "Nigeria"},
+          {"count": 13, "country_code": "TH", "country": "Thailand"}
+        ]
+      };
+      return of(mockData);
+    }
+
+    // For authenticated users, use real API
+    const url = `${this.baseUrl}/api/admin/analytics/ip-geo-summary`;
+    return this.http.get<{ items: Array<{ country_code: string; country: string | null; count: number }> }>(url, {
+      headers: this.getHeaders(),
+    });
   }
 }

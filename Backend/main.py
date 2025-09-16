@@ -6,6 +6,8 @@ import time
 import logging
 import os
 from utils.analytics import track_api_usage
+from services.ip_hits import schedule_record_ip_hit, ensure_indexes as ensure_ip_hits_indexes
+
 from starlette.middleware.base import BaseHTTPMiddleware
 from services.auth import decode_token
 from services.ip_utils import get_client_ip
@@ -40,9 +42,17 @@ class APIUsageMiddleware(BaseHTTPMiddleware):
             raise
         response_time = (time.time() - start_time) * 1000
         client_ip = get_client_ip(request)
+        # Schedule non-blocking unique IP logging with best-effort geo
+        try:
+            cf_country = request.headers.get('CF-IPCountry')
+            schedule_record_ip_hit(client_ip, cf_country=cf_country, user_agent=request.headers.get('user-agent'))
+        except Exception:
+            # Do not disrupt request flow if scheduling fails
+            pass
         logger.info('HTTP %s %s status=%s user=%s rt=%.2fms ip=%s ua=%s', request.method, request.url.path, response.status_code, user_id, response_time, client_ip, request.headers.get('user-agent'))
         await track_api_usage(request, response, response_time, user_id)
         return response
+
 redis_url = os.getenv('REDIS_URL')
 initialize_rate_limiter(redis_url)
 app = FastAPI(title='VOICERA Backend', description='Backend for VOICERA', version='1.0.0')
@@ -58,6 +68,15 @@ async def _start_scheduler():
 @app.on_event('shutdown')
 async def _shutdown_scheduler():
     shutdown_scheduler()
+
+@app.on_event('startup')
+async def _ensure_indexes():
+    # Ensure MongoDB indexes for ip_hits without blocking app startup for too long
+    try:
+        await ensure_ip_hits_indexes()
+    except Exception:
+        # Log-only; the app should still start
+        logger.exception('Failed to ensure ip_hits indexes on startup')
 
 @app.get('/')
 async def root():

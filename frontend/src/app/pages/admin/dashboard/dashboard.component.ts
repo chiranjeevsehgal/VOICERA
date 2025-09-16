@@ -19,6 +19,7 @@ import { Handshake, LucideAngularModule, ArrowLeft } from 'lucide-angular';
 import { BulkUploadComponent } from '../../../components/admin/bulk-upload/bulk-upload.component';
 import { ApplicationStatusComponent } from '../../../components/admin/application-status/application-status.component';
 import { VectorVisualizationComponent } from '../../../components/admin/vector-visualization/vector-visualization.component';
+import { UsageMapComponent } from '../../../components/admin/usage-map/usage-map.component';
 
 @Component({
   selector: 'app-dashboard',
@@ -34,6 +35,7 @@ import { VectorVisualizationComponent } from '../../../components/admin/vector-v
     BulkUploadComponent,
     ApplicationStatusComponent,
     VectorVisualizationComponent,
+    UsageMapComponent,
     LucideAngularModule,
   ],
   templateUrl: './dashboard.component.html',
@@ -156,6 +158,7 @@ export class AdminDashboardComponent implements OnInit, OnDestroy {
       'bulk-upload',
       'application-status',
       'vector-visualization',
+      'usage-map',
     ];
     return validViews.includes(view);
   }
@@ -192,6 +195,7 @@ export class AdminDashboardComponent implements OnInit, OnDestroy {
       'bulk-upload': 'Bulk Upload',
       'application-status': 'Application Status',
       'vector-visualization': 'Vector Space Visualization',
+      'usage-map': 'Global Usage Map',
     };
     return titles[this.currentView] || 'Dashboard';
   }
@@ -209,6 +213,7 @@ export class AdminDashboardComponent implements OnInit, OnDestroy {
       'application-status':
         'Monitor system health, circuit breakers, and rate limiting',
       'vector-visualization': 'Explore Pinecone vector space in 3D with metadata hover',
+      'usage-map': 'Visualize unique IP distribution by country',
     };
     return descriptions[this.currentView] || 'Manage your application';
   }

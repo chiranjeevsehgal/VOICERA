@@ -60,5 +60,11 @@ export function isGuest(): boolean {
  * Check if user should see mock data
  */
 export function shouldUseMockData(): boolean {
+  const token = localStorage.getItem('vEra_auth_token');
+  // No token at all = guest user, should use mock data
+  if (!token || token.trim() === '' || token === 'null' || token === 'undefined') {
+    return true;
+  }
+  // Has token but is marked as guest
   return isGuest();
 }

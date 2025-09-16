@@ -10,6 +10,7 @@ import os
 import shutil
 import asyncio
 from services.database import ip_credits_collection, credit_requests_collection
+from services.database import ip_hits_collection
 from fastapi.responses import JSONResponse
 from services.auth import get_current_user, requires_role, get_password_hash, get_user_by_email
 from services.database import users_collection, api_usage_collection, transcription_stats_collection, search_trends_collection, user_activity_collection
@@ -431,6 +432,23 @@ async def get_real_time_analytics(current_user: Dict[str, Any]=Depends(requires_
         return {'message': 'No real-time data available', 'time_range': {'start': start_time, 'end': datetime.utcnow()}}
     summary = summary_result[0]
     return {'summary': {'total_requests': summary.get('total_requests', 0), 'unique_ips': len(summary.get('unique_ips', [])), 'unique_users': len([u for u in summary.get('unique_users', []) if u]), 'avg_response_time': summary.get('avg_response_time'), 'error_rate': summary.get('error_count', 0) / summary.get('total_requests', 1) * 100, 'requests_per_minute': summary.get('total_requests', 0) / minutes}, 'timeline': [{'timestamp': f"{result['_id']['year']}-{result['_id']['month']:02d}-{result['_id']['day']:02d} {result['_id']['hour']:02d}:{result['_id']['minute']:02d}", 'requests': result['count'], 'avg_response_time': result['avg_response_time'], 'errors': result['errors']} for result in minute_results], 'active_ips': [{'ip': result['_id'], 'requests': result['count'], 'last_seen': result['last_seen'], 'unique_endpoints': len(result['endpoints'])} for result in active_ips_results], 'top_endpoints': [{'endpoint': result['_id'], 'requests': result['count'], 'avg_response_time': result['avg_response_time']} for result in endpoints_results], 'time_range': {'start': start_time, 'end': datetime.utcnow()}}
+
+
+@router.get('/analytics/ip-geo-summary', status_code=status.HTTP_200_OK)
+async def get_ip_geo_summary(current_user: Dict[str, Any]=Depends(requires_role('admin'))):
+    """
+    Aggregate unique IP hits by country and state/region for usage map visualization.
+    Returns a list of { country_code, country, state, count } sorted by count desc.
+    """
+    pipeline = [
+        { '$match': { 'country_code': { '$exists': True, '$nin': [None, ''] } } },
+        { '$group': { '_id': { 'cc': '$country_code', 'name': '$country', 'state': '$state' }, 'count': { '$sum': 1 } } },
+        { '$project': { '_id': 0, 'country_code': '$_id.cc', 'country': '$_id.name', 'state': '$_id.state', 'count': 1 } },
+        { '$sort': { 'count': -1 } },
+    ]
+    results = await ip_hits_collection.aggregate(pipeline).to_list(length=500)
+    return { 'items': results }
+
 
 @router.get('/analytics/transcriptions', response_model=TranscriptionStats, status_code=status.HTTP_200_OK)
 async def get_transcription_statistics(current_user: Dict[str, Any]=Depends(requires_role('admin')), days: int=Query(30, ge=1, le=365, description='Number of days to include in statistics')):

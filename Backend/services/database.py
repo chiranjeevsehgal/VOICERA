@@ -45,3 +45,4 @@ podcasts_collection = db.podcasts
 transcripts_collection = db.transcripts
 uploads_collection = db.uploads
 featured_content_collection = db.featured_content
+ip_hits_collection = db.ip_hits
