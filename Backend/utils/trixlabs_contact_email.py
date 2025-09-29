@@ -8,11 +8,11 @@ from utils.logging import log_error
 
 IST = timezone(timedelta(hours=5, minutes=30))
 
-def get_contact_email_template() -> str:
+def get_contact_email_template_trix() -> str:
     """Load the contact email HTML template from file"""
     try:
         current_dir = Path(__file__).parent
-        template_path = current_dir.parent / 'email_templates' / 'voicera_contact.html'
+        template_path = current_dir.parent / 'email_templates' / 'trixlabs_contact.html'
         with open(template_path, 'r', encoding='utf-8') as f:
             return f.read()
     except FileNotFoundError:
@@ -24,7 +24,7 @@ def get_contact_email_template() -> str:
         return '''
         <html>
         <body>
-            <h1>New Contact Form Submission-Voicera</h1>
+            <h1>New Contact Form Submission-TRIXLABS</h1>
             <p>Contact form template could not be loaded properly.</p>
             <p><strong>Name:</strong> {{name}}</p>
             <p><strong>Email:</strong> {{email}}</p>
@@ -40,9 +40,9 @@ def safe_replace(text: str, placeholder: str, value: Any, default: str = 'Not pr
     replacement = str(value) if value is not None else default
     return text.replace(placeholder, replacement)
 
-def prepare_contact_email(name: str, email: str, message: str, phone_number: Optional[str] = None) -> dict:
+def prepare_contact_email_trix(name: str, email: str, message: str, phone_number: Optional[str] = None) -> dict:
     """Prepare contact email content for admin notification"""
-    template = get_contact_email_template()
+    template = get_contact_email_template_trix()
     
     # Get current timestamp in IST
     utc_now = datetime.now(timezone.utc)
@@ -87,7 +87,7 @@ def send_email(to: str, subject: str, content: str, reply_to: Optional[str] = No
         })
         return False
 
-async def send_contact_form_email(name: str, email: str, message: str, phone_number: Optional[str] = None) -> bool:
+async def send_contact_form_email_trix(name: str, email: str, message: str, phone_number: Optional[str] = None) -> bool:
     """Send contact form notification to all configured admin emails"""
     try:
         # Get admin emails from environment variable
@@ -95,11 +95,11 @@ async def send_contact_form_email(name: str, email: str, message: str, phone_num
         admin_emails = [email_addr.strip() for email_addr in admin_emails if email_addr.strip()]
         
         if not admin_emails:
-            log_error('No admin emails configured for contact form alerts', 'send_contact_form_email')
+            log_error('No admin emails configured for contact form alerts', 'send_contact_form_email_trix')
             return False
         
         # Prepare email content
-        email_data = prepare_contact_email(
+        email_data = prepare_contact_email_trix(
             name=name, 
             email=email, 
             message=message, 
@@ -121,13 +121,13 @@ async def send_contact_form_email(name: str, email: str, message: str, phone_num
                 print(f'Contact form email sent successfully to {admin_email}')
             else:
                 print(f'Failed to send contact form email to {admin_email}')
-                log_error(f'Failed to send contact form email to {admin_email}', 'send_contact_form_email')
+                log_error(f'Failed to send contact form email to {admin_email}', 'send_contact_form_email_trix')
         
         # Return True if at least one email was sent successfully
         return success_count > 0
         
     except Exception as e:
-        log_error(f'Error sending contact form email: {str(e)}', 'send_contact_form_email', {
+        log_error(f'Error sending contact form email: {str(e)}', 'send_contact_form_email_trix', {
             'error': str(e), 
             'name': name,
             'email': email,

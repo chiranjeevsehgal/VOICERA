@@ -2,7 +2,8 @@ from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel, EmailStr, Field
 from typing import Optional
 import logging
-from Backend.utils.voicera_contact_email import send_contact_form_email
+from utils.voicera_contact_email import send_contact_form_email
+from utils.trixlabs_contact_email import send_contact_form_email_trix
 
 logger = logging.getLogger('voicera.contact')
 
@@ -28,6 +29,42 @@ async def submit_contact_form(contact_data: ContactRequest, request: Request):
         
         # Send email to admins
         email_sent = await send_contact_form_email(
+            name=contact_data.name,
+            email=contact_data.email,
+            message=contact_data.message,
+            phone_number=contact_data.phone_number
+        )
+        
+        if email_sent:
+            logger.info(f"Contact form email sent successfully for {contact_data.email}")
+            return ContactResponse(
+                success=True,
+                message="Thank you for your message! We'll get back to you soon."
+            )
+        else:
+            logger.error(f"Failed to send contact form email for {contact_data.email}")
+            return ContactResponse(
+                success=False,
+                message="We're experiencing technical difficulties. Please try again later or contact us directly."
+            )
+            
+    except Exception as e:
+        logger.exception(f"Error processing contact form submission: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail="Internal server error. Please try again later."
+        )
+
+@router.post("/contact/trixlabs", response_model=ContactResponse)
+async def submit_contact_form(contact_data: ContactRequest, request: Request):
+    """
+    Submit contact form and send notification email to admins
+    """
+    try:
+        logger.info(f"Contact form submission from {contact_data.email} (name: {contact_data.name})")
+        
+        # Send email to admins
+        email_sent = await send_contact_form_email_trix(
             name=contact_data.name,
             email=contact_data.email,
             message=contact_data.message,
