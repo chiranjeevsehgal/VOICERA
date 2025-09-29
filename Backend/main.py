@@ -1,6 +1,6 @@
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-from api import health, transcribe, embedding, upload, llm_translation, supabase_upload, auth, ip_detection, search, credit_management, oauth, admin, content_management, send_email, process_audio, system_health
+from api import health, transcribe, embedding, upload, llm_translation, supabase_upload, auth, ip_detection, search, credit_management, oauth, admin, content_management, send_email, process_audio, system_health, contact
 import uvicorn
 import time
 import logging
@@ -102,5 +102,7 @@ app.include_router(process_audio.router, prefix='/api', tags=['process-audio'])
 app.include_router(admin.router, prefix='/api', tags=['admin'])
 app.include_router(content_management.router, prefix='/api', tags=['content'])
 app.include_router(system_health.router, prefix='/api', tags=['system'])
+app.include_router(contact.router, prefix='/api', tags=['contact'])  
+
 if __name__ == '__main__':
     uvicorn.run('main:app', host='0.0.0.0', port=8000, reload=True)
