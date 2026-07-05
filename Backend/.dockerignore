@@ -1,8 +1,0 @@
-__pycache__
-.Python
-venv/
-.env
-.cache
-*.cover
-*.log
-.git
