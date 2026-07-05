@@ -1,10 +1,10 @@
-import { CommonModule } from '@angular/common';
+
 import { Component, EventEmitter, Output, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 
 @Component({
   selector: 'app-search-section-title',
-  imports: [CommonModule, FormsModule],
+  imports: [FormsModule],
   templateUrl: './search-section.component.html',
   styles: ``,
 })

@@ -1,12 +1,12 @@
 import { Component, ElementRef, OnDestroy, OnInit, ViewChild, AfterViewInit } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { AnalyticsService } from '../../../services/admin/analytics.service';
 import { firstValueFrom } from 'rxjs';
 
 @Component({
   selector: 'app-usage-map',
   standalone: true,
-  imports: [CommonModule],
+  imports: [],
   templateUrl: './usage-map.component.html',
   styles: [
     `

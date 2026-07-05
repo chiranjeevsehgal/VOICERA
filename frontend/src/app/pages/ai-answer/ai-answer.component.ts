@@ -1,5 +1,5 @@
 import { Component, OnInit, ViewChild, ElementRef } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { HeaderComponent } from '../../components/header/header.component';
 import { Router } from '@angular/router';
 import { SemanticSearchService } from '../../services/semantic-search.service';
@@ -15,7 +15,7 @@ interface ChatMessage {
 @Component({
   selector: 'app-ai-answer',
   standalone: true,
-  imports: [CommonModule, HeaderComponent, FormsModule],
+  imports: [HeaderComponent, FormsModule],
   templateUrl: './ai-answer.component.html',
 })
 export class AiAnswerComponent implements OnInit {
@@ -53,7 +53,7 @@ export class AiAnswerComponent implements OnInit {
   ) {}
 
   ngOnInit(): void {
-    const nav = this.router.getCurrentNavigation();
+    const nav = this.router.currentNavigation();
     const state = nav?.extras?.state || (history?.state ?? {});
 
     this.searchQuery = state?.searchQuery || '';

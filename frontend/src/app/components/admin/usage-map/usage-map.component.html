@@ -4,19 +4,23 @@
     <span class="hint">Shows unique IPs per country</span>
   </div>
 
-  <div *ngIf="loading" class="text-sm text-gray-500">Loading usage data...</div>
-  <div *ngIf="error" class="text-sm text-red-600">{{ error }}</div>
+  @if (loading) {
+    <div class="text-sm text-gray-500">Loading usage data...</div>
+  }
+  @if (error) {
+    <div class="text-sm text-red-600">{{ error }}</div>
+  }
   <div class="relative" [class.pointer-events-none]="loading">
     <div #chart class="map-container rounded-xl border border-gray-200" [class.opacity-50]="loading" [class.hidden]="!!error"></div>
     <div class="absolute top-2 right-2 z-10 flex gap-2" [class.hidden]="!!error">
       <button class="bg-white bg-opacity-90 hover:bg-white text-gray-700 border border-gray-200 shadow-sm rounded-md px-2 py-1 text-sm"
-              (click)="zoomIn()" [disabled]="loading || !!error" aria-label="Zoom in" title="Zoom in">+
+        (click)="zoomIn()" [disabled]="loading || !!error" aria-label="Zoom in" title="Zoom in">+
       </button>
       <button class="bg-white bg-opacity-90 hover:bg-white text-gray-700 border border-gray-200 shadow-sm rounded-md px-2 py-1 text-sm"
-              (click)="zoomOut()" [disabled]="loading || !!error" aria-label="Zoom out" title="Zoom out">−
+        (click)="zoomOut()" [disabled]="loading || !!error" aria-label="Zoom out" title="Zoom out">−
       </button>
       <button class="bg-white bg-opacity-90 hover:bg-white text-gray-700 border border-gray-200 shadow-sm rounded-md px-2 py-1 text-sm"
-              (click)="resetView()" [disabled]="loading || !!error" aria-label="Reset view" title="Reset view">Reset
+        (click)="resetView()" [disabled]="loading || !!error" aria-label="Reset view" title="Reset view">Reset
       </button>
     </div>
   </div>

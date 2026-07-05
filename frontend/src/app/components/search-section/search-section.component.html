@@ -2,7 +2,7 @@
   class="mt-8 mb-10"
   role="search"
   aria-labelledby="search-section-title"
->
+  >
   <h1 id="search-section-title" class="text-2xl font-bold mb-6 text-black">
     Search and explore audio
   </h1>
@@ -18,50 +18,52 @@
       id="search-input"
       aria-label="Search by title or creator name"
       class="w-full px-4 py-2.5 pr-12 border border-gray-200 rounded-xl text-sm md:text-base text-black placeholder:text-gray-400 bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors"
-    />
-    <!-- Clear button -->
-    <button
-      *ngIf="searchQuery"
-      (click)="onSearchClear()"
-      type="button"
-      class="absolute right-3 top-1/2 cursor-pointer transform -translate-y-1/2 text-gray-500 hover:text-gray-700 rounded-full p-1 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-white transition"
-      aria-label="Clear search"
-    >
-      <svg
-        class="w-4 h-4"
-        fill="none"
-        stroke="currentColor"
-        viewBox="0 0 24 24"
-      >
-        <path
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          stroke-width="2"
-          d="M6 18L18 6M6 6l12 12"
-        ></path>
-      </svg>
-    </button>
-    <!-- Search icon -->
-    <button
-      *ngIf="!searchQuery"
-      (click)="onSubmit()"
-      type="button"
-      class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700 rounded-full p-1 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-white transition"
-      aria-label="Submit search"
-    >
-      <svg
-        class="w-4 h-4"
-        fill="none"
-        stroke="currentColor"
-        viewBox="0 0 24 24"
-      >
-        <path
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          stroke-width="2"
-          d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-        ></path>
-      </svg>
-    </button>
-  </div>
-</section>
+      />
+      <!-- Clear button -->
+      @if (searchQuery) {
+        <button
+          (click)="onSearchClear()"
+          type="button"
+          class="absolute right-3 top-1/2 cursor-pointer transform -translate-y-1/2 text-gray-500 hover:text-gray-700 rounded-full p-1 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-white transition"
+          aria-label="Clear search"
+          >
+          <svg
+            class="w-4 h-4"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+            >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M6 18L18 6M6 6l12 12"
+            ></path>
+          </svg>
+        </button>
+      }
+      <!-- Search icon -->
+      @if (!searchQuery) {
+        <button
+          (click)="onSubmit()"
+          type="button"
+          class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700 rounded-full p-1 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-white transition"
+          aria-label="Submit search"
+          >
+          <svg
+            class="w-4 h-4"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+            >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+            ></path>
+          </svg>
+        </button>
+      }
+    </div>
+  </section>

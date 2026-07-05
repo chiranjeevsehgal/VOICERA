@@ -1,177 +1,176 @@
 <!-- Backdrop -->
-<div
-  *ngIf="isVisible"
-  class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
-  (click)="onBackdropClick($event)"
->
-  <!-- Modal Container -->
+@if (isVisible) {
   <div
-    class="relative bg-white rounded-3xl shadow-2xl max-w-md w-full mx-4"
-    (click)="$event.stopPropagation()"
-  >
-    <!-- Header -->
-    <div class="relative px-6 py-6 border-b border-gray-100">
-      <div class="flex items-center space-x-3">
-        <!-- Icon -->
-        <div
-          class="w-12 h-12 bg-gradient-to-br from-amber-400 to-orange-500 rounded-2xl flex items-center justify-center shadow-lg"
-        >
-          <svg
-            class="w-6 h-6 text-white"
-            fill="currentColor"
-            viewBox="0 0 20 20"
-          >
-            <path
-              d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"
-            />
-          </svg>
-        </div>
-        <div>
-          <h3 class="text-xl font-bold text-gray-900">Request More Credits</h3>
-          <p class="text-sm text-gray-500 mt-0.5">
-            Tell us why you need additional credits
-          </p>
-        </div>
-      </div>
-
-      <!-- Close Button -->
-      <button
-        (click)="onClose()"
-        class="absolute top-4 right-4 w-8 cursor-pointer h-8 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center"
-        aria-label="Close modal"
-      >
-        <svg
-          class="w-4 h-4 text-gray-500"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="2"
-            d="M6 18L18 6M6 6l12 12"
-          />
-        </svg>
-      </button>
-    </div>
-
-    <!-- Body -->
-    <form
-      (ngSubmit)="onSubmit()"
-      #requestForm="ngForm"
-      class="px-6 py-6 space-y-5"
+    class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
+    (click)="onBackdropClick($event)"
     >
-      <!-- User Info Display -->
-      <div class="bg-gray-50 rounded-2xl p-4">
+    <!-- Modal Container -->
+    <div
+      class="relative bg-white rounded-3xl shadow-2xl max-w-md w-full mx-4"
+      (click)="$event.stopPropagation()"
+      >
+      <!-- Header -->
+      <div class="relative px-6 py-6 border-b border-gray-100">
         <div class="flex items-center space-x-3">
+          <!-- Icon -->
           <div
-            class="w-10 h-10 bg-gradient-to-br from-orange-400 to-pink-500 rounded-xl flex items-center justify-center text-white font-bold text-sm shadow-md"
-          >
-            {{ userInitials }}
+            class="w-12 h-12 bg-gradient-to-br from-amber-400 to-orange-500 rounded-2xl flex items-center justify-center shadow-lg"
+            >
+            <svg
+              class="w-6 h-6 text-white"
+              fill="currentColor"
+              viewBox="0 0 20 20"
+              >
+              <path
+                d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"
+                />
+              </svg>
+            </div>
+            <div>
+              <h3 class="text-xl font-bold text-gray-900">Request More Credits</h3>
+              <p class="text-sm text-gray-500 mt-0.5">
+                Tell us why you need additional credits
+              </p>
+            </div>
           </div>
-          <div>
-            <p class="font-semibold text-gray-900">
-              {{ userProfile?.full_name }}
-            </p>
-            <p class="text-sm text-gray-500">{{ userProfile?.email }}</p>
+          <!-- Close Button -->
+          <button
+            (click)="onClose()"
+            class="absolute top-4 right-4 w-8 cursor-pointer h-8 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center"
+            aria-label="Close modal"
+            >
+            <svg
+              class="w-4 h-4 text-gray-500"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M6 18L18 6M6 6l12 12"
+                />
+              </svg>
+            </button>
           </div>
-        </div>
-      </div>
-
-      <!-- Reason Input -->
-      <div class="space-y-2">
-        <label for="reason" class="block text-sm font-medium text-gray-700">
-          Why do you need more credits? <span class="text-red-500">*</span>
-        </label>
-        <div class="relative">
-          <textarea
-            id="reason"
-            name="reason"
-            [(ngModel)]="reason"
-            #reasonInput="ngModel"
-            required
-            minlength="5"
-            maxlength="500"
-            rows="4"
-            class="w-full px-4 py-3 border border-gray-200 rounded-xl placeholder:text-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-none text-sm"
-            placeholder="Please describe your use case and why you need additional credits."
-          ></textarea>
-
-          <!-- Character Counter -->
-          <div class="absolute bottom-3 right-3 text-xs text-gray-400">
-            {{ reason.length }}/500
-          </div>
-        </div>
-
-        <!-- Error Messages -->
-        <div
-          *ngIf="reasonInput.invalid && reasonInput.touched"
-          class="space-y-1"
-        >
-          <p
-            *ngIf="reasonInput.errors?.['required']"
-            class="text-xs text-red-600"
-          >
-            Please provide a reason for your request
-          </p>
-          <p
-            *ngIf="reasonInput.errors?.['minlength']"
-            class="text-xs text-red-600"
-          >
-            Please provide at least 5 characters
-          </p>
-        </div>
-      </div>
-    </form>
-
-    <!-- Footer -->
-    <div class="px-6 py-6 border-t border-gray-100 bg-gray-50/50 rounded-b-3xl">
-      <div class="flex space-x-3">
-        <button
-          type="button"
-          (click)="onClose()"
-          class="flex-1 px-4 py-3 text-sm cursor-pointer font-semibold text-gray-700 bg-white border border-gray-200 rounded-xl hover:bg-gray-50"
-        >
-          Cancel
-        </button>
-        <button
-          type="submit"
-          (click)="onSubmit()"
-          [disabled]="reason.length < 5 || isSubmitting"
+          <!-- Body -->
+          <form
+            (ngSubmit)="onSubmit()"
+            #requestForm="ngForm"
+            class="px-6 py-6 space-y-5"
+            >
+            <!-- User Info Display -->
+            <div class="bg-gray-50 rounded-2xl p-4">
+              <div class="flex items-center space-x-3">
+                <div
+                  class="w-10 h-10 bg-gradient-to-br from-orange-400 to-pink-500 rounded-xl flex items-center justify-center text-white font-bold text-sm shadow-md"
+                  >
+                  {{ userInitials }}
+                </div>
+                <div>
+                  <p class="font-semibold text-gray-900">
+                    {{ userProfile?.full_name }}
+                  </p>
+                  <p class="text-sm text-gray-500">{{ userProfile?.email }}</p>
+                </div>
+              </div>
+            </div>
+            <!-- Reason Input -->
+            <div class="space-y-2">
+              <label for="reason" class="block text-sm font-medium text-gray-700">
+                Why do you need more credits? <span class="text-red-500">*</span>
+              </label>
+              <div class="relative">
+                <textarea
+                  id="reason"
+                  name="reason"
+                  [(ngModel)]="reason"
+                  #reasonInput="ngModel"
+                  required
+                  minlength="5"
+                  maxlength="500"
+                  rows="4"
+                  class="w-full px-4 py-3 border border-gray-200 rounded-xl placeholder:text-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-none text-sm"
+                  placeholder="Please describe your use case and why you need additional credits."
+                ></textarea>
+                <!-- Character Counter -->
+                <div class="absolute bottom-3 right-3 text-xs text-gray-400">
+                  {{ reason.length }}/500
+                </div>
+              </div>
+              <!-- Error Messages -->
+              @if (reasonInput.invalid && reasonInput.touched) {
+                <div
+                  class="space-y-1"
+                  >
+                  @if (reasonInput.errors?.['required']) {
+                    <p
+                      class="text-xs text-red-600"
+                      >
+                      Please provide a reason for your request
+                    </p>
+                  }
+                  @if (reasonInput.errors?.['minlength']) {
+                    <p
+                      class="text-xs text-red-600"
+                      >
+                      Please provide at least 5 characters
+                    </p>
+                  }
+                </div>
+              }
+            </div>
+          </form>
+          <!-- Footer -->
+          <div class="px-6 py-6 border-t border-gray-100 bg-gray-50/50 rounded-b-3xl">
+            <div class="flex space-x-3">
+              <button
+                type="button"
+                (click)="onClose()"
+                class="flex-1 px-4 py-3 text-sm cursor-pointer font-semibold text-gray-700 bg-white border border-gray-200 rounded-xl hover:bg-gray-50"
+                >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                (click)="onSubmit()"
+                [disabled]="reason.length < 5 || isSubmitting"
           [class]="
             reason.length < 5 || isSubmitting
               ? 'flex-1 px-4 py-3 text-sm font-semibold text-white bg-gray-400 rounded-xl cursor-not-allowed'
               : 'flex-1 px-4 py-3 text-sm font-semibold text-white bg-gradient-to-r from-indigo-500 to-purple-600 rounded-xl hover:from-indigo-600 hover:to-purple-700 cursor-pointer'
           "
-        >
-          <div class="flex items-center justify-center space-x-2">
-            <svg
-              *ngIf="isSubmitting"
-              class="animate-spin w-4 h-4"
-              fill="none"
-              viewBox="0 0 24 24"
-            >
-              <circle
-                class="opacity-25"
-                cx="12"
-                cy="12"
-                r="10"
-                stroke="currentColor"
-                stroke-width="4"
-              ></circle>
-              <path
-                class="opacity-75"
-                fill="currentColor"
-                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-              ></path>
-            </svg>
-            <span>{{
-              isSubmitting ? "Sending Request..." : "Send Request"
-            }}</span>
+                >
+                <div class="flex items-center justify-center space-x-2">
+                  @if (isSubmitting) {
+                    <svg
+                      class="animate-spin w-4 h-4"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      >
+                      <circle
+                        class="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        stroke-width="4"
+                      ></circle>
+                      <path
+                        class="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                      ></path>
+                    </svg>
+                  }
+                  <span>{{
+                    isSubmitting ? "Sending Request..." : "Send Request"
+                  }}</span>
+                </div>
+              </button>
+            </div>
           </div>
-        </button>
+        </div>
       </div>
-    </div>
-  </div>
-</div>
+    }
