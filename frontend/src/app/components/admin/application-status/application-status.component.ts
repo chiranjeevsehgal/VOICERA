@@ -9,16 +9,16 @@ import {
   CircuitBreakerState,
 } from '../../../services/admin/system-health.service';
 import {
-  LucideAngularModule,
-  Activity,
-  Shield,
-  Zap,
-  RefreshCw,
-  AlertTriangle,
-  CheckCircle,
-  Clock,
-  Settings,
-} from 'lucide-angular';
+  LucideDynamicIcon,
+  LucideActivity as Activity,
+  LucideShield as Shield,
+  LucideZap as Zap,
+  LucideRefreshCw as RefreshCw,
+  LucideAlertTriangle as AlertTriangle,
+  LucideCheckCircle as CheckCircle,
+  LucideClock as Clock,
+  LucideSettings as Settings,
+} from '@lucide/angular';
 
 import { shouldUseMockData } from '../../../utils/role.utils';
 import * as mockHealthData from '../../../utils/mockData/mockHealth.json';
@@ -32,7 +32,7 @@ import { HotToastService } from '@ngxpert/hot-toast';
   imports: [
     CommonModule,
     FormsModule,
-    LucideAngularModule,
+    LucideDynamicIcon,
   ],
   providers: [SystemHealthService],
   templateUrl: './application-status.component.html',

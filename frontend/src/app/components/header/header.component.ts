@@ -16,7 +16,11 @@ import { Subject, takeUntil } from 'rxjs';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { getCurrentUserRole } from '../../utils/role.utils';
-import { ArrowRight, LogOut, LucideAngularModule } from 'lucide-angular';
+import {
+  LucideDynamicIcon,
+  LucideArrowRight as ArrowRight,
+  LucideLogOut as LogOut,
+} from '@lucide/angular';
 import { CreditRequestService } from '../../services/credit-request.service';
 import { HotToastService } from '@ngxpert/hot-toast';
 import {
@@ -30,7 +34,7 @@ import {
     CommonModule,
     FormsModule,
     RouterModule,
-    LucideAngularModule,
+    LucideDynamicIcon,
     RequestCreditsModalComponent,
   ],
   templateUrl: './header.component.html',

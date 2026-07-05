@@ -1,11 +1,11 @@
 import { Component, OnDestroy, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { LoginService } from '../../services/auth/login.service';
-import { CommonModule } from '@angular/common';
+
 
 @Component({
   selector: 'app-auth-callback',
-  imports: [CommonModule],
+  imports: [],
   templateUrl: './auth-callback.component.html',
   styles: `
     @keyframes fade-in-up {

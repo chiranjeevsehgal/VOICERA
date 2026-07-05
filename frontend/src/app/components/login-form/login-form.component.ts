@@ -3,7 +3,7 @@ import { LoginService } from '../../services/auth/login.service';
 import { environment } from '../../../environments/environment';
 import { Router } from '@angular/router';
 import { HotToastService } from '@ngxpert/hot-toast';
-import { CommonModule } from '@angular/common';
+
 
 @Component({
   selector: 'app-login-form',
@@ -19,7 +19,7 @@ import { CommonModule } from '@angular/common';
       }
     }
   `,
-  imports: [CommonModule],
+  imports: [],
 })
 export class LoginFormComponent {
   isGuestLoading = false;

@@ -1,6 +1,6 @@
 <div
   class="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50"
->
+  >
   <app-header></app-header>
 
   <main class="container mx-auto px-4 py-8 max-w-9xl">
@@ -10,17 +10,21 @@
         Ask questions about this audio's transcript and continue the
         conversation.
       </p>
-      <div class="mt-2 text-sm text-gray-500" *ngIf="title">
-        <span class="font-medium text-gray-700">From:</span> {{ title }}
-      </div>
-      <div class="mt-1 text-xs text-gray-500" *ngIf="loadingTranscript">
-        Loading transcript...
-      </div>
+      @if (title) {
+        <div class="mt-2 text-sm text-gray-500">
+          <span class="font-medium text-gray-700">From:</span> {{ title }}
+        </div>
+      }
+      @if (loadingTranscript) {
+        <div class="mt-1 text-xs text-gray-500">
+          Loading transcript...
+        </div>
+      }
     </div>
 
     <section
       class="bg-white max-h-[95vh] rounded-2xl shadow-sm border border-gray-200 p-0 overflow-hidden"
-    >
+      >
       <!-- Messages -->
       <div
         #scrollContainer
@@ -30,55 +34,62 @@
         aria-live="polite"
         aria-relevant="additions"
         aria-label="Chat messages"
-      >
-        <div *ngFor="let m of messages; let i = index">
-          <!-- Assistant message -->
-          <div *ngIf="m.role === 'assistant'" class="flex items-start gap-3">
-            <div
-              class="h-8 w-8 rounded-full bg-indigo-600 text-white flex items-center justify-center text-xs font-semibold"
-            >
-              AI
-            </div>
-            <div
-              class="max-w-[80%] bg-gray-100 text-gray-900 px-4 py-3 rounded-2xl rounded-tl-sm whitespace-pre-line break-words"
-            >
-              {{ m.content }}
-            </div>
+        >
+        @for (m of messages; track m; let i = $index) {
+          <div>
+            <!-- Assistant message -->
+            @if (m.role === 'assistant') {
+              <div class="flex items-start gap-3">
+                <div
+                  class="h-8 w-8 rounded-full bg-indigo-600 text-white flex items-center justify-center text-xs font-semibold"
+                  >
+                  AI
+                </div>
+                <div
+                  class="max-w-[80%] bg-gray-100 text-gray-900 px-4 py-3 rounded-2xl rounded-tl-sm whitespace-pre-line break-words"
+                  >
+                  {{ m.content }}
+                </div>
+              </div>
+            }
+            <!-- User message -->
+            @if (m.role === 'user') {
+              <div
+                class="flex items-start gap-3 justify-end"
+                >
+                <div
+                  class="max-w-[80%] bg-indigo-600 text-white px-4 py-3 rounded-2xl rounded-tr-sm whitespace-pre-line break-words"
+                  >
+                  {{ m.content }}
+                </div>
+                <div
+                  class="h-8 w-8 rounded-full bg-gray-200 text-gray-700 flex items-center justify-center text-xs font-semibold"
+                  >
+                  You
+                </div>
+              </div>
+            }
           </div>
-
-          <!-- User message -->
-          <div
-            *ngIf="m.role === 'user'"
-            class="flex items-start gap-3 justify-end"
-          >
-            <div
-              class="max-w-[80%] bg-indigo-600 text-white px-4 py-3 rounded-2xl rounded-tr-sm whitespace-pre-line break-words"
-            >
-              {{ m.content }}
-            </div>
-            <div
-              class="h-8 w-8 rounded-full bg-gray-200 text-gray-700 flex items-center justify-center text-xs font-semibold"
-            >
-              You
-            </div>
-          </div>
-        </div>
+        }
 
         <!-- Typing indicator -->
-        <div
-          *ngIf="loadingAnswer"
-          class="flex items-center gap-2 text-sm text-gray-500"
-          role="status"
-          aria-live="polite"
-        >
-          <span class="h-2 w-2 rounded-full bg-gray-400 animate-pulse"></span>
-          <span>Thinking...</span>
-        </div>
+        @if (loadingAnswer) {
+          <div
+            class="flex items-center gap-2 text-sm text-gray-500"
+            role="status"
+            aria-live="polite"
+            >
+            <span class="h-2 w-2 rounded-full bg-gray-400 animate-pulse"></span>
+            <span>Thinking...</span>
+          </div>
+        }
 
         <!-- Error -->
-        <div *ngIf="error" class="text-sm text-red-600" role="alert">
-          {{ error }}
-        </div>
+        @if (error) {
+          <div class="text-sm text-red-600" role="alert">
+            {{ error }}
+          </div>
+        }
       </div>
 
       <!-- Composer -->
@@ -100,9 +111,13 @@
             type="submit"
             class="inline-flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white font-medium px-4 py-2 rounded-xl disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-sm hover:shadow-md"
             [disabled]="sending || loadingTranscript || !userInput.trim()"
-          >
-            <span *ngIf="!sending">Send</span>
-            <span *ngIf="sending">Sending...</span>
+            >
+            @if (!sending) {
+              <span>Send</span>
+            }
+            @if (sending) {
+              <span>Sending...</span>
+            }
           </button>
         </div>
       </form>

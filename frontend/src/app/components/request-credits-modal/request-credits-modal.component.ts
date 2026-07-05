@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common';
+
 import { Component, EventEmitter, Input, OnInit, Output } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { UserProfile } from '../../services/auth/profile.service';
@@ -14,7 +14,7 @@ export interface CreditRequestData {
 
 @Component({
   selector: 'app-request-credits-modal',
-  imports: [CommonModule, FormsModule],
+  imports: [FormsModule],
   templateUrl: './request-credits-modal.component.html',
   styles: ``
 })

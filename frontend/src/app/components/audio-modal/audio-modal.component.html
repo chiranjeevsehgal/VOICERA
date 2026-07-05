@@ -1,311 +1,307 @@
-<div
-  *ngIf="isVisible"
-  class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-2 sm:p-4"
-  (click)="onBackdropClick($event)"
->
+@if (isVisible) {
   <div
-    class="bg-white rounded-2xl sm:rounded-3xl shadow-lg max-w-xs sm:max-w-lg md:max-w-xl lg:max-w-2xl w-full max-h-[95vh] border border-gray-200 relative overflow-hidden flex flex-col"
-    role="dialog"
-    aria-modal="true"
-    aria-labelledby="audio-modal-title"
-    (click)="$event.stopPropagation()"
-  >
-    <!-- Header -->
-    <div
-      class="flex items-center justify-between p-4 sm:p-6 border-b border-gray-200 relative z-10"
+    class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-2 sm:p-4"
+    (click)="onBackdropClick($event)"
     >
-      <h2
-        id="audio-modal-title"
-        class="text-lg sm:text-xl md:text-2xl font-bold text-gray-900"
+    <div
+      class="bg-white rounded-2xl sm:rounded-3xl shadow-lg max-w-xs sm:max-w-lg md:max-w-xl lg:max-w-2xl w-full max-h-[95vh] border border-gray-200 relative overflow-hidden flex flex-col"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="audio-modal-title"
+      (click)="$event.stopPropagation()"
       >
-        Audio Details
-      </h2>
-      <button
-        (click)="closeModal()"
-        class="text-gray-600 cursor-pointer hover:text-gray-900 p-1 sm:p-2 rounded-full hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-        aria-label="Close modal"
-      >
-        <svg
-          class="w-5 h-5 sm:w-6 sm:h-6"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
+      <!-- Header -->
+      <div
+        class="flex items-center justify-between p-4 sm:p-6 border-b border-gray-200 relative z-10"
         >
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="2"
-            d="M6 18L18 6M6 6l12 12"
-          ></path>
-        </svg>
-      </button>
-    </div>
-
-    <!-- Content -->
-    <div class="flex-1 overflow-y-auto">
-      <div class="p-4 sm:p-6 relative z-10" *ngIf="podcast">
-        <!-- Image and Title Row for Mobile -->
-        <div
-          class="flex sm:block items-center sm:items-start gap-3 sm:gap-0 mb-4 sm:mb-6"
-        >
-          <!-- Image -->
-          <div class="flex-shrink-0 sm:flex sm:justify-center sm:mb-4">
-            <div class="relative">
-              <img
-                [src]="podcast.imageUrl"
-                [alt]="podcast.title"
-                class="w-16 sm:w-28 md:w-32 h-16 sm:h-28 md:h-32 rounded-lg sm:rounded-2xl object-cover shadow-lg"
-              />
-            </div>
-          </div>
-
-          <!-- Title and Metadata for Mobile -->
-          <div class="flex-1 sm:text-center">
-            <h3
-              class="text-base sm:text-xl md:text-2xl font-bold text-gray-900 mb-2 sm:mb-3 leading-tight break-words"
+        <h2
+          id="audio-modal-title"
+          class="text-lg sm:text-xl md:text-2xl font-bold text-gray-900"
+          >
+          Audio Details
+        </h2>
+        <button
+          (click)="closeModal()"
+          class="text-gray-600 cursor-pointer hover:text-gray-900 p-1 sm:p-2 rounded-full hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          aria-label="Close modal"
+          >
+          <svg
+            class="w-5 h-5 sm:w-6 sm:h-6"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
             >
-              {{ podcast.title }}
-            </h3>
-
-            <!-- Compact Metadata Row (Mobile Only) -->
-            <div class="sm:hidden flex flex-wrap gap-2 text-xs text-gray-600">
-              <span
-                class="flex items-center gap-1 bg-gray-100 px-2 py-1 rounded-full"
-              >
-                <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-                  <path
-                    fill-rule="evenodd"
-                    d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.414-1.414L11 9.586V6z"
-                    clip-rule="evenodd"
-                  />
-                </svg>
-                {{ formatTime(duration) }}
-              </span>
-              <span
-                class="flex items-center gap-1 bg-gray-100 px-2 py-1 rounded-full"
-              >
-                <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-                  <path
-                    fill-rule="evenodd"
-                    d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z"
-                    clip-rule="evenodd"
-                  />
-                </svg>
-                {{ formatDate(podcast.audioFile.created_at) }}
-              </span>
-              <span
-                class="flex items-center gap-1 bg-gray-100 px-2 py-1 rounded-full"
-              >
-                <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-                  <path
-                    fill-rule="evenodd"
-                    d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z"
-                    clip-rule="evenodd"
-                  />
-                </svg>
-                {{ podcast.creator }}
-              </span>
-            </div>
-          </div>
-        </div>
-
-        <!-- Audio Player -->
-        <div
-          class="mb-4 sm:mb-6 p-3 sm:p-4 bg-gray-50 rounded-xl sm:rounded-2xl"
-        >
-          <audio
-            #audioPlayer
-            controls
-            class="w-full rounded-lg sm:rounded-xl"
-            [src]="podcast.audioFile.embedded_audio_url"
-            (timeupdate)="onTimeUpdate()"
-            (loadedmetadata)="onLoadedMetadata()"
-            (play)="isPlaying = true"
-            (pause)="isPlaying = false"
-            (ended)="isPlaying = false"
-          >
-            Your browser does not support the audio element.
-          </audio>
-        </div>
-
-        <!-- Audio Details Grid (Desktop Only) -->
-        <div
-          class="hidden sm:grid grid-cols-1 sm:grid-cols-1 lg:grid-cols-1 xl:grid-cols-3 gap-3 sm:gap-4 mb-4 sm:mb-6"
-        >
-          <div
-            class="bg-white p-3 sm:p-4 rounded-xl sm:rounded-2xl border border-gray-200"
-          >
-            <div class="flex items-center justify-center mb-1 sm:mb-2">
-              <span class="font-semibold text-gray-700 text-xs sm:text-sm"
-                >Duration</span
-              >
-            </div>
-            <p class="text-gray-600 font-medium text-xs sm:text-sm text-center">
-              {{ formatTime(duration) }}
-            </p>
-          </div>
-
-          <div
-            class="bg-white p-3 sm:p-4 rounded-xl sm:rounded-2xl border border-gray-200"
-          >
-            <div class="flex items-center justify-center mb-1 sm:mb-2">
-              <span class="font-semibold text-gray-700 text-xs sm:text-sm"
-                >Uploaded</span
-              >
-            </div>
-            <p class="text-gray-600 font-medium text-xs sm:text-sm text-center">
-              {{ formatDate(podcast.audioFile.created_at) }}
-            </p>
-          </div>
-
-          <div
-            class="bg-white p-3 sm:p-4 rounded-xl sm:rounded-2xl border border-gray-200"
-          >
-            <div class="flex items-center justify-center mb-1 sm:mb-2">
-              <span class="font-semibold text-gray-700 text-xs sm:text-sm"
-                >Uploaded by</span
-              >
-            </div>
-            <p class="text-gray-600 font-medium text-xs sm:text-sm text-center">
-              {{ podcast.creator }}
-            </p>
-          </div>
-        </div>
-
-        <!-- Transcript Card -->
-        <div class="mb-4 sm:mb-6">
-          <div
-            class="bg-white rounded-xl sm:rounded-2xl border border-gray-200 p-4 sm:p-5"
-          >
-            <div class="flex items-center justify-between mb-3">
-              <div class="flex items-center">
-                <h4 class="text-sm sm:text-base font-semibold text-gray-800">
-                  Transcript
-                </h4>
-              </div>
-            </div>
-
-            <!-- Loading state -->
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M6 18L18 6M6 6l12 12"
+            ></path>
+          </svg>
+        </button>
+      </div>
+      <!-- Content -->
+      <div class="flex-1 overflow-y-auto">
+        @if (podcast) {
+          <div class="p-4 sm:p-6 relative z-10">
+            <!-- Image and Title Row for Mobile -->
             <div
-              *ngIf="transcriptLoading"
-              class="flex items-center text-indigo-600 text-sm"
-              role="status"
-              aria-live="polite"
-              aria-busy="true"
-            >
-              <svg
-                class="animate-spin h-4 w-4 mr-2"
-                xmlns="http://www.w3.org/2000/svg"
-                width="24"
-                height="24"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
+              class="flex sm:block items-center sm:items-start gap-3 sm:gap-0 mb-4 sm:mb-6"
               >
-                <path d="M12 2v4" />
-                <path d="m16.2 7.8 2.9-2.9" />
-                <path d="M18 12h4" />
-                <path d="m16.2 16.2 2.9 2.9" />
-                <path d="M12 18v4" />
-                <path d="m4.9 19.1 2.9-2.9" />
-                <path d="M2 12h4" />
-                <path d="m4.9 4.9 2.9 2.9" />
-              </svg>
-              Fetching transcript...
-            </div>
-
-            <!-- Error state -->
-            <div
-              *ngIf="!transcriptLoading && transcriptError"
-              class="text-red-600 text-sm"
-              role="alert"
-            >
-              {{ transcriptError }}
-            </div>
-
-            <!-- Empty state -->
-            <div
-              *ngIf="
-                !transcriptLoading &&
-                !transcriptError &&
-                (!transcript || transcript.trim() === '') &&
-                (!words || words.length === 0)
-              "
-              class="text-gray-500 text-sm"
-            >
-              No transcript available for this audio.
-            </div>
-
-            <!-- Content state: word-level highlighting -->
-            <div
-              *ngIf="
-                !transcriptLoading &&
-                !transcriptError &&
-                words &&
-                words.length > 0
-              "
-              #transcriptScroll
-              class="bg-white border border-gray-200 rounded-lg p-3 max-h-48 sm:max-h-60 overflow-y-auto text-sm leading-relaxed text-gray-800"
-            >
-              <span
-                *ngFor="let w of words; let i = index"
-                (click)="onWordClick(w)"
-                #wordEl
-                class="word-chip rounded px-0.5 mr-1 cursor-pointer transition-colors"
+              <!-- Image -->
+              <div class="flex-shrink-0 sm:flex sm:justify-center sm:mb-4">
+                <div class="relative">
+                  <img
+                    [src]="podcast.imageUrl"
+                    [alt]="podcast.title"
+                    class="w-16 sm:w-28 md:w-32 h-16 sm:h-28 md:h-32 rounded-lg sm:rounded-2xl object-cover shadow-lg"
+                    />
+                  </div>
+                </div>
+                <!-- Title and Metadata for Mobile -->
+                <div class="flex-1 sm:text-center">
+                  <h3
+                    class="text-base sm:text-xl md:text-2xl font-bold text-gray-900 mb-2 sm:mb-3 leading-tight break-words"
+                    >
+                    {{ podcast.title }}
+                  </h3>
+                  <!-- Compact Metadata Row (Mobile Only) -->
+                  <div class="sm:hidden flex flex-wrap gap-2 text-xs text-gray-600">
+                    <span
+                      class="flex items-center gap-1 bg-gray-100 px-2 py-1 rounded-full"
+                      >
+                      <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                        <path
+                          fill-rule="evenodd"
+                          d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.414-1.414L11 9.586V6z"
+                          clip-rule="evenodd"
+                          />
+                        </svg>
+                        {{ formatTime(duration) }}
+                      </span>
+                      <span
+                        class="flex items-center gap-1 bg-gray-100 px-2 py-1 rounded-full"
+                        >
+                        <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                          <path
+                            fill-rule="evenodd"
+                            d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z"
+                            clip-rule="evenodd"
+                            />
+                          </svg>
+                          {{ formatDate(podcast.audioFile.created_at) }}
+                        </span>
+                        <span
+                          class="flex items-center gap-1 bg-gray-100 px-2 py-1 rounded-full"
+                          >
+                          <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                            <path
+                              fill-rule="evenodd"
+                              d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z"
+                              clip-rule="evenodd"
+                              />
+                            </svg>
+                            {{ podcast.creator }}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                    <!-- Audio Player -->
+                    <div
+                      class="mb-4 sm:mb-6 p-3 sm:p-4 bg-gray-50 rounded-xl sm:rounded-2xl"
+                      >
+                      <audio
+                        #audioPlayer
+                        controls
+                        class="w-full rounded-lg sm:rounded-xl"
+                        [src]="podcast.audioFile.embedded_audio_url"
+                        (timeupdate)="onTimeUpdate()"
+                        (loadedmetadata)="onLoadedMetadata()"
+                        (play)="isPlaying = true"
+                        (pause)="isPlaying = false"
+                        (ended)="isPlaying = false"
+                        >
+                        Your browser does not support the audio element.
+                      </audio>
+                    </div>
+                    <!-- Audio Details Grid (Desktop Only) -->
+                    <div
+                      class="hidden sm:grid grid-cols-1 sm:grid-cols-1 lg:grid-cols-1 xl:grid-cols-3 gap-3 sm:gap-4 mb-4 sm:mb-6"
+                      >
+                      <div
+                        class="bg-white p-3 sm:p-4 rounded-xl sm:rounded-2xl border border-gray-200"
+                        >
+                        <div class="flex items-center justify-center mb-1 sm:mb-2">
+                          <span class="font-semibold text-gray-700 text-xs sm:text-sm"
+                            >Duration</span
+                            >
+                          </div>
+                          <p class="text-gray-600 font-medium text-xs sm:text-sm text-center">
+                            {{ formatTime(duration) }}
+                          </p>
+                        </div>
+                        <div
+                          class="bg-white p-3 sm:p-4 rounded-xl sm:rounded-2xl border border-gray-200"
+                          >
+                          <div class="flex items-center justify-center mb-1 sm:mb-2">
+                            <span class="font-semibold text-gray-700 text-xs sm:text-sm"
+                              >Uploaded</span
+                              >
+                            </div>
+                            <p class="text-gray-600 font-medium text-xs sm:text-sm text-center">
+                              {{ formatDate(podcast.audioFile.created_at) }}
+                            </p>
+                          </div>
+                          <div
+                            class="bg-white p-3 sm:p-4 rounded-xl sm:rounded-2xl border border-gray-200"
+                            >
+                            <div class="flex items-center justify-center mb-1 sm:mb-2">
+                              <span class="font-semibold text-gray-700 text-xs sm:text-sm"
+                                >Uploaded by</span
+                                >
+                              </div>
+                              <p class="text-gray-600 font-medium text-xs sm:text-sm text-center">
+                                {{ podcast.creator }}
+                              </p>
+                            </div>
+                          </div>
+                          <!-- Transcript Card -->
+                          <div class="mb-4 sm:mb-6">
+                            <div
+                              class="bg-white rounded-xl sm:rounded-2xl border border-gray-200 p-4 sm:p-5"
+                              >
+                              <div class="flex items-center justify-between mb-3">
+                                <div class="flex items-center">
+                                  <h4 class="text-sm sm:text-base font-semibold text-gray-800">
+                                    Transcript
+                                  </h4>
+                                </div>
+                              </div>
+                              <!-- Loading state -->
+                              @if (transcriptLoading) {
+                                <div
+                                  class="flex items-center text-indigo-600 text-sm"
+                                  role="status"
+                                  aria-live="polite"
+                                  aria-busy="true"
+                                  >
+                                  <svg
+                                    class="animate-spin h-4 w-4 mr-2"
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    width="24"
+                                    height="24"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    stroke-width="2"
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                    >
+                                    <path d="M12 2v4" />
+                                    <path d="m16.2 7.8 2.9-2.9" />
+                                    <path d="M18 12h4" />
+                                    <path d="m16.2 16.2 2.9 2.9" />
+                                    <path d="M12 18v4" />
+                                    <path d="m4.9 19.1 2.9-2.9" />
+                                    <path d="M2 12h4" />
+                                    <path d="m4.9 4.9 2.9 2.9" />
+                                  </svg>
+                                  Fetching transcript...
+                                </div>
+                              }
+                              <!-- Error state -->
+                              @if (!transcriptLoading && transcriptError) {
+                                <div
+                                  class="text-red-600 text-sm"
+                                  role="alert"
+                                  >
+                                  {{ transcriptError }}
+                                </div>
+                              }
+                              <!-- Empty state -->
+                              @if (
+                                !transcriptLoading &&
+                                !transcriptError &&
+                                (!transcript || transcript.trim() === '') &&
+                                (!words || words.length === 0)
+                                ) {
+                                <div
+                                  class="text-gray-500 text-sm"
+                                  >
+                                  No transcript available for this audio.
+                                </div>
+                              }
+                              <!-- Content state: word-level highlighting -->
+                              @if (
+                                !transcriptLoading &&
+                                !transcriptError &&
+                                words &&
+                                words.length > 0
+                                ) {
+                                <div
+                                  #transcriptScroll
+                                  class="bg-white border border-gray-200 rounded-lg p-3 max-h-48 sm:max-h-60 overflow-y-auto text-sm leading-relaxed text-gray-800"
+                                  >
+                                  @for (w of words; track w; let i = $index) {
+                                    <span
+                                      (click)="onWordClick(w)"
+                                      #wordEl
+                                      class="word-chip rounded px-0.5 mr-1 cursor-pointer transition-colors"
                 [ngClass]="{
                   'active bg-indigo-100 text-indigo-800 font-semibold':
                     isWordActive(w),
                   'hover:bg-slate-100': !isWordActive(w),
                 }"
-              >
-                {{ w.word }}
-              </span>
-            </div>
-
-            <!-- Content state: fallback plain transcript text -->
-            <div
-              *ngIf="
-                !transcriptLoading &&
-                !transcriptError &&
-                (!words || words.length === 0) &&
-                transcript &&
-                transcript.trim() !== ''
-              "
-              class="bg-white border border-gray-200 rounded-lg p-3 max-h-48 sm:max-h-60 overflow-y-auto text-sm leading-relaxed text-gray-800"
-            >
-              {{ transcript }}
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Footer -->
-    <div
-      *ngIf="podcast"
-      class="flex justify-center sm:justify-end p-4 sm:p-6 border-t border-gray-200 relative z-10"
-    >
-      <a
-        [href]="podcast.audioFile.embedded_audio_url"
-        download
-        class="group px-4 sm:px-6 py-2 sm:py-3 bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-white rounded-xl sm:rounded-2xl font-semibold transition-colors flex items-center shadow-sm hover:shadow-md text-sm sm:text-base"
-      >
-        <span>Download</span>
-        <svg
-          class="w-4 h-4 sm:w-5 sm:h-5 ml-2 group-hover:translate-y-0.5 transition-transform"
-          fill="currentColor"
-          viewBox="0 0 20 20"
-        >
-          <path
-            fill-rule="evenodd"
-            d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z"
-            clip-rule="evenodd"
-          />
-        </svg>
-      </a>
-    </div>
-  </div>
-</div>
+                                      >
+                                      {{ w.word }}
+                                    </span>
+                                  }
+                                </div>
+                              }
+                              <!-- Content state: fallback plain transcript text -->
+                              @if (
+                                !transcriptLoading &&
+                                !transcriptError &&
+                                (!words || words.length === 0) &&
+                                transcript &&
+                                transcript.trim() !== ''
+                                ) {
+                                <div
+                                  class="bg-white border border-gray-200 rounded-lg p-3 max-h-48 sm:max-h-60 overflow-y-auto text-sm leading-relaxed text-gray-800"
+                                  >
+                                  {{ transcript }}
+                                </div>
+                              }
+                            </div>
+                          </div>
+                        </div>
+                      }
+                    </div>
+                    <!-- Footer -->
+                    @if (podcast) {
+                      <div
+                        class="flex justify-center sm:justify-end p-4 sm:p-6 border-t border-gray-200 relative z-10"
+                        >
+                        <a
+                          [href]="podcast.audioFile.embedded_audio_url"
+                          download
+                          class="group px-4 sm:px-6 py-2 sm:py-3 bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-white rounded-xl sm:rounded-2xl font-semibold transition-colors flex items-center shadow-sm hover:shadow-md text-sm sm:text-base"
+                          >
+                          <span>Download</span>
+                          <svg
+                            class="w-4 h-4 sm:w-5 sm:h-5 ml-2 group-hover:translate-y-0.5 transition-transform"
+                            fill="currentColor"
+                            viewBox="0 0 20 20"
+                            >
+                            <path
+                              fill-rule="evenodd"
+                              d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z"
+                              clip-rule="evenodd"
+                              />
+                            </svg>
+                          </a>
+                        </div>
+                      }
+                    </div>
+                  </div>
+                }

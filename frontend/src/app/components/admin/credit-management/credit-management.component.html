@@ -1,24 +1,25 @@
 <div class="flex flex-col space-y-4 lg:space-y-6">
   <!-- Loading Overlay for Initial Load -->
-  <div
-    *ngIf="loading && credits.length === 0"
-    class="fixed inset-0 z-50 flex items-center justify-center bg-white/80 backdrop-blur-sm"
-    role="status"
-    aria-live="polite"
-    aria-busy="true"
-  >
-    <div class="flex flex-col items-center space-y-4">
-      <div
-        class="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"
-      ></div>
-      <p class="text-gray-600 font-medium">Loading IP Addresses...</p>
+  @if (loading && credits.length === 0) {
+    <div
+      class="fixed inset-0 z-50 flex items-center justify-center bg-white/80 backdrop-blur-sm"
+      role="status"
+      aria-live="polite"
+      aria-busy="true"
+      >
+      <div class="flex flex-col items-center space-y-4">
+        <div
+          class="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"
+        ></div>
+        <p class="text-gray-600 font-medium">Loading IP Addresses...</p>
+      </div>
     </div>
-  </div>
+  }
 
   <!-- Search and Filter Controls -->
   <div
     class="flex flex-col lg:flex-row gap-3 lg:gap-4 lg:items-center justify-between"
-  >
+    >
     <!-- Search Input -->
     <div class="flex-1 lg:max-w-md order-1">
       <div class="relative">
@@ -28,441 +29,447 @@
           [(ngModel)]="searchQuery"
           (input)="filterCredits()"
           class="w-full pl-10 pr-4 py-2.5 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors duration-200 text-sm sm:text-base"
-        />
-        <div
-          class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"
-        >
-          <svg
-            class="w-4 h-4 sm:w-5 sm:h-5 text-gray-400"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-            />
-          </svg>
-        </div>
-      </div>
-    </div>
-
-    <!-- Filter Controls and Refresh Button -->
-    <div
-      class="flex flex-col lg:flex-row md:flex-row md:justify-center sm:flex-row sm:justify-center xs:flex-row gap-3 lg:gap-4 order-2 items-stretch xs:items-center"
-    >
-      <!-- Refresh Button -->
-      <div class="w-full xs:w-32 sm:w-36 lg:w-40">
-        <button
-          (click)="refreshCredits()"
-          [disabled]="refreshing"
-          class="w-full px-3 py-2.5 cursor-pointer bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition-colors duration-200 flex items-center justify-center space-x-1 sm:space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
-          title="Refresh credits list"
-        >
-          <svg
-            *ngIf="!refreshing"
-            class="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-            />
-          </svg>
-          <svg
-            *ngIf="refreshing"
-            class="animate-spin w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0"
-            fill="none"
-            viewBox="0 0 24 24"
-          >
-            <circle
-              class="opacity-25"
-              cx="12"
-              cy="12"
-              r="10"
-              stroke="currentColor"
-              stroke-width="4"
-            ></circle>
-            <path
-              class="opacity-75"
-              fill="currentColor"
-              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-            ></path>
-          </svg>
-          <span class="text-xs xs:text-sm sm:text-base truncate">
-            {{ refreshing ? "Refreshing..." : "Refresh" }}
-          </span>
-        </button>
-      </div>
-      <!-- Credit Requests Button -->
-      <div class="w-full xs:w-32 sm:w-36 lg:w-40">
-        <button
-          (click)="openCreditRequestsModal()"
-          class="w-full px-3 py-2.5 cursor-pointer bg-amber-600 text-white rounded-xl hover:bg-amber-700 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 transition-colors duration-200 flex items-center justify-center space-x-1 sm:space-x-2"
-          title="View credit requests"
-        >
-          <svg
-            class="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0"
-            fill="currentColor"
-            viewBox="0 0 20 20"
-          >
-            <path
-              d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"
-            />
-          </svg>
-          <span class="text-xs xs:text-sm sm:text-base truncate">
-            Requests
-          </span>
-        </button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Credits Table -->
-  <div
-    class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden relative"
-  >
-    <!-- Refreshing Overlay -->
-    <div
-      *ngIf="refreshing"
-      class="absolute inset-0 z-10 flex items-center justify-center bg-white/80 backdrop-blur-sm rounded-2xl"
-      role="status"
-      aria-live="polite"
-      aria-busy="true"
-    >
-      <div class="flex flex-col items-center space-y-3">
-        <div
-          class="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"
-        ></div>
-        <p class="text-sm text-gray-600 font-medium">Refreshing credits...</p>
-      </div>
-    </div>
-
-    <!-- Table Header -->
-    <div class="px-4 sm:px-6 py-3 sm:py-4 bg-gray-50 border-b border-gray-200">
-      <h3
-        class="text-base sm:text-lg font-semibold text-gray-900 flex items-center space-x-2"
-      >
-        <svg
-          class="w-4 h-4 sm:w-5 sm:h-5 text-indigo-600"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="2"
-            d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"
           />
-        </svg>
-        <span>IP Addresses ({{ filteredCredits.length }})</span>
-      </h3>
-    </div>
-
-    <!-- Mobile Cards View (xs to md screens) -->
-    <div class="block lg:hidden">
-      <div
-        *ngFor="let credit of filteredCredits; trackBy: trackCreditById"
-        class="p-4 border-b border-gray-100 last:border-b-0"
-      >
-        <!-- Credit Info Row -->
-        <div class="flex items-start space-x-3 mb-3">
-          <div class="min-w-0 flex-1">
-            <p class="font-semibold text-gray-900 text-base">
-              {{ credit.ip }}
-            </p>
-            <p class="text-sm text-gray-500 mb-2">
-              {{ credit.credits | number }} credits
-            </p>
-          </div>
-        </div>
-
-        <!-- Usage Info -->
-        <div class="text-xs text-gray-500 space-y-1">
-          <p>Created: {{ formatCreatedAt(credit.createdAt) }}</p>
-          <p>Last used: {{ formatLastUsed(credit.lastUsed) }}</p>
-        </div>
-
-        <!-- Actions Row -->
-        <div class="flex items-center justify-end mt-3">
-          <button
-            (click)="openEditModal(credit)"
-            class="px-3 py-2 bg-indigo-50 cursor-pointer text-indigo-600 rounded-lg hover:bg-indigo-100 transition-colors duration-200 text-sm font-medium flex items-center space-x-1"
-          >
+          <div
+            class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"
+            >
             <svg
-              class="w-4 h-4"
+              class="w-4 h-4 sm:w-5 sm:h-5 text-gray-400"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
-            >
+              >
               <path
                 stroke-linecap="round"
                 stroke-linejoin="round"
                 stroke-width="2"
-                d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-              />
-            </svg>
-            <span>Edit</span>
-          </button>
+                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                />
+              </svg>
+            </div>
+          </div>
         </div>
-      </div>
-    </div>
 
-    <!-- Desktop Table View (lg+ screens) -->
-    <div class="hidden lg:block overflow-x-auto">
-      <table class="min-w-full divide-y divide-gray-200">
-        <thead class="bg-gray-50">
-          <tr>
-            <th
-              class="px-4 xl:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-            >
-              IP Address
-            </th>
-            <th
-              class="px-4 xl:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-            >
-              Credits
-            </th>
-            <th
-              class="px-4 xl:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-            >
-              Created
-            </th>
-            <th
-              class="px-4 xl:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-            >
-              Last Used
-            </th>
-            <th
-              class="px-4 xl:px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider"
-            >
-              Actions
-            </th>
-          </tr>
-        </thead>
-        <tbody class="bg-white divide-y divide-gray-200">
-          <tr
-            *ngFor="let credit of filteredCredits; trackBy: trackCreditById"
-            class="hover:bg-gray-50 transition-colors duration-200"
+        <!-- Filter Controls and Refresh Button -->
+        <div
+          class="flex flex-col lg:flex-row md:flex-row md:justify-center sm:flex-row sm:justify-center xs:flex-row gap-3 lg:gap-4 order-2 items-stretch xs:items-center"
           >
-            <td class="px-4 xl:px-6 py-4 whitespace-nowrap">
-              <div class="flex items-center">
-                <div class="ml-3 lg:ml-4 min-w-0 flex-1">
-                  <div class="text-sm font-semibold text-gray-900">
-                    {{ credit.ip }}
-                  </div>
-                </div>
-              </div>
-            </td>
-            <td class="px-4 xl:px-6 py-4 whitespace-nowrap">
-              <div class="text-sm font-semibold text-gray-900">
-                {{ credit.credits | number }}
-              </div>
-            </td>
-            <td
-              class="px-4 xl:px-6 py-4 whitespace-nowrap text-sm text-gray-500"
-            >
-              {{ formatCreatedAt(credit.createdAt) }}
-            </td>
-            <td
-              class="px-4 xl:px-6 py-4 whitespace-nowrap text-sm text-gray-500"
-            >
-              {{ formatLastUsed(credit.lastUsed) }}
-            </td>
-            <td
-              class="px-4 xl:px-6 py-4 whitespace-nowrap text-right text-sm font-medium"
-            >
-              <button
-                (click)="openEditModal(credit)"
-                class="text-indigo-600 cursor-pointer hover:text-indigo-900 p-1.5 lg:p-2 rounded-lg hover:bg-indigo-50 transition-colors duration-200"
-                title="Edit credits"
+          <!-- Refresh Button -->
+          <div class="w-full xs:w-32 sm:w-36 lg:w-40">
+            <button
+              (click)="refreshCredits()"
+              [disabled]="refreshing"
+              class="w-full px-3 py-2.5 cursor-pointer bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition-colors duration-200 flex items-center justify-center space-x-1 sm:space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              title="Refresh credits list"
               >
+              @if (!refreshing) {
                 <svg
-                  class="w-3.5 h-3.5 lg:w-4 lg:h-4"
+                  class="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
-                >
+                  >
                   <path
                     stroke-linecap="round"
                     stroke-linejoin="round"
                     stroke-width="2"
-                    d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-                  />
-                </svg>
+                    d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                    />
+                  </svg>
+                }
+                @if (refreshing) {
+                  <svg
+                    class="animate-spin w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    >
+                    <circle
+                      class="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      stroke-width="4"
+                    ></circle>
+                    <path
+                      class="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                    ></path>
+                  </svg>
+                }
+                <span class="text-xs xs:text-sm sm:text-base truncate">
+                  {{ refreshing ? "Refreshing..." : "Refresh" }}
+                </span>
               </button>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
+            </div>
+            <!-- Credit Requests Button -->
+            <div class="w-full xs:w-32 sm:w-36 lg:w-40">
+              <button
+                (click)="openCreditRequestsModal()"
+                class="w-full px-3 py-2.5 cursor-pointer bg-amber-600 text-white rounded-xl hover:bg-amber-700 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 transition-colors duration-200 flex items-center justify-center space-x-1 sm:space-x-2"
+                title="View credit requests"
+                >
+                <svg
+                  class="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0"
+                  fill="currentColor"
+                  viewBox="0 0 20 20"
+                  >
+                  <path
+                    d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"
+                    />
+                  </svg>
+                  <span class="text-xs xs:text-sm sm:text-base truncate">
+                    Requests
+                  </span>
+                </button>
+              </div>
+            </div>
+          </div>
 
-    <!-- Empty State -->
-    <div *ngIf="filteredCredits.length === 0" class="text-center py-8 sm:py-12">
-      <div
-        class="w-12 sm:w-16 h-12 sm:h-16 mx-auto mb-3 sm:mb-4 bg-gray-100 rounded-full flex items-center justify-center"
-      >
-        <svg
-          class="w-6 sm:w-8 h-6 sm:h-8 text-gray-400"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="2"
-            d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"
-          />
-        </svg>
-      </div>
-      <h3 class="text-base sm:text-lg font-semibold text-gray-900 mb-2">
-        No IP Addresses found
-      </h3>
-      <p class="text-sm sm:text-base text-gray-600">
-        Try adjusting your search or filter criteria.
-      </p>
-    </div>
-  </div>
-</div>
+          <!-- Credits Table -->
+          <div
+            class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden relative"
+            >
+            <!-- Refreshing Overlay -->
+            @if (refreshing) {
+              <div
+                class="absolute inset-0 z-10 flex items-center justify-center bg-white/80 backdrop-blur-sm rounded-2xl"
+                role="status"
+                aria-live="polite"
+                aria-busy="true"
+                >
+                <div class="flex flex-col items-center space-y-3">
+                  <div
+                    class="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"
+                  ></div>
+                  <p class="text-sm text-gray-600 font-medium">Refreshing credits...</p>
+                </div>
+              </div>
+            }
 
-<!-- Edit Credits Modal -->
-<div
-  *ngIf="showEditModal"
-  class="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm bg-black/50 p-4"
->
-  <div
-    class="bg-white rounded-2xl shadow-lg border border-gray-200 max-w-sm w-full mx-4"
-    role="dialog"
-    aria-modal="true"
-    aria-labelledby="edit-credits-title"
-    (click)="$event.stopPropagation()"
-  >
-    <!-- Modal Header -->
-    <div
-      class="flex items-center justify-between p-4 sm:p-6 border-b border-gray-200"
-    >
-      <div class="flex items-center space-x-3">
-        <div
-          class="w-8 sm:w-10 h-8 sm:h-10 rounded-full bg-indigo-100 flex items-center justify-center"
-        >
-          <svg
-            class="w-5 sm:w-6 h-5 sm:h-6 text-indigo-600"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-            />
-          </svg>
-        </div>
-        <h3
-          id="edit-credits-title"
-          class="text-lg sm:text-xl font-bold text-gray-900"
-        >
-          Edit Credits
-        </h3>
-      </div>
-      <button
-        (click)="closeEditModal()"
-        class="w-8 h-8 bg-gray-100 cursor-pointer rounded-full flex items-center justify-center text-gray-400 hover:text-gray-600 hover:bg-gray-200 transition-all duration-200"
-      >
-        <svg
-          class="w-5 h-5"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="2"
-            d="M6 18L18 6M6 6l12 12"
-          />
-        </svg>
-      </button>
-    </div>
+            <!-- Table Header -->
+            <div class="px-4 sm:px-6 py-3 sm:py-4 bg-gray-50 border-b border-gray-200">
+              <h3
+                class="text-base sm:text-lg font-semibold text-gray-900 flex items-center space-x-2"
+                >
+                <svg
+                  class="w-4 h-4 sm:w-5 sm:h-5 text-indigo-600"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                  >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"
+                    />
+                  </svg>
+                  <span>IP Addresses ({{ filteredCredits.length }})</span>
+                </h3>
+              </div>
 
-    <!-- Modal Content -->
-    <div class="p-4 sm:p-6">
-      <div class="mb-6">
-        <div *ngIf="creditToEdit" class="bg-gray-50 rounded-lg p-3 sm:p-4 mb-4">
-          <p class="font-semibold text-gray-900 text-sm sm:text-base">
-            {{ creditToEdit.ip }}
-          </p>
-          <p class="text-xs sm:text-sm text-gray-500">
-            Current: {{ creditToEdit.credits | number }} credits
-          </p>
-        </div>
+              <!-- Mobile Cards View (xs to md screens) -->
+              <div class="block lg:hidden">
+                @for (credit of filteredCredits; track trackCreditById($index, credit)) {
+                  <div
+                    class="p-4 border-b border-gray-100 last:border-b-0"
+                    >
+                    <!-- Credit Info Row -->
+                    <div class="flex items-start space-x-3 mb-3">
+                      <div class="min-w-0 flex-1">
+                        <p class="font-semibold text-gray-900 text-base">
+                          {{ credit.ip }}
+                        </p>
+                        <p class="text-sm text-gray-500 mb-2">
+                          {{ credit.credits | number }} credits
+                        </p>
+                      </div>
+                    </div>
+                    <!-- Usage Info -->
+                    <div class="text-xs text-gray-500 space-y-1">
+                      <p>Created: {{ formatCreatedAt(credit.createdAt) }}</p>
+                      <p>Last used: {{ formatLastUsed(credit.lastUsed) }}</p>
+                    </div>
+                    <!-- Actions Row -->
+                    <div class="flex items-center justify-end mt-3">
+                      <button
+                        (click)="openEditModal(credit)"
+                        class="px-3 py-2 bg-indigo-50 cursor-pointer text-indigo-600 rounded-lg hover:bg-indigo-100 transition-colors duration-200 text-sm font-medium flex items-center space-x-1"
+                        >
+                        <svg
+                          class="w-4 h-4"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                          >
+                          <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            stroke-width="2"
+                            d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                            />
+                          </svg>
+                          <span>Edit</span>
+                        </button>
+                      </div>
+                    </div>
+                  }
+                </div>
 
-        <label class="block text-sm font-medium text-gray-700 mb-2"
-          >New Credit Amount</label
-        >
-        <input
-          type="number"
-          [(ngModel)]="newCreditAmount"
-          min="0"
-          class="w-full px-3 py-2.5 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors duration-200 text-sm sm:text-base"
-          placeholder="Enter credit amount"
-        />
-      </div>
+                <!-- Desktop Table View (lg+ screens) -->
+                <div class="hidden lg:block overflow-x-auto">
+                  <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                      <tr>
+                        <th
+                          class="px-4 xl:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                          >
+                          IP Address
+                        </th>
+                        <th
+                          class="px-4 xl:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                          >
+                          Credits
+                        </th>
+                        <th
+                          class="px-4 xl:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                          >
+                          Created
+                        </th>
+                        <th
+                          class="px-4 xl:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                          >
+                          Last Used
+                        </th>
+                        <th
+                          class="px-4 xl:px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider"
+                          >
+                          Actions
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                      @for (credit of filteredCredits; track trackCreditById($index, credit)) {
+                        <tr
+                          class="hover:bg-gray-50 transition-colors duration-200"
+                          >
+                          <td class="px-4 xl:px-6 py-4 whitespace-nowrap">
+                            <div class="flex items-center">
+                              <div class="ml-3 lg:ml-4 min-w-0 flex-1">
+                                <div class="text-sm font-semibold text-gray-900">
+                                  {{ credit.ip }}
+                                </div>
+                              </div>
+                            </div>
+                          </td>
+                          <td class="px-4 xl:px-6 py-4 whitespace-nowrap">
+                            <div class="text-sm font-semibold text-gray-900">
+                              {{ credit.credits | number }}
+                            </div>
+                          </td>
+                          <td
+                            class="px-4 xl:px-6 py-4 whitespace-nowrap text-sm text-gray-500"
+                            >
+                            {{ formatCreatedAt(credit.createdAt) }}
+                          </td>
+                          <td
+                            class="px-4 xl:px-6 py-4 whitespace-nowrap text-sm text-gray-500"
+                            >
+                            {{ formatLastUsed(credit.lastUsed) }}
+                          </td>
+                          <td
+                            class="px-4 xl:px-6 py-4 whitespace-nowrap text-right text-sm font-medium"
+                            >
+                            <button
+                              (click)="openEditModal(credit)"
+                              class="text-indigo-600 cursor-pointer hover:text-indigo-900 p-1.5 lg:p-2 rounded-lg hover:bg-indigo-50 transition-colors duration-200"
+                              title="Edit credits"
+                              >
+                              <svg
+                                class="w-3.5 h-3.5 lg:w-4 lg:h-4"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                                >
+                                <path
+                                  stroke-linecap="round"
+                                  stroke-linejoin="round"
+                                  stroke-width="2"
+                                  d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                                  />
+                                </svg>
+                              </button>
+                            </td>
+                          </tr>
+                        }
+                      </tbody>
+                    </table>
+                  </div>
 
-      <!-- Modal Actions -->
-      <div
-        class="flex flex-col sm:flex-row items-center space-y-2 sm:space-y-0 sm:space-x-4"
-      >
-        <button
-          type="button"
-          (click)="closeEditModal()"
-          [disabled]="updatingCredits"
-          class="w-full sm:flex-1 px-4 py-2.5 cursor-pointer text-gray-600 hover:text-gray-800 rounded-xl hover:bg-gray-100 transition-all duration-200 font-medium border border-gray-200 disabled:opacity-50 text-sm sm:text-base"
-        >
-          Cancel
-        </button>
-        <button
-          (click)="confirmUpdateCredits()"
-          [disabled]="updatingCredits || newCreditAmount < 0"
-          class="w-full sm:flex-1 px-4 py-2.5 rounded-xl cursor-pointer font-semibold transition-colors duration-200 shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center text-sm sm:text-base bg-indigo-600 text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-        >
-          <svg
-            *ngIf="updatingCredits"
-            class="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
-            fill="none"
-            viewBox="0 0 24 24"
-          >
-            <circle
-              class="opacity-25"
-              cx="12"
-              cy="12"
-              r="10"
-              stroke="currentColor"
-              stroke-width="4"
-            ></circle>
-            <path
-              class="opacity-75"
-              fill="currentColor"
-              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-            ></path>
-          </svg>
-          {{ updatingCredits ? "Updating..." : "Update Credits" }}
-        </button>
-      </div>
-    </div>
-  </div>
-</div>
-<!-- Credit Requests Modal Component -->
-<app-credit-requests-modal
-  [isVisible]="showCreditRequestsModal"
-  (closeModal)="closeCreditRequestsModal()"
-></app-credit-requests-modal>
+                  <!-- Empty State -->
+                  @if (filteredCredits.length === 0) {
+                    <div class="text-center py-8 sm:py-12">
+                      <div
+                        class="w-12 sm:w-16 h-12 sm:h-16 mx-auto mb-3 sm:mb-4 bg-gray-100 rounded-full flex items-center justify-center"
+                        >
+                        <svg
+                          class="w-6 sm:w-8 h-6 sm:h-8 text-gray-400"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                          >
+                          <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            stroke-width="2"
+                            d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"
+                            />
+                          </svg>
+                        </div>
+                        <h3 class="text-base sm:text-lg font-semibold text-gray-900 mb-2">
+                          No IP Addresses found
+                        </h3>
+                        <p class="text-sm sm:text-base text-gray-600">
+                          Try adjusting your search or filter criteria.
+                        </p>
+                      </div>
+                    }
+                  </div>
+                </div>
+
+                <!-- Edit Credits Modal -->
+                @if (showEditModal) {
+                  <div
+                    class="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm bg-black/50 p-4"
+                    >
+                    <div
+                      class="bg-white rounded-2xl shadow-lg border border-gray-200 max-w-sm w-full mx-4"
+                      role="dialog"
+                      aria-modal="true"
+                      aria-labelledby="edit-credits-title"
+                      (click)="$event.stopPropagation()"
+                      >
+                      <!-- Modal Header -->
+                      <div
+                        class="flex items-center justify-between p-4 sm:p-6 border-b border-gray-200"
+                        >
+                        <div class="flex items-center space-x-3">
+                          <div
+                            class="w-8 sm:w-10 h-8 sm:h-10 rounded-full bg-indigo-100 flex items-center justify-center"
+                            >
+                            <svg
+                              class="w-5 sm:w-6 h-5 sm:h-6 text-indigo-600"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                              >
+                              <path
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                                stroke-width="2"
+                                d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                                />
+                              </svg>
+                            </div>
+                            <h3
+                              id="edit-credits-title"
+                              class="text-lg sm:text-xl font-bold text-gray-900"
+                              >
+                              Edit Credits
+                            </h3>
+                          </div>
+                          <button
+                            (click)="closeEditModal()"
+                            class="w-8 h-8 bg-gray-100 cursor-pointer rounded-full flex items-center justify-center text-gray-400 hover:text-gray-600 hover:bg-gray-200 transition-all duration-200"
+                            >
+                            <svg
+                              class="w-5 h-5"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                              >
+                              <path
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                                stroke-width="2"
+                                d="M6 18L18 6M6 6l12 12"
+                                />
+                              </svg>
+                            </button>
+                          </div>
+                          <!-- Modal Content -->
+                          <div class="p-4 sm:p-6">
+                            <div class="mb-6">
+                              @if (creditToEdit) {
+                                <div class="bg-gray-50 rounded-lg p-3 sm:p-4 mb-4">
+                                  <p class="font-semibold text-gray-900 text-sm sm:text-base">
+                                    {{ creditToEdit.ip }}
+                                  </p>
+                                  <p class="text-xs sm:text-sm text-gray-500">
+                                    Current: {{ creditToEdit.credits | number }} credits
+                                  </p>
+                                </div>
+                              }
+                              <label class="block text-sm font-medium text-gray-700 mb-2"
+                                >New Credit Amount</label
+                                >
+                                <input
+                                  type="number"
+                                  [(ngModel)]="newCreditAmount"
+                                  min="0"
+                                  class="w-full px-3 py-2.5 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors duration-200 text-sm sm:text-base"
+                                  placeholder="Enter credit amount"
+                                  />
+                                </div>
+                                <!-- Modal Actions -->
+                                <div
+                                  class="flex flex-col sm:flex-row items-center space-y-2 sm:space-y-0 sm:space-x-4"
+                                  >
+                                  <button
+                                    type="button"
+                                    (click)="closeEditModal()"
+                                    [disabled]="updatingCredits"
+                                    class="w-full sm:flex-1 px-4 py-2.5 cursor-pointer text-gray-600 hover:text-gray-800 rounded-xl hover:bg-gray-100 transition-all duration-200 font-medium border border-gray-200 disabled:opacity-50 text-sm sm:text-base"
+                                    >
+                                    Cancel
+                                  </button>
+                                  <button
+                                    (click)="confirmUpdateCredits()"
+                                    [disabled]="updatingCredits || newCreditAmount < 0"
+                                    class="w-full sm:flex-1 px-4 py-2.5 rounded-xl cursor-pointer font-semibold transition-colors duration-200 shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center text-sm sm:text-base bg-indigo-600 text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                    >
+                                    @if (updatingCredits) {
+                                      <svg
+                                        class="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
+                                        fill="none"
+                                        viewBox="0 0 24 24"
+                                        >
+                                        <circle
+                                          class="opacity-25"
+                                          cx="12"
+                                          cy="12"
+                                          r="10"
+                                          stroke="currentColor"
+                                          stroke-width="4"
+                                        ></circle>
+                                        <path
+                                          class="opacity-75"
+                                          fill="currentColor"
+                                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                                        ></path>
+                                      </svg>
+                                    }
+                                    {{ updatingCredits ? "Updating..." : "Update Credits" }}
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        }
+                        <!-- Credit Requests Modal Component -->
+                        <app-credit-requests-modal
+                          [isVisible]="showCreditRequestsModal"
+                          (closeModal)="closeCreditRequestsModal()"
+                        ></app-credit-requests-modal>

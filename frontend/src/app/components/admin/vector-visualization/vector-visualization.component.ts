@@ -1,5 +1,5 @@
 import { Component, OnInit } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { FormsModule } from '@angular/forms';
 import { VectorVisualizationService } from '../../../services/admin/vector-visualization.service';
 import { shouldUseMockData } from '../../../utils/role.utils';
@@ -20,7 +20,7 @@ interface VectorPoint {
 @Component({
   selector: 'app-vector-visualization',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [FormsModule],
   providers: [VectorVisualizationService],
   templateUrl: './vector-visualization.component.html',
 })
