@@ -15,7 +15,11 @@ import {
   shouldUseMockData,
   getCurrentUserRole,
 } from '../../../utils/role.utils';
-import { Handshake, LucideAngularModule, ArrowLeft } from 'lucide-angular';
+import {
+  LucideDynamicIcon,
+  LucideHandshake as Handshake,
+  LucideArrowLeft as ArrowLeft,
+} from '@lucide/angular';
 import { BulkUploadComponent } from '../../../components/admin/bulk-upload/bulk-upload.component';
 import { ApplicationStatusComponent } from '../../../components/admin/application-status/application-status.component';
 import { VectorVisualizationComponent } from '../../../components/admin/vector-visualization/vector-visualization.component';
@@ -36,7 +40,7 @@ import { UsageMapComponent } from '../../../components/admin/usage-map/usage-map
     ApplicationStatusComponent,
     VectorVisualizationComponent,
     UsageMapComponent,
-    LucideAngularModule,
+    LucideDynamicIcon,
   ],
   templateUrl: './dashboard.component.html',
   styles: ``,

@@ -2,18 +2,18 @@ import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import {
-  AudioLines,
-  ClipboardCheck,
-  KeyRound,
-  LucideAngularModule,
-  Users,
-  Wallet,
-  FileText,
-  Upload,
-  Activity,
-  Scale3D,
-  Globe
-} from 'lucide-angular';
+  LucideDynamicIcon,
+  LucideAudioLines as AudioLines,
+  LucideClipboardCheck as ClipboardCheck,
+  LucideKeyRound as KeyRound,
+  LucideUsers as Users,
+  LucideWallet as Wallet,
+  LucideFileText as FileText,
+  LucideUpload as Upload,
+  LucideActivity as Activity,
+  LucideScale3D as Scale3D,
+  LucideGlobe as Globe,
+} from '@lucide/angular';
 import { Router } from '@angular/router';
 import { ProfileService } from '../../../services/auth/profile.service';
 import { AdminAuthService } from '../../../services/admin/admin.auth.service';
@@ -30,7 +30,7 @@ export interface SidebarItem {
 
 @Component({
   selector: 'app-sidebar',
-  imports: [CommonModule, FormsModule, LucideAngularModule],
+  imports: [CommonModule, FormsModule, LucideDynamicIcon],
   providers: [],
   templateUrl: './sidebar.component.html',
   styles: ``,

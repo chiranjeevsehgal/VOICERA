@@ -82,16 +82,16 @@
               }"
                 >
                 @if (item.icon) {
-                  <lucide-icon
-                    [img]="item.icon"
+                  <svg
+                    [lucideIcon]="item.icon"
                     class="w-full h-full"
-                  ></lucide-icon>
+                  ></svg>
                 } @else {
                   @if (item.iconName) {
-                    <lucide-icon
-                      [name]="item.iconName"
+                    <svg
+                      [lucideIcon]="item.iconName"
                       class="w-full h-full"
-                    ></lucide-icon>
+                    ></svg>
                   }
                 }
               </div>

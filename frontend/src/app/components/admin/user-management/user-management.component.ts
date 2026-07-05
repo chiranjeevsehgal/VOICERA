@@ -2,7 +2,12 @@ import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { User, UserService } from '../../../services/admin/user.service';
-import { LucideAngularModule, Check, X, Users } from 'lucide-angular';
+import {
+  LucideDynamicIcon,
+  LucideCheck as Check,
+  LucideX as X,
+  LucideUsers as Users,
+} from '@lucide/angular';
 import {
   getCurrentUserRole,
   shouldUseMockData,
@@ -18,7 +23,7 @@ import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
   imports: [
     CommonModule,
     FormsModule,
-    LucideAngularModule,
+    LucideDynamicIcon,
   ],
   providers: [UserService],
   templateUrl: './user-management.component.html',

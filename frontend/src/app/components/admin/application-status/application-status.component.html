@@ -51,10 +51,10 @@
             [disabled]="refreshing"
             class="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-xs sm:text-sm leading-4 font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200 cursor-pointer"
             >
-            <lucide-angular
-              [img]="RefreshCw"
+            <svg
+              [lucideIcon]="RefreshCw"
               [class]="'w-4 h-4 mr-2 ' + (refreshing ? 'animate-spin' : '')"
-            ></lucide-angular>
+            ></svg>
             {{ refreshing ? "Refreshing..." : "Refresh" }}
           </button>
         </div>
@@ -71,10 +71,10 @@
             >
             <div class="flex items-center">
               <div class="flex-shrink-0">
-                <lucide-angular
-                  [img]="getSystemHealthStatus().icon"
+                <svg
+                  [lucideIcon]="getSystemHealthStatus().icon"
                   [class]="'w-6 h-6 sm:w-8 sm:h-8 ' + getSystemHealthStatus().color"
-                ></lucide-angular>
+                ></svg>
               </div>
               <div class="ml-3 sm:ml-4 min-w-0 flex-1">
                 <p class="text-xs sm:text-sm font-medium text-gray-500">
@@ -98,10 +98,10 @@
               >
               <div class="flex items-center">
                 <div class="flex-shrink-0">
-                  <lucide-angular
-                    [img]="Shield"
+                  <svg
+                    [lucideIcon]="Shield"
                     class="w-6 h-6 sm:w-8 sm:h-8 text-blue-600"
-                  ></lucide-angular>
+                  ></svg>
                 </div>
                 <div class="ml-3 sm:ml-4 min-w-0 flex-1">
                   <p class="text-xs sm:text-sm font-medium text-gray-500">
@@ -124,10 +124,10 @@
               >
               <div class="flex items-center">
                 <div class="flex-shrink-0">
-                  <lucide-angular
-                    [img]="Zap"
+                  <svg
+                    [lucideIcon]="Zap"
                     class="w-6 h-6 sm:w-8 sm:h-8 text-yellow-600"
-                  ></lucide-angular>
+                  ></svg>
                 </div>
                 <div class="ml-3 sm:ml-4 min-w-0 flex-1">
                   <p class="text-xs sm:text-sm font-medium text-gray-500">
@@ -147,10 +147,10 @@
             >
             <div class="flex items-center">
               <div class="flex-shrink-0">
-                <lucide-angular
-                  [img]="Clock"
+                <svg
+                  [lucideIcon]="Clock"
                   class="w-6 h-6 sm:w-8 sm:h-8 text-gray-600"
-                ></lucide-angular>
+                ></svg>
               </div>
               <div class="ml-3 sm:ml-4 min-w-0 flex-1">
                 <p class="text-xs sm:text-sm font-medium text-gray-500">
@@ -177,10 +177,10 @@
             class="px-4 sm:px-6 py-4 border-b border-gray-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3"
             >
             <div class="flex items-center">
-              <lucide-angular
-                [img]="Shield"
+              <svg
+                [lucideIcon]="Shield"
                 class="w-5 h-5 text-blue-600 mr-2"
-              ></lucide-angular>
+              ></svg>
               <h3 class="text-base sm:text-lg font-medium text-gray-900">
                 Circuit Breakers
               </h3>
@@ -197,12 +197,12 @@
         "
               class="inline-flex items-center px-3 py-2 border border-transparent text-xs sm:text-sm leading-4 font-medium rounded-lg text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200 cursor-pointer w-full sm:w-auto justify-center"
               >
-              <lucide-angular
-                [img]="RefreshCw"
+              <svg
+                [lucideIcon]="RefreshCw"
           [class]="
             'w-4 h-4 mr-2 ' + (resettingCircuitBreakers ? 'animate-spin' : '')
           "
-              ></lucide-angular>
+              ></svg>
               {{ resettingCircuitBreakers ? "Resetting..." : "Reset All" }}
             </button>
           </div>
@@ -215,8 +215,8 @@
                 >
                 <div class="flex flex-col sm:flex-row sm:items-start gap-3">
                   <div class="flex items-center sm:flex-shrink-0">
-                    <lucide-angular
-              [img]="
+                    <svg
+              [lucideIcon]="
                 getCircuitBreakerStateIcon(
                   circuitBreakers.circuit_breakers[cbName].state
                 )
@@ -227,7 +227,7 @@
                   circuitBreakers.circuit_breakers[cbName].state
                 ).split(' ')[0]
               "
-                    ></lucide-angular>
+                    ></svg>
                     <h4 class="text-sm font-medium text-gray-900 min-w-0 flex-1">
                       {{ cbName }}
                     </h4>
@@ -332,10 +332,10 @@
               >
               <div class="px-4 sm:px-6 py-4 border-b border-gray-200">
                 <div class="flex items-center">
-                  <lucide-angular
-                    [img]="Zap"
+                  <svg
+                    [lucideIcon]="Zap"
                     class="w-5 h-5 text-yellow-600 mr-2"
-                  ></lucide-angular>
+                  ></svg>
                   <h3 class="text-base sm:text-lg font-medium text-gray-900">
                     Rate Limiting Configuration
                   </h3>
